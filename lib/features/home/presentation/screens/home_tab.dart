@@ -11,6 +11,7 @@ import '../../providers/home_dashboard_provider.dart';
 import '../../providers/home_search_provider.dart';
 import '../../../profile/providers/user_profile_provider.dart';
 import '../../../../shared/utils/avatar_utils.dart';
+import '../../../ride_details/providers/create_ride_provider.dart';
 
 class HomeTab extends ConsumerWidget {
   const HomeTab({super.key});
@@ -159,32 +160,37 @@ class HomeTab extends ConsumerWidget {
               ],
             ),
           ),
-          Container(
-            width: 40,
-            height: 40,
-            margin: const EdgeInsets.only(right: 18),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF202020) : const Color(0xFFF7F4EE),
-              shape: BoxShape.circle,
-              border: Border.all(color: borderColor),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: getAvatarImageProvider(user?.profileImage) != null
-                ? Image(
-                    image: getAvatarImageProvider(user!.profileImage)!,
-                    fit: BoxFit.cover,
-                  )
-                : Center(
-                    child: Text(
-                      user?.name.isNotEmpty == true
-                          ? user!.name[0].toUpperCase()
-                          : '?',
-                      style: GoogleFonts.inter(
-                        color: textPrimary,
-                        fontWeight: FontWeight.bold,
+          GestureDetector(
+            onTap: () => context.push('/profile'),
+            child: Container(
+              width: 40,
+              height: 40,
+              margin: const EdgeInsets.only(right: 18),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF202020)
+                    : const Color(0xFFF7F4EE),
+                shape: BoxShape.circle,
+                border: Border.all(color: borderColor),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: getAvatarImageProvider(user?.profileImage) != null
+                  ? Image(
+                      image: getAvatarImageProvider(user!.profileImage)!,
+                      fit: BoxFit.cover,
+                    )
+                  : Center(
+                      child: Text(
+                        user?.name.isNotEmpty == true
+                            ? user!.name[0].toUpperCase()
+                            : '?',
+                        style: GoogleFonts.inter(
+                          color: textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
+            ),
           ),
         ],
       ),
@@ -355,7 +361,8 @@ class HomeTab extends ConsumerWidget {
                           height: 54,
                           width: double.infinity,
                           child: FilledButton(
-                            onPressed: () => context.push('/create-ride'),
+                            onPressed: () =>
+                                _handleCreateRideCTA(context, ref, searchState),
                             style: FilledButton.styleFrom(
                               backgroundColor: primaryColor,
                               foregroundColor: const Color(0xFF121212),
@@ -391,15 +398,10 @@ class HomeTab extends ConsumerWidget {
                   crossAxisCount: 2,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  childAspectRatio: 1.32,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 1.05,
                   children: [
-                    _ActionCard(
-                      icon: Icons.add_road,
-                      label: 'Create Ride',
-                      onTap: () => context.push('/create-ride'),
-                    ),
                     _ActionCard(
                       icon: Icons.search_rounded,
                       label: 'Find Ride',
@@ -469,27 +471,14 @@ class HomeTab extends ConsumerWidget {
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              const SizedBox(height: 18),
-                              SizedBox(
-                                width: 180,
-                                height: 48,
-                                child: FilledButton(
-                                  onPressed: () => context.push('/create-ride'),
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: primaryColor,
-                                    foregroundColor: const Color(0xFF121212),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    padding: EdgeInsets.zero,
-                                  ),
-                                  child: Text(
-                                    'Create Ride',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Your active rides will appear here.',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  color: textSecondary,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
@@ -751,13 +740,67 @@ class HomeTab extends ConsumerWidget {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.large(
-        onPressed: () => context.push('/create-ride'),
-        backgroundColor: primaryColor,
-        foregroundColor: const Color(0xFF121212),
-        elevation: 6,
-        tooltip: 'Create Ride',
-        child: const Icon(Icons.add_road, size: 30),
+    );
+  }
+
+  void _handleCreateRideCTA(
+    BuildContext context,
+    WidgetRef ref,
+    HomeSearchState searchState,
+  ) {
+    final boarding = searchState.boarding.trim();
+    final destination = searchState.destination.trim();
+
+    if (boarding.isEmpty || destination.isEmpty) {
+      _showValidationMessage(
+        context,
+        'Please add your boarding and destination before creating a ride.',
+      );
+      return;
+    }
+
+    if (boarding.toLowerCase() == destination.toLowerCase()) {
+      _showValidationMessage(
+        context,
+        'Boarding and destination should be different locations.',
+      );
+      return;
+    }
+
+    if (searchState.departureDate == null) {
+      _showValidationMessage(
+        context,
+        'Please choose a departure date before creating a ride.',
+      );
+      return;
+    }
+
+    final notifier = ref.read(createRideProvider.notifier);
+    notifier.updateBoardingLocation(boarding);
+    notifier.updateDestinationLocation(destination);
+    notifier.updateDepartureDate(searchState.departureDate!);
+    notifier.updateAvailableSeats(searchState.passengers);
+    notifier.toggleGirlsOnly(searchState.girlsOnly);
+
+    context.push('/create-ride');
+  }
+
+  void _showValidationMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF202020),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        margin: const EdgeInsets.all(16),
+        action: SnackBarAction(
+          label: 'Okay',
+          textColor: const Color(0xFFFFC400),
+          onPressed: () {},
+        ),
       ),
     );
   }
@@ -951,16 +994,16 @@ class _ActionCard extends StatelessWidget {
           border: Border.all(color: borderColor, width: 1.1),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: iconBg,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
