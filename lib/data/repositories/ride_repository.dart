@@ -67,35 +67,39 @@ class RideRepository {
   /// Cancels a ride by setting its status to 'cancelled'.
   Future<Result<void>> cancelRide(String rideId) async {
     _locallyCancelledRideIds.add(rideId);
-//hello bug fixes
 
-    // 1. Try updating document status in Firestore
+    // Run remote Firestore update & notification delivery asynchronously in background
+    unawaited(_performRemoteCancellation(rideId));
+
+    return const Success(null);
+  }
+
+  Future<void> _performRemoteCancellation(String rideId) async {
     try {
       await _firestoreService.ridesCollection.doc(rideId).update({
         'status': 'cancelled',
-      });
+      }).timeout(const Duration(seconds: 3));
     } on FirebaseException catch (e) {
       if (e.code == 'permission-denied') {
         try {
           await _firestoreService.ridesCollection.doc(rideId).set({
             'status': 'cancelled',
-          }, SetOptions(merge: true));
+          }, SetOptions(merge: true)).timeout(const Duration(seconds: 3));
         } catch (_) {
           debugPrint('Firestore permission denied for $rideId; completing cancellation locally.');
         }
-      } else {
-        return Failure(e.message ?? 'Failed to cancel ride (${e.code}).', FirestoreException(e.code));
       }
     } catch (e) {
-      return Failure('An unexpected error occurred: ${e.toString()}', Exception(e.toString()));
+      debugPrint('Remote cancellation failed for $rideId: $e');
     }
 
-    // 2. Notify any accepted passengers
+    // Notify any accepted passengers
     try {
       final reqSnapshot = await _firestoreService.rideRequestsCollection
           .where('rideId', isEqualTo: rideId)
           .where('status', isEqualTo: 'accepted')
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 3));
 
       for (final doc in reqSnapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
@@ -116,8 +120,6 @@ class RideRepository {
     } catch (e) {
       debugPrint('Failed to send cancellation notifications: $e');
     }
-
-    return const Success(null);
   }
 
   /// Permanently deletes a ride document and cleans up associated requests.
