@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 
 import '../../core/services/firestore_service.dart';
@@ -15,13 +16,35 @@ class RideRepository {
   final NotificationRepository _notificationRepo;
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
+  static const String _kCancelledRideIdsKey = 'cancelled_ride_ids';
+  final Set<String> _locallyCancelledRideIds = {};
+
   RideRepository({
     FirestoreService? firestoreService,
     NotificationRepository? notificationRepo,
   })  : _firestoreService = firestoreService ?? FirestoreService(),
-        _notificationRepo = notificationRepo ?? NotificationRepository();
+        _notificationRepo = notificationRepo ?? NotificationRepository() {
+    _loadCancelledRideIds();
+  }
 
-  final Set<String> _locallyCancelledRideIds = {};
+  Future<void> _loadCancelledRideIds() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getStringList(_kCancelledRideIdsKey) ?? [];
+      _locallyCancelledRideIds.addAll(saved);
+    } catch (e) {
+      debugPrint('Error loading cancelled ride IDs: $e');
+    }
+  }
+
+  Future<void> _saveCancelledRideIds() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_kCancelledRideIdsKey, _locallyCancelledRideIds.toList());
+    } catch (e) {
+      debugPrint('Error saving cancelled ride IDs: $e');
+    }
+  }
 
   /// Creates a new ride and saves it to Firestore.
   Future<Result<String>> createRide(RideModel ride) async {
@@ -49,7 +72,10 @@ class RideRepository {
     return _firestoreService.ridesCollection
         .where('driverId', isEqualTo: driverId)
         .snapshots()
-        .map((snapshot) {
+        .asyncMap((snapshot) async {
+          if (_locallyCancelledRideIds.isEmpty) {
+            await _loadCancelledRideIds();
+          }
           final list = snapshot.docs
               .map((doc) {
                 final ride = RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
@@ -67,6 +93,7 @@ class RideRepository {
   /// Cancels a ride by setting its status to 'cancelled'.
   Future<Result<void>> cancelRide(String rideId) async {
     _locallyCancelledRideIds.add(rideId);
+    unawaited(_saveCancelledRideIds());
 
     // Run remote Firestore update & notification delivery asynchronously in background
     unawaited(_performRemoteCancellation(rideId));
