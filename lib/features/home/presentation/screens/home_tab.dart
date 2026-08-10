@@ -195,12 +195,11 @@ class HomeTab extends ConsumerWidget {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
                 const SizedBox(height: 10),
                 AnimatedOpacity(
                   opacity: 1,
@@ -394,28 +393,35 @@ class HomeTab extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 1.05,
+                Column(
                   children: [
-                    _ActionCard(
-                      icon: Icons.search_rounded,
-                      label: 'Find Ride',
-                      onTap: () => context.push('/search-ride'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _ActionCard(
+                            icon: Icons.search_rounded,
+                            label: 'Find Ride',
+                            onTap: () => context.push('/search-ride'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _ActionCard(
+                            icon: Icons.directions_car_rounded,
+                            label: 'My Rides',
+                            onTap: () => context.push('/my-rides'),
+                          ),
+                        ),
+                      ],
                     ),
-                    _ActionCard(
-                      icon: Icons.directions_car_rounded,
-                      label: 'My Rides',
-                      onTap: () => context.push('/my-rides'),
-                    ),
-                    _ActionCard(
-                      icon: Icons.people_alt_rounded,
-                      label: 'Driver Directory',
-                      onTap: () => context.push('/driver-directory'),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: _ActionCard(
+                        icon: Icons.people_alt_rounded,
+                        label: 'Driver Directory',
+                        onTap: () => context.push('/driver-directory'),
+                      ),
                     ),
                   ],
                 ),
@@ -737,7 +743,6 @@ class HomeTab extends ConsumerWidget {
                 const SizedBox(height: 24),
               ],
             ),
-          ),
         ),
       ),
     );
@@ -988,6 +993,7 @@ class _ActionCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(22),
       child: Container(
+        width: double.infinity,
         decoration: BoxDecoration(
           color: cardBg,
           borderRadius: BorderRadius.circular(22),
@@ -997,6 +1003,7 @@ class _ActionCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 40,
@@ -1013,7 +1020,7 @@ class _ActionCard extends StatelessWidget {
                   size: 22,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 14),
               Text(
                 label,
                 style: GoogleFonts.inter(
