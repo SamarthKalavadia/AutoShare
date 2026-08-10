@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/utils/result.dart';
 import 'providers/create_ride_provider.dart';
 import 'widgets/create_ride_form.dart';
 
@@ -148,14 +149,27 @@ class CreateRidePage extends ConsumerWidget {
                   width: double.infinity,
                   height: 56,
                   child: FilledButton(
-                    onPressed: state.isValid && !state.isLoading
-                        ? () async {
-                            final success = await notifier.publishRide();
-                            if (success && context.mounted) {
+                    onPressed: state.isLoading
+                        ? null
+                        : () async {
+                            final result = await notifier.publishRide();
+                            if (!context.mounted) return;
+                            
+                            if (result is Success<String>) {
                               _showSuccessDialog(context);
+                            } else if (result is Failure<String>) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(result.message),
+                                  backgroundColor: dangerColor,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              );
                             }
-                          }
-                        : null,
+                          },
                     style: FilledButton.styleFrom(
                       backgroundColor: primaryColor,
                       foregroundColor: blackColor,

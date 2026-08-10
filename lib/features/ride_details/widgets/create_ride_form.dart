@@ -32,6 +32,7 @@ class CreateRideForm extends ConsumerWidget {
           hint: 'Boarding location',
           icon: Icons.trip_origin,
           iconColor: successColor,
+          onChanged: notifier.updateBoardingLocation,
           onPlaceSelected: (prediction, details) async {
             notifier.updateBoardingLocation(prediction.description);
             notifier.updateBoardingDetails(
@@ -50,6 +51,7 @@ class CreateRideForm extends ConsumerWidget {
           hint: 'Destination',
           icon: Icons.location_on,
           iconColor: dangerColor,
+          onChanged: notifier.updateDestinationLocation,
           onPlaceSelected: (prediction, details) async {
             notifier.updateDestinationLocation(prediction.description);
             notifier.updateDestinationDetails(

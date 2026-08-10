@@ -27,6 +27,7 @@ class LocationAutocompleteField extends StatefulWidget {
   final String hint;
   final IconData icon;
   final Color iconColor;
+  final ValueChanged<String>? onChanged;
   final Future<void> Function(PlacePrediction prediction, LocationDetails details) onPlaceSelected;
 
   const LocationAutocompleteField({
@@ -35,6 +36,7 @@ class LocationAutocompleteField extends StatefulWidget {
     required this.hint,
     required this.icon,
     required this.iconColor,
+    this.onChanged,
     required this.onPlaceSelected,
   });
 
@@ -82,6 +84,7 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
   }
 
   void _onChanged(String query) {
+    widget.onChanged?.call(query);
     if (_isSelecting) return;
 
     final trimmed = query.trim();

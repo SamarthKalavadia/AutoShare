@@ -93,28 +93,42 @@ class CreateRideState {
     );
   }
 
-  bool get isValid {
-    final hasLocations = boardingLocation.trim().isNotEmpty && destination.trim().isNotEmpty;
-    final locationsDifferent = boardingLocation.trim().toLowerCase() != destination.trim().toLowerCase();
-    final hasDateTime = departureDate != null && departureTime != null;
-    final validFare = farePerSeat > 0;
-    final validSeats = availableSeats >= 1 && availableSeats <= 4;
-    
-    // Check if future time
-    bool isFutureTime = true;
-    if (hasDateTime) {
-      final combinedDateTime = DateTime(
-        departureDate!.year,
-        departureDate!.month,
-        departureDate!.day,
-        departureTime!.hour,
-        departureTime!.minute,
-      );
-      isFutureTime = combinedDateTime.isAfter(DateTime.now());
+  String? get validationError {
+    if (boardingLocation.trim().isEmpty) {
+      return 'Please enter a boarding location';
     }
-
-    return hasLocations && locationsDifferent && hasDateTime && isFutureTime && validFare && validSeats;
+    if (destination.trim().isEmpty) {
+      return 'Please enter a destination';
+    }
+    if (boardingLocation.trim().toLowerCase() == destination.trim().toLowerCase()) {
+      return 'Boarding location and destination cannot be the same';
+    }
+    if (departureDate == null) {
+      return 'Please select a departure date';
+    }
+    if (departureTime == null) {
+      return 'Please select a departure time';
+    }
+    final combinedDateTime = DateTime(
+      departureDate!.year,
+      departureDate!.month,
+      departureDate!.day,
+      departureTime!.hour,
+      departureTime!.minute,
+    );
+    if (combinedDateTime.isBefore(DateTime.now().subtract(const Duration(minutes: 5)))) {
+      return 'Departure time must be in the future';
+    }
+    if (availableSeats < 1 || availableSeats > 4) {
+      return 'Available seats must be between 1 and 4';
+    }
+    if (farePerSeat < 0) {
+      return 'Fare per seat cannot be negative';
+    }
+    return null;
   }
+
+  bool get isValid => validationError == null;
 }
 
 class CreateRideNotifier extends Notifier<CreateRideState> {
@@ -189,21 +203,24 @@ class CreateRideNotifier extends Notifier<CreateRideState> {
     state = state.copyWith(isGirlsOnly: value);
   }
 
-  Future<bool> publishRide() async {
-    if (!state.isValid) return false;
+  Future<Result<String>> publishRide() async {
+    final validationErr = state.validationError;
+    if (validationErr != null) {
+      return Failure(validationErr, Exception(validationErr));
+    }
 
     state = state.copyWith(isLoading: true);
 
     final user = ref.read(authControllerProvider).value;
     if (user == null) {
       state = state.copyWith(isLoading: false);
-      return false;
+      return Failure('User not logged in. Please sign in to create a ride.', Exception('Unauthenticated'));
     }
 
     final ride = RideModel(
       id: '',
       driverId: user.uid,
-      driverName: user.name,
+      driverName: user.name.isNotEmpty ? user.name : 'Driver',
       driverRating: user.averageRating,
       boardingLocation: state.boardingLocation,
       destination: state.destination,
@@ -229,10 +246,9 @@ class CreateRideNotifier extends Notifier<CreateRideState> {
     if (result is Success<String>) {
       // Schedule background reminders
       await NotificationService().scheduleRideReminder(result.data, ride.departureTime);
-      return true;
     }
 
-    return false;
+    return result;
   }
 }
 

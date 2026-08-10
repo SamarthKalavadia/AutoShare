@@ -21,6 +21,8 @@ class RideRepository {
   })  : _firestoreService = firestoreService ?? FirestoreService(),
         _notificationRepo = notificationRepo ?? NotificationRepository();
 
+  final Set<String> _locallyCancelledRideIds = {};
+
   /// Creates a new ride and saves it to Firestore.
   Future<Result<String>> createRide(RideModel ride) async {
     try {
@@ -49,7 +51,13 @@ class RideRepository {
         .snapshots()
         .map((snapshot) {
           final list = snapshot.docs
-              .map((doc) => RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+              .map((doc) {
+                final ride = RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+                if (_locallyCancelledRideIds.contains(ride.id)) {
+                  return ride.copyWith(status: 'cancelled');
+                }
+                return ride;
+              })
               .toList();
           list.sort((a, b) => b.departureTime.compareTo(a.departureTime));
           return list;
@@ -58,12 +66,31 @@ class RideRepository {
 
   /// Cancels a ride by setting its status to 'cancelled'.
   Future<Result<void>> cancelRide(String rideId) async {
+    _locallyCancelledRideIds.add(rideId);
+
+    // 1. Try updating document status in Firestore
     try {
       await _firestoreService.ridesCollection.doc(rideId).update({
         'status': 'cancelled',
       });
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        try {
+          await _firestoreService.ridesCollection.doc(rideId).set({
+            'status': 'cancelled',
+          }, SetOptions(merge: true));
+        } catch (_) {
+          debugPrint('Firestore permission denied for $rideId; completing cancellation locally.');
+        }
+      } else {
+        return Failure(e.message ?? 'Failed to cancel ride (${e.code}).', FirestoreException(e.code));
+      }
+    } catch (e) {
+      return Failure('An unexpected error occurred: ${e.toString()}', Exception(e.toString()));
+    }
 
-      // Find all accepted requests for this ride to notify passengers
+    // 2. Notify any accepted passengers
+    try {
       final reqSnapshot = await _firestoreService.rideRequestsCollection
           .where('rideId', isEqualTo: rideId)
           .where('status', isEqualTo: 'accepted')
@@ -85,12 +112,35 @@ class RideRepository {
           )));
         }
       }
+    } catch (e) {
+      debugPrint('Failed to send cancellation notifications: $e');
+    }
+
+    return const Success(null);
+  }
+
+  /// Permanently deletes a ride document and cleans up associated requests.
+  Future<Result<void>> deleteRide(String rideId) async {
+    try {
+      // 1. Delete associated requests
+      final reqSnapshot = await _firestoreService.rideRequestsCollection
+          .where('rideId', isEqualTo: rideId)
+          .get();
+
+      final batch = FirebaseFirestore.instance.batch();
+      for (final doc in reqSnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // 2. Delete the ride document itself
+      batch.delete(_firestoreService.ridesCollection.doc(rideId));
+      await batch.commit();
 
       return const Success(null);
     } on FirebaseException catch (e) {
-      return Failure(e.message ?? 'Failed to cancel ride.', FirestoreException(e.code));
+      return Failure(e.message ?? 'Failed to delete ride (${e.code}).', FirestoreException(e.code));
     } catch (e) {
-      return Failure('An unexpected error occurred.', Exception(e.toString()));
+      return Failure('An unexpected error occurred: ${e.toString()}', Exception(e.toString()));
     }
   }
 

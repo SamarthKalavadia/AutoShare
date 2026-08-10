@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/utils/result.dart';
 import 'providers/my_rides_provider.dart';
 import 'widgets/my_ride_card.dart';
 
@@ -186,6 +187,7 @@ class _RideListView extends ConsumerWidget {
 
           // Determine callbacks
           VoidCallback? onCancel;
+
           if (data.role == 'driver' && data.displayStatus == 'active' && !data.isPast) {
             onCancel = () => _handleCancelRide(context, ref, data);
           } else if (data.role == 'passenger' && (data.displayStatus == 'pending' || data.displayStatus == 'joined') && !data.isPast) {
@@ -200,7 +202,6 @@ class _RideListView extends ConsumerWidget {
             onCancel: onCancel,
             onTrack: data.role == 'passenger' && data.displayStatus == 'pending'
                 ? () {
-                    // TODO: Optional track status UI
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Your request is still pending approval.')),
                     );
@@ -229,37 +230,84 @@ class _RideListView extends ConsumerWidget {
   }
 
   void _handleCancelRide(BuildContext context, WidgetRef ref, MyRideData data) async {
-    try {
-      await ref.read(rideActionProvider.notifier).cancelMyRide(data.ride.id);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ride cancelled successfully.')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to cancel ride: $e')),
-        );
-      }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Cancel Ride', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+        content: Text('Are you sure you want to cancel this ride?', style: GoogleFonts.inter()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Cancel Ride'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final result = await ref.read(rideActionProvider.notifier).cancelMyRide(data.ride.id);
+    if (!context.mounted) return;
+
+    if (result is Success<void>) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ride cancelled successfully.')),
+      );
+      ref.invalidate(myRidesProvider);
+    } else if (result is Failure<void>) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to cancel ride: ${result.message}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   void _handleCancelRequest(BuildContext context, WidgetRef ref, MyRideData data) async {
     if (data.request == null) return;
-    try {
-      await ref.read(rideActionProvider.notifier).cancelMyRequest(data.request!);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Request cancelled successfully.')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to cancel request: $e')),
-        );
-      }
+    
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Cancel Request', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+        content: Text('Are you sure you want to cancel your ride request?', style: GoogleFonts.inter()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Cancel Request'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final result = await ref.read(rideActionProvider.notifier).cancelMyRequest(data.request!);
+    if (!context.mounted) return;
+
+    if (result is Success<void>) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Request cancelled successfully.')),
+      );
+      ref.invalidate(myRidesProvider);
+    } else if (result is Failure<void>) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to cancel request: ${result.message}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }

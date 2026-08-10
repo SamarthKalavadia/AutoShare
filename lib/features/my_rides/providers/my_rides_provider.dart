@@ -83,16 +83,25 @@ class RideActionNotifier extends Notifier<bool> {
   @override
   bool build() => false;
 
-  Future<void> cancelMyRide(String rideId) async {
+  Future<Result<void>> cancelMyRide(String rideId) async {
     state = true;
-    await ref.read(rideRepositoryProvider).cancelRide(rideId);
+    final res = await ref.read(rideRepositoryProvider).cancelRide(rideId);
     state = false;
+    return res;
   }
 
-  Future<void> cancelMyRequest(RideRequestModel request) async {
+  Future<Result<void>> deleteMyRide(String rideId) async {
     state = true;
-    await ref.read(rideRequestRepositoryProvider).cancelRequest(request);
+    final res = await ref.read(rideRepositoryProvider).deleteRide(rideId);
     state = false;
+    return res;
+  }
+
+  Future<Result<void>> cancelMyRequest(RideRequestModel request) async {
+    state = true;
+    final res = await ref.read(rideRequestRepositoryProvider).cancelRequest(request);
+    state = false;
+    return res;
   }
 }
 
