@@ -20,19 +20,24 @@ class HomeTab extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final primaryColor = theme.colorScheme.primary;
-    final blackColor = theme.colorScheme.onSurface;
-    final backgroundColor = theme.scaffoldBackgroundColor;
-    final cardColor = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : const Color(0xFFFFFFFF));
-    const successColor = Color(0xFF2E7D32);
-    const dangerColor = Color(0xFFD32F2F);
-    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
-    final softShadow = BoxShadow(
-      color: isDark ? const Color(0x33000000) : const Color(0x1A121212),
-      blurRadius: 18,
-      offset: const Offset(0, 8),
-    );
+    final primaryColor = isDark
+        ? const Color(0xFFFFC400)
+        : theme.colorScheme.primary;
+    final backgroundColor = isDark
+        ? const Color(0xFF0F0F0F)
+        : theme.scaffoldBackgroundColor;
+    final cardColor = isDark
+        ? const Color(0xFF181818)
+        : (theme.cardTheme.color ?? const Color(0xFFFFFFFF));
+    final borderColor = isDark
+        ? const Color(0xFF2A2A2A)
+        : const Color(0xFFEAE5DD);
+    final textPrimary = isDark
+        ? const Color(0xFFFFFFFF)
+        : theme.colorScheme.onSurface;
+    final textSecondary = isDark
+        ? const Color(0xFFA1A1A1)
+        : const Color(0xFF6F6F72);
 
     final user = ref.watch(authControllerProvider).value;
     final searchState = ref.watch(homeSearchProvider);
@@ -77,7 +82,7 @@ class HomeTab extends ConsumerWidget {
                     greeting,
                     style: GoogleFonts.inter(
                       fontSize: 13,
-                      color: mutedText,
+                      color: textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -85,8 +90,8 @@ class HomeTab extends ConsumerWidget {
                   Text(
                     user?.name.split(' ').first ?? 'Guest',
                     style: GoogleFonts.inter(
-                      fontSize: 24,
-                      color: blackColor,
+                      fontSize: 22,
+                      color: textPrimary,
                       fontWeight: FontWeight.w700,
                       height: 1.1,
                     ),
@@ -107,16 +112,15 @@ class HomeTab extends ConsumerWidget {
                   height: 40,
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
-                    color: cardColor,
+                    color: isDark
+                        ? const Color(0xFF202020)
+                        : const Color(0xFFF7F4EE),
                     shape: BoxShape.circle,
                     border: Border.all(color: borderColor),
-                    boxShadow: [
-                      BoxShadow(color: isDark ? const Color(0x33000000) : const Color(0x0F121212), blurRadius: 12),
-                    ],
                   ),
                   child: Icon(
                     Icons.notifications_outlined,
-                    color: blackColor,
+                    color: textPrimary,
                     size: 20,
                   ),
                 ),
@@ -128,11 +132,17 @@ class HomeTab extends ConsumerWidget {
                       right: 4,
                       top: -2,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFF4444),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: backgroundColor, width: 1.5),
+                          border: Border.all(
+                            color: backgroundColor,
+                            width: 1.5,
+                          ),
                         ),
                         child: Text(
                           count > 99 ? '99+' : '$count',
@@ -154,8 +164,9 @@ class HomeTab extends ConsumerWidget {
             height: 40,
             margin: const EdgeInsets.only(right: 18),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFE7E4DF),
+              color: isDark ? const Color(0xFF202020) : const Color(0xFFF7F4EE),
               shape: BoxShape.circle,
+              border: Border.all(color: borderColor),
             ),
             clipBehavior: Clip.antiAlias,
             child: getAvatarImageProvider(user?.profileImage) != null
@@ -165,8 +176,13 @@ class HomeTab extends ConsumerWidget {
                   )
                 : Center(
                     child: Text(
-                      user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : '?',
-                      style: GoogleFonts.inter(color: blackColor, fontWeight: FontWeight.bold),
+                      user?.name.isNotEmpty == true
+                          ? user!.name[0].toUpperCase()
+                          : '?',
+                      style: GoogleFonts.inter(
+                        color: textPrimary,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
           ),
@@ -191,7 +207,7 @@ class HomeTab extends ConsumerWidget {
                       'Share rides. Save money. Travel together.',
                       style: GoogleFonts.inter(
                         fontSize: 13,
-                        color: mutedText,
+                        color: textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -206,25 +222,38 @@ class HomeTab extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color: cardColor,
                       borderRadius: BorderRadius.circular(24),
-                      boxShadow: [softShadow],
-                      border: Border.all(color: borderColor),
+                      border: Border.all(color: borderColor, width: 1.1),
                     ),
                     child: Column(
                       children: [
                         _searchField(
                           label: 'Boarding Location',
                           icon: Icons.trip_origin,
-                          color: successColor,
-                          value: searchState.boarding.isEmpty ? 'Where from?' : searchState.boarding,
-                          onTap: () => _showInputDialog(context, ref, 'boarding', searchState.boarding),
+                          color: primaryColor,
+                          value: searchState.boarding.isEmpty
+                              ? 'Where from?'
+                              : searchState.boarding,
+                          onTap: () => _showInputDialog(
+                            context,
+                            ref,
+                            'boarding',
+                            searchState.boarding,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         _searchField(
                           label: 'Destination',
                           icon: Icons.location_on,
-                          color: dangerColor,
-                          value: searchState.destination.isEmpty ? 'Where to?' : searchState.destination,
-                          onTap: () => _showInputDialog(context, ref, 'destination', searchState.destination),
+                          color: primaryColor,
+                          value: searchState.destination.isEmpty
+                              ? 'Where to?'
+                              : searchState.destination,
+                          onTap: () => _showInputDialog(
+                            context,
+                            ref,
+                            'destination',
+                            searchState.destination,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Row(
@@ -233,20 +262,28 @@ class HomeTab extends ConsumerWidget {
                               child: _searchField(
                                 label: 'Departure Date',
                                 icon: Icons.calendar_today_rounded,
-                                color: blackColor,
+                                color: primaryColor,
                                 value: searchState.departureDate == null
                                     ? 'Date'
-                                    : DateFormat('MMM d').format(searchState.departureDate!),
+                                    : DateFormat(
+                                        'MMM d',
+                                      ).format(searchState.departureDate!),
                                 compact: true,
                                 onTap: () async {
                                   final date = await showDatePicker(
                                     context: context,
-                                    initialDate: searchState.departureDate ?? DateTime.now(),
+                                    initialDate:
+                                        searchState.departureDate ??
+                                        DateTime.now(),
                                     firstDate: DateTime.now(),
-                                    lastDate: DateTime.now().add(const Duration(days: 30)),
+                                    lastDate: DateTime.now().add(
+                                      const Duration(days: 30),
+                                    ),
                                   );
                                   if (date != null) {
-                                    ref.read(homeSearchProvider.notifier).updateDate(date);
+                                    ref
+                                        .read(homeSearchProvider.notifier)
+                                        .updateDate(date);
                                   }
                                 },
                               ),
@@ -256,12 +293,15 @@ class HomeTab extends ConsumerWidget {
                               child: _searchField(
                                 label: 'Passengers',
                                 icon: Icons.group_outlined,
-                                color: blackColor,
-                                value: '${searchState.passengers} seat${searchState.passengers > 1 ? 's' : ''}',
+                                color: primaryColor,
+                                value:
+                                    '${searchState.passengers} seat${searchState.passengers > 1 ? 's' : ''}',
                                 compact: true,
                                 onTap: () {
                                   int p = searchState.passengers % 4 + 1;
-                                  ref.read(homeSearchProvider.notifier).updatePassengers(p);
+                                  ref
+                                      .read(homeSearchProvider.notifier)
+                                      .updatePassengers(p);
                                 },
                               ),
                             ),
@@ -270,28 +310,40 @@ class HomeTab extends ConsumerWidget {
                         const SizedBox(height: 14),
                         if (!isMale)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF28282A) : const Color(0xFFF6F5F3),
+                              color: isDark
+                                  ? const Color(0xFF202020)
+                                  : const Color(0xFFF7F4EE),
                               borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: borderColor),
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.female_outlined, size: 18, color: blackColor),
+                                Icon(
+                                  Icons.female_outlined,
+                                  size: 18,
+                                  color: primaryColor,
+                                ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
                                     'Girls Only Ride',
                                     style: GoogleFonts.inter(
                                       fontSize: 14,
-                                      color: blackColor,
+                                      color: textPrimary,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
                                 Switch.adaptive(
                                   value: searchState.girlsOnly,
-                                  onChanged: (val) => ref.read(homeSearchProvider.notifier).toggleGirlsOnly(val),
+                                  onChanged: (val) => ref
+                                      .read(homeSearchProvider.notifier)
+                                      .toggleGirlsOnly(val),
                                   activeThumbColor: primaryColor,
                                   activeTrackColor: primaryColor.withAlpha(180),
                                 ),
@@ -299,62 +351,27 @@ class HomeTab extends ConsumerWidget {
                             ),
                           ),
                         if (!isMale) const SizedBox(height: 18),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: SizedBox(
-                                height: 52,
-                                child: FilledButton(
-                                  onPressed: () {
-                                    // Search logic
-                                    context.push('/search-ride');
-                                  },
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: blackColor,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(18),
-                                    ),
-                                    padding: EdgeInsets.zero,
-                                  ),
-                                  child: Text(
-                                    'Find Ride',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
+                        SizedBox(
+                          height: 54,
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: () => context.push('/create-ride'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              foregroundColor: const Color(0xFF121212),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              padding: EdgeInsets.zero,
+                            ),
+                            child: Text(
+                              'Create Ride',
+                              style: GoogleFonts.inter(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: SizedBox(
-                                height: 52,
-                                child: FilledButton(
-                                  onPressed: () {
-                                    // Create logic
-                                    context.push('/create-ride');
-                                  },
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: primaryColor,
-                                    foregroundColor: blackColor,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(18),
-                                    ),
-                                    padding: EdgeInsets.zero,
-                                  ),
-                                  child: Text(
-                                    'Create Ride',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ],
                     ),
@@ -365,7 +382,7 @@ class HomeTab extends ConsumerWidget {
                   'Quick Actions',
                   style: GoogleFonts.inter(
                     fontSize: 20,
-                    color: blackColor,
+                    color: textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -405,7 +422,7 @@ class HomeTab extends ConsumerWidget {
                   'Active Ride',
                   style: GoogleFonts.inter(
                     fontSize: 20,
-                    color: blackColor,
+                    color: textPrimary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -421,8 +438,7 @@ class HomeTab extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color: cardColor,
                             borderRadius: BorderRadius.circular(24),
-                            boxShadow: [softShadow],
-                            border: Border.all(color: borderColor),
+                            border: Border.all(color: borderColor, width: 1.1),
                           ),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -431,13 +447,16 @@ class HomeTab extends ConsumerWidget {
                                 width: 88,
                                 height: 88,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF8F3E7),
+                                  color: isDark
+                                      ? const Color(0xFF202020)
+                                      : const Color(0xFFF8F3E7),
                                   borderRadius: BorderRadius.circular(26),
+                                  border: Border.all(color: borderColor),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.directions_car_rounded,
                                   size: 44,
-                                  color: Color(0xFF121212),
+                                  color: primaryColor,
                                 ),
                               ),
                               const SizedBox(height: 18),
@@ -446,7 +465,7 @@ class HomeTab extends ConsumerWidget {
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.inter(
                                   fontSize: 18,
-                                  color: blackColor,
+                                  color: textPrimary,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -458,7 +477,7 @@ class HomeTab extends ConsumerWidget {
                                   onPressed: () => context.push('/create-ride'),
                                   style: FilledButton.styleFrom(
                                     backgroundColor: primaryColor,
-                                    foregroundColor: blackColor,
+                                    foregroundColor: const Color(0xFF121212),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(16),
                                     ),
@@ -488,8 +507,7 @@ class HomeTab extends ConsumerWidget {
                         decoration: BoxDecoration(
                           color: cardColor,
                           borderRadius: BorderRadius.circular(24),
-                          boxShadow: [softShadow],
-                          border: Border.all(color: borderColor),
+                          border: Border.all(color: borderColor, width: 1.1),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -499,17 +517,22 @@ class HomeTab extends ConsumerWidget {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: [
-                                          Icon(Icons.trip_origin, size: 14, color: successColor),
+                                          Icon(
+                                            Icons.trip_origin,
+                                            size: 14,
+                                            color: primaryColor,
+                                          ),
                                           const SizedBox(width: 8),
                                           Text(
                                             'Boarding',
                                             style: GoogleFonts.inter(
                                               fontSize: 12,
-                                              color: mutedText,
+                                              color: textSecondary,
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
@@ -520,7 +543,7 @@ class HomeTab extends ConsumerWidget {
                                         ride.boardingLocation,
                                         style: GoogleFonts.inter(
                                           fontSize: 16,
-                                          color: blackColor,
+                                          color: textPrimary,
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
@@ -528,15 +551,21 @@ class HomeTab extends ConsumerWidget {
                                   ),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF4F4F4),
+                                    color: isDark
+                                        ? const Color(0xFF202020)
+                                        : const Color(0xFFF7F4EE),
                                     borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: borderColor),
                                   ),
                                   child: Icon(
                                     Icons.arrow_downward_rounded,
                                     size: 18,
-                                    color: blackColor,
+                                    color: primaryColor,
                                   ),
                                 ),
                               ],
@@ -544,14 +573,18 @@ class HomeTab extends ConsumerWidget {
                             const SizedBox(height: 16),
                             Row(
                               children: [
-                                Icon(Icons.location_on, size: 14, color: dangerColor),
+                                Icon(
+                                  Icons.location_on,
+                                  size: 14,
+                                  color: primaryColor,
+                                ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     ride.destination,
                                     style: GoogleFonts.inter(
                                       fontSize: 16,
-                                      color: blackColor,
+                                      color: textPrimary,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -563,7 +596,9 @@ class HomeTab extends ConsumerWidget {
                               children: [
                                 _rideMeta(
                                   icon: Icons.access_time_rounded,
-                                  label: DateFormat('MMM d, h:mm a').format(ride.departureTime),
+                                  label: DateFormat(
+                                    'MMM d, h:mm a',
+                                  ).format(ride.departureTime),
                                 ),
                                 const SizedBox(width: 16),
                                 _rideMeta(
@@ -577,20 +612,27 @@ class HomeTab extends ConsumerWidget {
                               children: [
                                 if (ride.isGirlsOnly)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFEAF5ED),
                                       borderRadius: BorderRadius.circular(999),
                                     ),
                                     child: Row(
                                       children: [
-                                        Icon(Icons.shield_rounded, size: 14, color: successColor),
+                                        Icon(
+                                          Icons.shield_rounded,
+                                          size: 14,
+                                          color: primaryColor,
+                                        ),
                                         const SizedBox(width: 6),
                                         Text(
                                           'Girls Only',
                                           style: GoogleFonts.inter(
                                             fontSize: 12,
-                                            color: successColor,
+                                            color: primaryColor,
                                             fontWeight: FontWeight.w700,
                                           ),
                                         ),
@@ -600,20 +642,30 @@ class HomeTab extends ConsumerWidget {
                                 const Spacer(),
                                 Consumer(
                                   builder: (ctx, ref, _) {
-                                    final driverProfileAsync =
-                                        ref.watch(userProfileProvider(ride.driverId));
-                                    final avg = driverProfileAsync.value?.averageRating ?? 0.0;
-                                    if (avg == 0.0) return const SizedBox.shrink();
+                                    final driverProfileAsync = ref.watch(
+                                      userProfileProvider(ride.driverId),
+                                    );
+                                    final avg =
+                                        driverProfileAsync
+                                            .value
+                                            ?.averageRating ??
+                                        0.0;
+                                    if (avg == 0.0) {
+                                      return const SizedBox.shrink();
+                                    }
                                     return Row(
                                       children: [
-                                        const Icon(Icons.star_rounded,
-                                            size: 16, color: Color(0xFFF6C000)),
+                                        const Icon(
+                                          Icons.star_rounded,
+                                          size: 16,
+                                          color: Color(0xFFF6C000),
+                                        ),
                                         const SizedBox(width: 4),
                                         Text(
                                           avg.toStringAsFixed(1),
                                           style: GoogleFonts.inter(
                                             fontSize: 13,
-                                            color: blackColor,
+                                            color: textPrimary,
                                             fontWeight: FontWeight.w700,
                                           ),
                                         ),
@@ -625,10 +677,16 @@ class HomeTab extends ConsumerWidget {
                             ),
                             const SizedBox(height: 18),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF8F8F8),
+                                color: isDark
+                                    ? const Color(0xFF202020)
+                                    : const Color(0xFFF8F8F8),
                                 borderRadius: BorderRadius.circular(18),
+                                border: Border.all(color: borderColor),
                               ),
                               child: Row(
                                 children: [
@@ -637,7 +695,7 @@ class HomeTab extends ConsumerWidget {
                                       'Estimated Fare',
                                       style: GoogleFonts.inter(
                                         fontSize: 12,
-                                        color: mutedText,
+                                        color: textSecondary,
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
@@ -646,7 +704,7 @@ class HomeTab extends ConsumerWidget {
                                     '₹${ride.farePerSeat.toInt()}',
                                     style: GoogleFonts.inter(
                                       fontSize: 20,
-                                      color: blackColor,
+                                      color: textPrimary,
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),
@@ -662,8 +720,8 @@ class HomeTab extends ConsumerWidget {
                                   context.push('/ride-details', extra: ride);
                                 },
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: blackColor,
-                                  foregroundColor: Colors.white,
+                                  backgroundColor: primaryColor,
+                                  foregroundColor: const Color(0xFF121212),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(18),
                                   ),
@@ -683,7 +741,8 @@ class HomeTab extends ConsumerWidget {
                       ),
                     );
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (err, _) => Center(child: Text('Error: $err')),
                 ),
                 const SizedBox(height: 24),
@@ -695,7 +754,7 @@ class HomeTab extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.large(
         onPressed: () => context.push('/create-ride'),
         backgroundColor: primaryColor,
-        foregroundColor: blackColor,
+        foregroundColor: const Color(0xFF121212),
         elevation: 6,
         tooltip: 'Create Ride',
         child: const Icon(Icons.add_road, size: 30),
@@ -703,12 +762,19 @@ class HomeTab extends ConsumerWidget {
     );
   }
 
-  void _showInputDialog(BuildContext context, WidgetRef ref, String field, String initialValue) {
+  void _showInputDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String field,
+    String initialValue,
+  ) {
     final controller = TextEditingController(text: initialValue);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Enter ${field == 'boarding' ? 'Boarding Location' : 'Destination'}'),
+        title: Text(
+          'Enter ${field == 'boarding' ? 'Boarding Location' : 'Destination'}',
+        ),
         content: TextField(
           controller: controller,
           decoration: const InputDecoration(hintText: 'e.g. Indiranagar'),
@@ -722,9 +788,13 @@ class HomeTab extends ConsumerWidget {
           FilledButton(
             onPressed: () {
               if (field == 'boarding') {
-                ref.read(homeSearchProvider.notifier).updateBoarding(controller.text);
+                ref
+                    .read(homeSearchProvider.notifier)
+                    .updateBoarding(controller.text);
               } else {
-                ref.read(homeSearchProvider.notifier).updateDestination(controller.text);
+                ref
+                    .read(homeSearchProvider.notifier)
+                    .updateDestination(controller.text);
               }
               Navigator.pop(ctx);
             },
@@ -761,10 +831,18 @@ class HomeTab extends ConsumerWidget {
       builder: (context) {
         final theme = Theme.of(context);
         final isDark = theme.brightness == Brightness.dark;
-        final fieldBg = isDark ? const Color(0xFF28282A) : const Color(0xFFF8F8F8);
-        final fieldBorder = isDark ? const Color(0xFF38383A) : const Color(0xFFEDE8E2);
-        final textColor = theme.colorScheme.onSurface;
-        final labelColor = isDark ? Colors.white60 : const Color(0xFF6E6E73);
+        final fieldBg = isDark
+            ? const Color(0xFF202020)
+            : const Color(0xFFF8F8F8);
+        final fieldBorder = isDark
+            ? const Color(0xFF2A2A2A)
+            : const Color(0xFFEDE8E2);
+        final textColor = isDark
+            ? const Color(0xFFFFFFFF)
+            : theme.colorScheme.onSurface;
+        final labelColor = isDark
+            ? const Color(0xFFA1A1A1)
+            : const Color(0xFF6E6E73);
 
         return InkWell(
           onTap: onTap,
@@ -852,10 +930,16 @@ class _ActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
-    final iconBg = isDark ? const Color(0xFF332D19) : const Color(0xFFF8F3E7);
-    final textColor = theme.colorScheme.onSurface;
+    final cardBg = isDark
+        ? const Color(0xFF181818)
+        : (theme.cardTheme.color ?? Colors.white);
+    final borderColor = isDark
+        ? const Color(0xFF2A2A2A)
+        : const Color(0xFFEAE5DD);
+    final iconBg = isDark ? const Color(0xFF262116) : const Color(0xFFF8F3E7);
+    final textColor = isDark
+        ? const Color(0xFFFFFFFF)
+        : theme.colorScheme.onSurface;
 
     return InkWell(
       onTap: onTap,
@@ -864,8 +948,7 @@ class _ActionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: cardBg,
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: borderColor),
-          boxShadow: [BoxShadow(color: isDark ? const Color(0x33000000) : const Color(0x0F121212), blurRadius: 12)],
+          border: Border.all(color: borderColor, width: 1.1),
         ),
         child: Padding(
           padding: const EdgeInsets.all(18),
@@ -879,7 +962,13 @@ class _ActionCard extends StatelessWidget {
                   color: iconBg,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(icon, color: isDark ? const Color(0xFFF6C000) : const Color(0xFF121212), size: 22),
+                child: Icon(
+                  icon,
+                  color: isDark
+                      ? const Color(0xFFFFC400)
+                      : const Color(0xFF121212),
+                  size: 22,
+                ),
               ),
               const Spacer(),
               Text(
