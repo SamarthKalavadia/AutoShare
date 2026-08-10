@@ -67,7 +67,8 @@ class RideRepository {
   /// Cancels a ride by setting its status to 'cancelled'.
   Future<Result<void>> cancelRide(String rideId) async {
     _locallyCancelledRideIds.add(rideId);
-//hello 
+//hello bug fixes
+
     // 1. Try updating document status in Firestore
     try {
       await _firestoreService.ridesCollection.doc(rideId).update({
