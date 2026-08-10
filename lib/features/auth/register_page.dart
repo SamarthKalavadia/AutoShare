@@ -1,0 +1,306 @@
+import 'dart:typed_data';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../core/utils/result.dart';
+import '../../core/utils/snackbar_helper.dart';
+import '../../data/models/user_model.dart';
+import 'presentation/controllers/auth_controller.dart';
+import 'presentation/widgets/app_text_field.dart';
+import 'presentation/widgets/auth_header.dart';
+import 'presentation/widgets/divider_with_text.dart';
+import 'presentation/widgets/google_button.dart';
+import 'presentation/widgets/loading_button.dart';
+import 'presentation/widgets/password_field.dart';
+import 'presentation/widgets/profile_avatar_picker.dart';
+import 'presentation/widgets/validation_text.dart';
+
+class RegisterPage extends ConsumerStatefulWidget {
+  const RegisterPage({super.key});
+
+  @override
+  ConsumerState<RegisterPage> createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends ConsumerState<RegisterPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
+  XFile? _selectedImage;
+  Uint8List? _selectedImageBytes;
+  bool _acceptedTerms = false;
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitRegister() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (!_acceptedTerms) {
+      SnackbarHelper.show(
+        context,
+        'Please accept the Terms of Service & Privacy Policy to proceed.',
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final result = await ref.read(authControllerProvider.notifier).register(
+          name: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          phone: _phoneController.text.trim(),
+          profileImageFile: _selectedImage,
+        );
+
+    setState(() => _isLoading = false);
+
+    if (!mounted) return;
+
+    if (result is Success<UserModel>) {
+      context.go('/email-verification');
+    } else if (result is Failure<UserModel>) {
+      SnackbarHelper.show(context, result.message);
+    }
+  }
+
+  Future<void> _handleGoogleSignUp() async {
+    setState(() => _isLoading = true);
+
+    final result = await ref.read(authControllerProvider.notifier).signInWithGoogle();
+
+    setState(() => _isLoading = false);
+
+    if (!mounted) return;
+
+    if (result is Success<UserModel>) {
+      context.go('/home');
+    } else if (result is Failure<UserModel>) {
+      SnackbarHelper.show(context, result.message);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => context.pop(),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const AuthHeader(
+                  showLogo: true,
+                  title: 'Create Account 🚀',
+                  subtitle: 'Share rides. Save money. Travel together.',
+                ),
+                const SizedBox(height: 24),
+
+                // Avatar Picker
+                ProfileAvatarPicker(
+                  imageFile: _selectedImage,
+                  imageBytes: _selectedImageBytes,
+                  onImageSelected: (file) async {
+                    Uint8List? bytes;
+                    if (file != null) {
+                      bytes = await file.readAsBytes();
+                    }
+                    setState(() {
+                      _selectedImage = file;
+                      _selectedImageBytes = bytes;
+                    });
+                  },
+                ),
+                const SizedBox(height: 24),
+
+                // Full Name
+                AppTextField(
+                  controller: _nameController,
+                  labelText: 'Full Name',
+                  hintText: 'John Doe',
+                  prefixIcon: Icons.person_outline_rounded,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your full name';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Email Address
+                AppTextField(
+                  controller: _emailController,
+                  labelText: 'Email Address',
+                  hintText: 'name@example.com',
+                  prefixIcon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                        .hasMatch(value.trim())) {
+                      return 'Enter a valid email address';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Phone Number
+                AppTextField(
+                  controller: _phoneController,
+                  labelText: 'Phone Number',
+                  hintText: '+1 234 567 8900',
+                  prefixIcon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your phone number';
+                    }
+                    if (value.trim().length < 7) {
+                      return 'Enter a valid phone number';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Password
+                PasswordField(
+                  controller: _passwordController,
+                  labelText: 'Password',
+                  onChanged: (_) => setState(() {}),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a password';
+                    }
+                    if (value.length < 8) {
+                      return 'Password must be at least 8 characters';
+                    }
+                    return null;
+                  },
+                ),
+                ValidationText(password: _passwordController.text),
+                const SizedBox(height: 16),
+
+                // Confirm Password
+                PasswordField(
+                  controller: _confirmPasswordController,
+                  labelText: 'Confirm Password',
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please confirm your password';
+                    }
+                    if (value != _passwordController.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Terms Checkbox
+                Row(
+                  children: [
+                    SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: Checkbox(
+                        value: _acceptedTerms,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        onChanged: (val) {
+                          setState(() {
+                            _acceptedTerms = val ?? false;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          text: 'I agree to the ',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.7),
+                          ),
+                          children: [
+                            TextSpan(
+                              text: 'Terms of Service',
+                              style: TextStyle(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const TextSpan(text: ' and '),
+                            TextSpan(
+                              text: 'Privacy Policy',
+                              style: TextStyle(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Register Button
+                LoadingButton(
+                  text: 'Register Account',
+                  isLoading: _isLoading,
+                  onPressed: _submitRegister,
+                ),
+                const SizedBox(height: 24),
+
+                const DividerWithText(text: 'OR'),
+                const SizedBox(height: 24),
+
+                // Google Sign Up
+                GoogleButton(
+                  text: 'Sign Up with Google',
+                  onPressed: _handleGoogleSignUp,
+                  isLoading: _isLoading,
+                ),
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

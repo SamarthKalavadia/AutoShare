@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "669295324518",
+    "project_id": "autoshare-df55f",
+    "storage_bucket": "autoshare-df55f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:669295324518:android:03a48946a480a0e3e1aca7",
+        "android_client_info": {
+          "package_name": "com.autoshare.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBEJaQlWGW0fM8n28WUAC6_0fMTWPIPnY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
