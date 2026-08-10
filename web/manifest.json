@@ -1,6 +1,6 @@
 {
-    "name": "autoshare",
-    "short_name": "autoshare",
+    "name": "AutoShare",
+    "short_name": "AutoShare",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
