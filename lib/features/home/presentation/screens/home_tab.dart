@@ -756,15 +756,9 @@ class HomeTab extends ConsumerWidget {
     final boarding = searchState.boarding.trim();
     final destination = searchState.destination.trim();
 
-    if (boarding.isEmpty || destination.isEmpty) {
-      _showValidationMessage(
-        context,
-        'Please add your boarding and destination before creating a ride.',
-      );
-      return;
-    }
-
-    if (boarding.toLowerCase() == destination.toLowerCase()) {
+    if (boarding.isNotEmpty &&
+        destination.isNotEmpty &&
+        boarding.toLowerCase() == destination.toLowerCase()) {
       _showValidationMessage(
         context,
         'Boarding and destination should be different locations.',
@@ -772,18 +766,16 @@ class HomeTab extends ConsumerWidget {
       return;
     }
 
-    if (searchState.departureDate == null) {
-      _showValidationMessage(
-        context,
-        'Please choose a departure date before creating a ride.',
-      );
-      return;
-    }
-
     final notifier = ref.read(createRideProvider.notifier);
-    notifier.updateBoardingLocation(boarding);
-    notifier.updateDestinationLocation(destination);
-    notifier.updateDepartureDate(searchState.departureDate!);
+    if (boarding.isNotEmpty) {
+      notifier.updateBoardingLocation(boarding);
+    }
+    if (destination.isNotEmpty) {
+      notifier.updateDestinationLocation(destination);
+    }
+    if (searchState.departureDate != null) {
+      notifier.updateDepartureDate(searchState.departureDate!);
+    }
     notifier.updateAvailableSeats(searchState.passengers);
     notifier.toggleGirlsOnly(searchState.girlsOnly);
 
