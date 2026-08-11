@@ -7,6 +7,7 @@ import '../../core/utils/result.dart';
 import '../../core/utils/snackbar_helper.dart';
 import '../../data/models/user_model.dart';
 import 'presentation/controllers/auth_controller.dart';
+import 'presentation/widgets/app_dropdown_field.dart';
 import 'presentation/widgets/app_text_field.dart';
 import 'presentation/widgets/auth_header.dart';
 import 'presentation/widgets/divider_with_text.dart';
@@ -31,6 +32,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  String? _selectedGender;
   XFile? _selectedImage;
   Uint8List? _selectedImageBytes;
   bool _acceptedTerms = false;
@@ -64,6 +66,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           email: _emailController.text.trim(),
           password: _passwordController.text,
           phone: _phoneController.text.trim(),
+          gender: _selectedGender ?? '',
           profileImageFile: _selectedImage,
         );
 
@@ -187,6 +190,31 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     }
                     if (value.trim().length < 7) {
                       return 'Enter a valid phone number';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Gender
+                AppDropdownField<String>(
+                  value: _selectedGender,
+                  labelText: 'Gender',
+                  hintText: 'Select Gender',
+                  prefixIcon: Icons.person_outline_rounded,
+                  items: const [
+                    DropdownMenuItem(value: 'Male', child: Text('Male')),
+                    DropdownMenuItem(value: 'Female', child: Text('Female')),
+                    DropdownMenuItem(value: 'Other', child: Text('Other')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedGender = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please select your gender';
                     }
                     return null;
                   },

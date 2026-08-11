@@ -75,12 +75,13 @@ class AuthController extends Notifier<AsyncValue<UserModel?>> {
     }
   }
 
-  /// Sign up with Email, Password, Name, Phone, and optional Profile Image
+  /// Sign up with Email, Password, Name, Phone, Gender, and optional Profile Image
   Future<Result<UserModel>> register({
     required String name,
     required String email,
     required String password,
     required String phone,
+    required String gender,
     XFile? profileImageFile,
   }) async {
     state = const AsyncValue.loading();
@@ -111,9 +112,10 @@ class AuthController extends Notifier<AsyncValue<UserModel?>> {
       }
     }
 
-    // Update phone & profile picture in Firestore if specified
+    // Update phone, gender & profile picture in Firestore if specified
     final updatedModel = user.copyWith(
       phone: phone,
+      gender: gender,
       profileImage: imageUrl.isNotEmpty ? imageUrl : user.profileImage,
     );
 
