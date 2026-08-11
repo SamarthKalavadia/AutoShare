@@ -35,11 +35,16 @@ class SettingsPage extends ConsumerWidget {
                 builder: (_) => const Center(child: CircularProgressIndicator(color: Color(0xFFD32F2F))),
               );
               
-              await ref.read(authControllerProvider.notifier).deleteAccount();
-              
-              if (context.mounted) {
-                Navigator.pop(context); // pop loading if still mounted
-                context.go('/login');
+              try {
+                await ref.read(authControllerProvider.notifier).deleteAccount();
+              } catch (_) {
+              } finally {
+                if (context.mounted) {
+                  if (Navigator.of(context, rootNavigator: true).canPop()) {
+                    Navigator.of(context, rootNavigator: true).pop();
+                  }
+                  context.go('/login');
+                }
               }
             },
             style: FilledButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
@@ -149,9 +154,16 @@ class SettingsPage extends ConsumerWidget {
                   barrierDismissible: false,
                   builder: (_) => const Center(child: CircularProgressIndicator()),
                 );
-                await ref.read(authControllerProvider.notifier).logout();
-                if (context.mounted) {
-                  context.go('/login');
+                try {
+                  await ref.read(authControllerProvider.notifier).logout();
+                } catch (_) {
+                } finally {
+                  if (context.mounted) {
+                    if (Navigator.of(context, rootNavigator: true).canPop()) {
+                      Navigator.of(context, rootNavigator: true).pop();
+                    }
+                    context.go('/login');
+                  }
                 }
               },
               style: OutlinedButton.styleFrom(

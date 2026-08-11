@@ -77,9 +77,21 @@ class _EmailVerificationPageState
 
   Future<void> _handleLogout() async {
     _pollingTimer?.cancel();
-    await ref.read(authControllerProvider.notifier).logout();
-    if (mounted) {
-      context.go('/login');
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      await ref.read(authControllerProvider.notifier).logout();
+    } catch (_) {
+    } finally {
+      if (mounted) {
+        if (Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+        context.go('/login');
+      }
     }
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'home_tab.dart';
 import '../../../search/search_page.dart';
@@ -10,6 +11,7 @@ import '../../providers/home_dashboard_provider.dart';
 import '../../../notifications/providers/notification_provider.dart';
 import '../../../ratings/providers/ratings_prompt_provider.dart';
 import '../../../ratings/widgets/rating_bottom_sheet.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -31,6 +33,22 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(
+      authControllerProvider,
+      (previous, next) {
+        if (!next.isLoading && next.value == null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              if (Navigator.of(context, rootNavigator: true).canPop()) {
+                Navigator.of(context, rootNavigator: true).pop();
+              }
+              context.go('/login');
+            }
+          });
+        }
+      },
+    );
+
     ref.listen<AsyncValue<PendingRatingPrompt?>>(
       ratingsPromptProvider,
       (previous, next) {

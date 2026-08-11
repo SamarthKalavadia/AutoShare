@@ -26,7 +26,12 @@ class ProfilePage extends ConsumerWidget {
     return userAsync.when(
       data: (user) {
         if (user == null) {
-          return const Scaffold(body: Center(child: Text('Not logged in')));
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) {
+              context.go('/login');
+            }
+          });
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
         return _ProfileBody(userId: user.uid, isOwnProfile: true);
       },
@@ -76,12 +81,16 @@ class _ProfileBody extends ConsumerWidget {
                 barrierDismissible: false,
                 builder: (_) => const Center(child: CircularProgressIndicator(color: Color(0xFFD32F2F))),
               );
-              
-              await ref.read(authControllerProvider.notifier).deleteAccount();
-              
-              if (context.mounted) {
-                Navigator.pop(context); // pop loading if still mounted
-                context.go('/login');
+              try {
+                await ref.read(authControllerProvider.notifier).deleteAccount();
+              } catch (_) {
+              } finally {
+                if (context.mounted) {
+                  if (Navigator.of(context, rootNavigator: true).canPop()) {
+                    Navigator.of(context, rootNavigator: true).pop();
+                  }
+                  context.go('/login');
+                }
               }
             },
             style: FilledButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
@@ -214,9 +223,16 @@ class _ProfileBody extends ConsumerWidget {
                               barrierDismissible: false,
                               builder: (_) => const Center(child: CircularProgressIndicator()),
                             );
-                            await ref.read(authControllerProvider.notifier).logout();
-                            if (context.mounted) {
-                              context.go('/login');
+                            try {
+                              await ref.read(authControllerProvider.notifier).logout();
+                            } catch (_) {
+                            } finally {
+                              if (context.mounted) {
+                                if (Navigator.of(context, rootNavigator: true).canPop()) {
+                                  Navigator.of(context, rootNavigator: true).pop();
+                                }
+                                context.go('/login');
+                              }
                             }
                           }
                         ),
