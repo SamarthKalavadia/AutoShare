@@ -204,7 +204,6 @@ class _ProfileBody extends ConsumerWidget {
                         _buildProfileTile(context, icon: Icons.shield_outlined, title: 'Privacy Policy', onTap: () {}),
 
                         const SizedBox(height: 24),
-                        _buildSectionTitle(context, 'Danger Zone', color: const Color(0xFFD32F2F)),
                         _buildProfileTile(
                           context,
                           icon: Icons.delete_outline, 
