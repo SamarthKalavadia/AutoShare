@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../shared/providers.dart';
 import '../auth/presentation/controllers/onboarding_controller.dart';
 import '../auth/presentation/controllers/auth_controller.dart';
-import '../auth/presentation/widgets/animated_logo.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
@@ -14,74 +13,136 @@ class SplashPage extends ConsumerStatefulWidget {
   ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends ConsumerState<SplashPage> {
+class _SplashPageState extends ConsumerState<SplashPage>
+    with SingleTickerProviderStateMixin {
   bool _hasNavigated = false;
+  bool _isAnimationComplete = false;
+
+  late final AnimationController _animCtrl;
+  late final Animation<double> _iconScaleAnim;
+  late final Animation<double> _iconFadeAnim;
+  late final Animation<double> _titleFadeAnim;
+  late final Animation<Offset> _titleSlideAnim;
+  late final Animation<double> _taglineFadeAnim;
 
   @override
   void initState() {
     super.initState();
-    // Kick off the minimum display delay and then check providers.
-    // We use addPostFrameCallback so the first build has run before we call ref.
+    _animCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200), // Adjusted for smooth, unhurried feel
+    );
+
+    // App icon begins slightly scaled down and transparent (0.10s to 0.70s equivalent out of 2.2s -> 4.5% to 32%)
+    _iconScaleAnim = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animCtrl,
+        curve: const Interval(0.045, 0.32, curve: Curves.easeOutCubic),
+      ),
+    );
+    _iconFadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animCtrl,
+        curve: const Interval(0.045, 0.32, curve: Curves.easeIn),
+      ),
+    );
+
+    // Brand name appears (e.g. 0.70s to 1.3s -> 32% to 59%)
+    _titleSlideAnim = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _animCtrl,
+        curve: const Interval(0.32, 0.59, curve: Curves.easeOutCubic),
+      ),
+    );
+    _titleFadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animCtrl,
+        curve: const Interval(0.32, 0.59, curve: Curves.easeIn),
+      ),
+    );
+
+    // Tagline fades in (e.g. 1.2s to 1.8s -> 55% to 82%)
+    _taglineFadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animCtrl,
+        curve: const Interval(0.55, 0.82, curve: Curves.easeIn),
+      ),
+    );
+
+    _animCtrl.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _isAnimationComplete = true;
+        _navigateIfReady();
+      }
+    });
+
+    _animCtrl.forward();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _waitAndNavigate();
+      _checkProvidersAndNavigate();
     });
   }
 
-  Future<void> _waitAndNavigate() async {
-    // Minimum splash display time.
-    await Future.delayed(const Duration(milliseconds: 1800));
-    if (!mounted || _hasNavigated) return;
-    _navigate();
+  @override
+  void dispose() {
+    _animCtrl.dispose();
+    super.dispose();
   }
 
-  void _navigate() {
-    if (!mounted || _hasNavigated) return;
-
+  void _checkProvidersAndNavigate() {
     final authAsync = ref.read(authStateProvider);
     final onboardingAsync = ref.read(onboardingCompletedProvider);
     final authControllerAsync = ref.read(authControllerProvider);
 
-    // If any provider is still loading we listen and retry when they settle.
     if (authAsync.isLoading || onboardingAsync.isLoading || authControllerAsync.isLoading) {
       ref.listenManual(
         authStateProvider,
         (_, next) {
-          if (!next.isLoading) _navigate();
+          if (!next.isLoading) _navigateIfReady();
         },
         fireImmediately: false,
       );
       ref.listenManual(
         onboardingCompletedProvider,
         (_, next) {
-          if (!next.isLoading) _navigate();
+          if (!next.isLoading) _navigateIfReady();
         },
         fireImmediately: false,
       );
       ref.listenManual(
         authControllerProvider,
         (_, next) {
-          if (!next.isLoading) _navigate();
+          if (!next.isLoading) _navigateIfReady();
         },
         fireImmediately: false,
       );
       return;
     }
+    
+    _navigateIfReady();
+  }
 
-    // Providers have resolved — navigate exactly once.
+  void _navigateIfReady() {
+    if (!mounted || _hasNavigated || !_isAnimationComplete) return;
+
+    final authAsync = ref.read(authStateProvider);
+    final onboardingAsync = ref.read(onboardingCompletedProvider);
+    final authControllerAsync = ref.read(authControllerProvider);
+
+    if (authAsync.isLoading || onboardingAsync.isLoading || authControllerAsync.isLoading) return;
+
     _hasNavigated = true;
 
     final User? user = authAsync.value;
     final bool onboardingDone = onboardingAsync.value ?? false;
 
     if (user == null) {
-      // No authenticated user.
       if (onboardingDone) {
         context.go('/login');
       } else {
         context.go('/onboarding');
       }
     } else {
-      // User is authenticated — check email verification.
       if (!user.emailVerified) {
         context.go('/email-verification');
       } else {
@@ -92,71 +153,78 @@ class _SplashPageState extends ConsumerState<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch providers so the widget rebuilds when they resolve,
-    // then attempt navigation on each rebuild (guarded by _hasNavigated).
     final authAsync = ref.watch(authStateProvider);
     final onboardingAsync = ref.watch(onboardingCompletedProvider);
     final authControllerAsync = ref.watch(authControllerProvider);
 
     final allResolved = !authAsync.isLoading && !onboardingAsync.isLoading && !authControllerAsync.isLoading;
-    if (allResolved && !_hasNavigated) {
-      // Schedule navigation on the next frame (build is ongoing right now).
-      WidgetsBinding.instance.addPostFrameCallback((_) => _navigate());
+    if (allResolved && !_hasNavigated && _isAnimationComplete) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _navigateIfReady());
     }
 
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    // Using deep dark for dark mode, and existing surface for light mode
+    final backgroundColor = isDark ? const Color(0xFF121212) : theme.colorScheme.surface;
+    final textColor = isDark ? Colors.white : const Color(0xFF121212);
+    final subtitleColor = isDark ? Colors.white70 : const Color(0xFF6F6F72);
 
     return Scaffold(
-      body: Container(
+      backgroundColor: backgroundColor,
+      body: SizedBox(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              theme.colorScheme.surface,
-              theme.colorScheme.surfaceContainerLowest,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Spacer(),
-              const AnimatedLogo(size: 110),
-              const SizedBox(height: 28),
-              Text(
-                'AutoShare',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Smart & Safe Ride Sharing',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const Spacer(),
-              SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    theme.colorScheme.primary,
+        child: AnimatedBuilder(
+          animation: _animCtrl,
+          builder: (context, child) {
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Transform.scale(
+                  scale: _iconScaleAnim.value,
+                  child: Opacity(
+                    opacity: _iconFadeAnim.value,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.asset(
+                        'assets/appicon.png',
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 32),
-            ],
-          ),
+                const SizedBox(height: 24),
+                SlideTransition(
+                  position: _titleSlideAnim,
+                  child: Opacity(
+                    opacity: _titleFadeAnim.value,
+                    child: Text(
+                      'AutoShare',
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Opacity(
+                  opacity: _taglineFadeAnim.value,
+                  child: Text(
+                    'Smart & Safe Ride Sharing',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: subtitleColor,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

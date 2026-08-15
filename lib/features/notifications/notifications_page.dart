@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../data/models/notification_model.dart';
+import '../auth/presentation/controllers/auth_controller.dart';
 import 'providers/notification_provider.dart';
 
 class NotificationsPage extends ConsumerWidget {
@@ -16,22 +18,75 @@ class NotificationsPage extends ConsumerWidget {
     final blackColor = theme.colorScheme.onSurface;
     final backgroundColor = theme.scaffoldBackgroundColor;
 
+    final user = ref.watch(authControllerProvider).value;
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: backgroundColor,
+        appBar: _buildAppBar(context, ref, false, primaryColor, blackColor, false),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.lock_outline_rounded, size: 48, color: Color(0xFF9E9E9E)),
+              const SizedBox(height: 16),
+              Text(
+                'Please sign in to view your notifications.',
+                style: GoogleFonts.inter(fontSize: 16, color: theme.brightness == Brightness.dark ? Colors.white60 : const Color(0xFF6F6F72)),
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () => context.push('/login'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Sign In'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final groupedAsync = ref.watch(groupedNotificationsProvider);
     final isMarkingAll = ref.watch(notificationActionsProvider);
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      appBar: _buildAppBar(context, ref, isMarkingAll, primaryColor, blackColor),
+      appBar: _buildAppBar(context, ref, isMarkingAll, primaryColor, blackColor, true),
       body: groupedAsync.when(
         data: (grouped) {
-          if (grouped.isEmpty) return _buildEmptyState();
+          if (grouped.isEmpty) return _buildEmptyState(context);
           return _buildList(context, ref, grouped);
         },
         loading: () => _buildShimmer(),
-        error: (err, stack) => Center(
-          child: Text('Error: $err',
-              style: GoogleFonts.inter(color: Colors.red)),
-        ),
+        error: (err, stack) {
+          String errorMessage = "Something went wrong while loading notifications.";
+          final errStr = err.toString();
+          if (errStr.contains('permission-denied') || errStr.contains('PERMISSION_DENIED')) {
+            errorMessage = "Permission denied:\nUnable to load notifications right now.";
+          } else if (errStr.contains('network') || errStr.contains('unavailable')) {
+            errorMessage = "Unable to load notifications. Please try again.";
+          }
+          
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline_rounded, size: 48, color: Colors.redAccent),
+                  const SizedBox(height: 16),
+                  Text(
+                    errorMessage,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(color: blackColor, fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -42,9 +97,11 @@ class NotificationsPage extends ConsumerWidget {
     bool isMarkingAll,
     Color primaryColor,
     Color blackColor,
+    bool showActions,
   ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final hasUnread = showActions ? ref.watch(unreadNotificationCountProvider) > 0 : false;
 
     return AppBar(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -76,25 +133,27 @@ class NotificationsPage extends ConsumerWidget {
         ),
       ),
       centerTitle: true,
-      actions: [
-        TextButton(
-          onPressed: isMarkingAll
-              ? null
-              : () => ref
-                  .read(notificationActionsProvider.notifier)
-                  .markAllAsRead(),
-          child: Text(
-            'Mark all read',
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: isMarkingAll
-                  ? const Color(0xFFAAAAAA)
-                  : primaryColor,
-            ),
-          ),
-        ),
-      ],
+      actions: showActions
+          ? [
+              TextButton(
+                onPressed: (isMarkingAll || !hasUnread)
+                    ? null
+                    : () => ref
+                        .read(notificationActionsProvider.notifier)
+                        .markAllAsRead(),
+                child: Text(
+                  'Mark all read',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: (isMarkingAll || !hasUnread)
+                        ? const Color(0xFFAAAAAA)
+                        : primaryColor,
+                  ),
+                ),
+              ),
+            ]
+          : [],
     );
   }
 
@@ -119,7 +178,12 @@ class NotificationsPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final blackColor = isDark ? Colors.white : const Color(0xFF121212);
+    final iconBgColor = isDark ? const Color(0xFF332D19) : const Color(0xFFF8F3E7);
+    final iconColor = isDark ? const Color(0xFFF6C000) : const Color(0xFF121212);
+    
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -128,27 +192,27 @@ class NotificationsPage extends ConsumerWidget {
             width: 96,
             height: 96,
             decoration: BoxDecoration(
-              color: const Color(0xFFF8F3E7),
+              color: iconBgColor,
               borderRadius: BorderRadius.circular(28),
             ),
-            child: const Icon(Icons.notifications_none_rounded,
-                size: 48, color: Color(0xFF121212)),
+            child: Icon(Icons.notifications_none_rounded,
+                size: 48, color: iconColor),
           ),
           const SizedBox(height: 24),
           Text(
-            'All caught up!',
+            'No notifications',
             style: GoogleFonts.outfit(
               fontSize: 22,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF121212),
+              color: blackColor,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'You have no notifications.',
+            'You\'re all caught up.',
             style: GoogleFonts.inter(
               fontSize: 14,
-              color: const Color(0xFF6F6F72),
+              color: isDark ? Colors.white60 : const Color(0xFF6F6F72),
             ),
           ),
         ],
@@ -236,6 +300,11 @@ class _NotificationTile extends ConsumerWidget {
         onTap: () {
           if (isUnread) {
             ref.read(notificationActionsProvider.notifier).markAsRead(notification.id);
+          }
+          if (notification.type == 'new_request') {
+            context.push('/incoming-requests');
+          } else if (notification.type == 'accepted' || notification.type == 'rejected' || notification.type == 'cancelled') {
+            context.push('/my-rides');
           }
         },
         borderRadius: BorderRadius.circular(20),

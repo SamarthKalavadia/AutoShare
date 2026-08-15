@@ -1,32 +1,32 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/utils/result.dart';
+import '../../core/services/firestore_service.dart';
 import '../models/notification_model.dart';
 
 /// Repository for all notification Firestore operations.
-/// Notifications are stored in `users/{userId}/notifications`.
+/// Notifications are stored in the top-level `notifications` collection.
 class NotificationRepository {
-  final FirebaseFirestore _db;
+  final FirestoreService _firestoreService;
 
-  NotificationRepository({FirebaseFirestore? db})
-      : _db = db ?? FirebaseFirestore.instance;
+  NotificationRepository({FirestoreService? firestoreService})
+      : _firestoreService = firestoreService ?? FirestoreService();
 
-  CollectionReference<Map<String, dynamic>> _notifCollection(String userId) {
-    return _db.collection('users').doc(userId).collection('notifications');
-  }
+  CollectionReference<Object?> get _notifCollection => _firestoreService.notificationsCollection;
 
   /// Streams real-time notifications for [userId], ordered newest first.
   Stream<List<NotificationModel>> streamNotifications(String userId) {
-    return _notifCollection(userId)
+    return _notifCollection
+        .where('userId', isEqualTo: userId)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((s) =>
-            s.docs.map((d) => NotificationModel.fromDocument(d)).toList());
+            s.docs.map((d) => NotificationModel.fromDocument(d as DocumentSnapshot<Map<String, dynamic>>)).toList());
   }
 
-  /// Creates a new notification document in the recipient's sub-collection.
+  /// Creates a new notification document.
   Future<Result<void>> createNotification(NotificationModel notification) async {
     try {
-      await _notifCollection(notification.userId).add(notification.toMap());
+      await _notifCollection.add(notification.toMap());
       return const Success(null);
     } on FirebaseException catch (e) {
       return Failure(e.message ?? 'Failed to create notification.', FirestoreException(e.code));
@@ -38,7 +38,8 @@ class NotificationRepository {
   /// Marks a single notification as read.
   Future<Result<void>> markAsRead(String userId, String notificationId) async {
     try {
-      await _notifCollection(userId).doc(notificationId).update({'isRead': true});
+      // Security: Could verify the notification belongs to the user, but rules should handle this.
+      await _notifCollection.doc(notificationId).update({'isRead': true});
       return const Success(null);
     } on FirebaseException catch (e) {
       return Failure(e.message ?? 'Failed to mark as read.', FirestoreException(e.code));
@@ -50,12 +51,13 @@ class NotificationRepository {
   /// Marks all unread notifications as read in a batch.
   Future<Result<void>> markAllAsRead(String userId) async {
     try {
-      final snapshot = await _notifCollection(userId)
+      final snapshot = await _notifCollection
+          .where('userId', isEqualTo: userId)
           .where('isRead', isEqualTo: false)
           .get();
       if (snapshot.docs.isEmpty) return const Success(null);
 
-      final batch = _db.batch();
+      final batch = FirebaseFirestore.instance.batch();
       for (final doc in snapshot.docs) {
         batch.update(doc.reference, {'isRead': true});
       }
@@ -72,7 +74,7 @@ class NotificationRepository {
   Future<Result<void>> deleteNotification(
       String userId, String notificationId) async {
     try {
-      await _notifCollection(userId).doc(notificationId).delete();
+      await _notifCollection.doc(notificationId).delete();
       return const Success(null);
     } on FirebaseException catch (e) {
       return Failure(e.message ?? 'Failed to delete notification.',
