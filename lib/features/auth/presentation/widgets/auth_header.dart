@@ -24,18 +24,18 @@ class AuthHeader extends StatelessWidget {
           Row(
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
                 child: Image.asset(
-                  'assets/images/logo.png',
-                  width: 48,
-                  height: 48,
+                  'assets/appicon.png',
+                  width: 32,
+                  height: 32,
                   fit: BoxFit.cover,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Text(
                 'AutoShare',
-                style: theme.textTheme.titleLarge?.copyWith(
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.primary,
                   letterSpacing: 0.5,
@@ -43,7 +43,7 @@ class AuthHeader extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
         ],
         Text(
           title,

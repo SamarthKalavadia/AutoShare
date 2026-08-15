@@ -135,7 +135,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   title: 'Create your account',
                   subtitle: 'Join AutoShare and start sharing rides.',
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
 
                 // Avatar Picker
                 ProfileAvatarPicker(
@@ -152,7 +152,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     });
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 // Full Name
                 AppTextField(

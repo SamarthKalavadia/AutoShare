@@ -18,7 +18,7 @@ class ProfileAvatarPicker extends StatelessWidget {
     this.imageBytes,
     this.imageUrl,
     required this.onImageSelected,
-    this.radius = 54.0,
+    this.radius = 48.0,
   });
 
   Future<void> _pickImage(BuildContext context, ImageSource source) async {
