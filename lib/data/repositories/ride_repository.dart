@@ -49,6 +49,18 @@ class RideRepository {
   /// Creates a new ride and saves it to Firestore.
   Future<Result<String>> createRide(RideModel ride) async {
     try {
+      if (ride.isGirlsOnly) {
+        final userDoc = await _firestoreService.usersCollection.doc(ride.driverId).get();
+        if (!userDoc.exists) {
+          return Failure('User not found.', Exception('User document does not exist.'));
+        }
+        final userData = userDoc.data() as Map<String, dynamic>;
+        final gender = userData['gender'] as String? ?? '';
+        if (gender.toLowerCase() != 'female') {
+          return Failure('You must be a female user to create a Girls Only Ride.', Exception('Unauthorized'));
+        }
+      }
+
       final docRef = _firestoreService.ridesCollection.doc();
       final newRide = ride.copyWith(id: docRef.id, createdAt: DateTime.now());
       
