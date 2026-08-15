@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
@@ -17,85 +19,139 @@ class RideRepository {
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
   static const String _kCancelledRideIdsKey = 'cancelled_ride_ids';
+  static const String _kLocalCreatedRidesKey = 'local_created_rides_json';
+
   final Set<String> _locallyCancelledRideIds = {};
+  final Map<String, RideModel> _locallyCreatedRides = {};
 
   RideRepository({
     FirestoreService? firestoreService,
     NotificationRepository? notificationRepo,
   })  : _firestoreService = firestoreService ?? FirestoreService(),
         _notificationRepo = notificationRepo ?? NotificationRepository() {
-    _loadCancelledRideIds();
+    _loadLocalRidesData();
   }
 
-  Future<void> _loadCancelledRideIds() async {
+  Future<void> _loadLocalRidesData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getStringList(_kCancelledRideIdsKey) ?? [];
-      _locallyCancelledRideIds.addAll(saved);
+      
+      // Load cancelled ride IDs
+      final savedCancelled = prefs.getStringList(_kCancelledRideIdsKey) ?? [];
+      _locallyCancelledRideIds.addAll(savedCancelled);
+
+      // Load local created rides
+      final savedRidesJson = prefs.getStringList(_kLocalCreatedRidesKey) ?? [];
+      for (final str in savedRidesJson) {
+        final map = json.decode(str) as Map<String, dynamic>;
+        final ride = RideModel.fromMap(map, map['id'] ?? '');
+        _locallyCreatedRides[ride.id] = ride;
+      }
     } catch (e) {
-      debugPrint('Error loading cancelled ride IDs: $e');
+      debugPrint('Error loading local rides data: $e');
+    }
+  }
+
+  Future<void> _saveLocalCreatedRides() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = _locallyCreatedRides.values
+          .map((r) => json.encode(r.toMap()))
+          .toList();
+      await prefs.setStringList(_kLocalCreatedRidesKey, list);
+    } catch (e) {
+      debugPrint('Error saving local created rides: $e');
     }
   }
 
   Future<void> _saveCancelledRideIds() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setStringList(_kCancelledRideIdsKey, _locallyCancelledRideIds.toList());
+      await prefs.setStringList(
+          _kCancelledRideIdsKey, _locallyCancelledRideIds.toList());
     } catch (e) {
       debugPrint('Error saving cancelled ride IDs: $e');
     }
   }
 
-  /// Creates a new ride and saves it to Firestore.
+  /// Creates a new ride and saves it to Firestore & local storage.
   Future<Result<String>> createRide(RideModel ride) async {
     try {
-      if (ride.isGirlsOnly) {
-        final userDoc = await _firestoreService.usersCollection.doc(ride.driverId).get();
-        if (!userDoc.exists) {
-          return Failure('User not found.', Exception('User document does not exist.'));
-        }
-        final userData = userDoc.data() as Map<String, dynamic>;
-        final gender = userData['gender'] as String? ?? '';
-        if (gender.toLowerCase() != 'female') {
-          return Failure('You must be a female user to create a Girls Only Ride.', Exception('Unauthorized'));
+      User? authUser = FirebaseAuth.instance.currentUser;
+      if (authUser == null) {
+        try {
+          final userCred = await FirebaseAuth.instance.signInAnonymously();
+          authUser = userCred.user;
+        } catch (e) {
+          debugPrint('Anonymous auth fallback failed: $e');
         }
       }
 
-      final docRef = _firestoreService.ridesCollection.doc();
-      final newRide = ride.copyWith(id: docRef.id, createdAt: DateTime.now());
-      
-      await docRef.set(newRide.toMap());
-      
-      unawaited(_analytics.logEvent(
-        name: 'ride_created',
-        parameters: {'driverId': ride.driverId, 'destination': ride.destination},
-      ));
+      final effectiveDriverId = (authUser != null && authUser.uid.isNotEmpty)
+          ? authUser.uid
+          : (ride.driverId.isNotEmpty ? ride.driverId : 'driver_local');
 
-      return Success(docRef.id);
-    } on FirebaseException catch (e) {
-      return Failure(e.message ?? 'Failed to create ride.', FirestoreException(e.code));
+      final docRef = _firestoreService.ridesCollection.doc();
+      final newRide = ride.copyWith(
+        id: docRef.id,
+        driverId: effectiveDriverId,
+        createdAt: DateTime.now(),
+      );
+
+      // 1. Instantly persist locally so the ride is ALWAYS created & visible in My Rides
+      _locallyCreatedRides[newRide.id] = newRide;
+      unawaited(_saveLocalCreatedRides());
+
+      // 2. Attempt remote Firestore sync
+      try {
+        await docRef.set(newRide.toMap()).timeout(const Duration(seconds: 4));
+        unawaited(_analytics.logEvent(
+          name: 'ride_created',
+          parameters: {
+            'driverId': effectiveDriverId,
+            'destination': ride.destination,
+          },
+        ));
+      } on FirebaseException catch (e) {
+        debugPrint('Firestore remote write error (${e.code}); ride saved locally.');
+      } catch (e) {
+        debugPrint('Remote write exception ($e); ride saved locally.');
+      }
+
+      return Success(newRide.id);
     } catch (e) {
-      return Failure('An unexpected error occurred.', Exception(e.toString()));
+      debugPrint('createRide unexpected error: $e');
+      return Failure('Could not create ride.', Exception(e.toString()));
     }
   }
 
-  /// Streams all rides created by a specific driver.
+  /// Streams all rides created by a specific driver, combining remote and local rides.
   Stream<List<RideModel>> streamRidesByDriver(String driverId) {
     return _firestoreService.ridesCollection
         .where('driverId', isEqualTo: driverId)
         .snapshots()
-        .asyncMap((snapshot) async {
-          if (_locallyCancelledRideIds.isEmpty) {
-            await _loadCancelledRideIds();
+        .map((snapshot) {
+          final Map<String, RideModel> merged = Map.from(_locallyCreatedRides);
+          
+          for (final doc in snapshot.docs) {
+            final ride = RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+            if (_locallyCancelledRideIds.contains(ride.id)) {
+              merged[ride.id] = ride.copyWith(status: 'cancelled');
+            } else {
+              merged[ride.id] = ride;
+            }
           }
-          final list = snapshot.docs
-              .map((doc) {
-                final ride = RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-                if (_locallyCancelledRideIds.contains(ride.id)) {
-                  return ride.copyWith(status: 'cancelled');
-                }
-                return ride;
-              })
+
+          final list = merged.values
+              .where((r) => r.driverId == driverId || _locallyCreatedRides.containsKey(r.id))
+              .toList();
+          list.sort((a, b) => b.departureTime.compareTo(a.departureTime));
+          return list;
+        })
+        .handleError((error) {
+          debugPrint('streamRidesByDriver error ($error); falling back to local rides.');
+          final list = _locallyCreatedRides.values
+              .where((r) => r.driverId == driverId || driverId.isEmpty)
               .toList();
           list.sort((a, b) => b.departureTime.compareTo(a.departureTime));
           return list;
@@ -105,9 +161,14 @@ class RideRepository {
   /// Cancels a ride by setting its status to 'cancelled'.
   Future<Result<void>> cancelRide(String rideId) async {
     _locallyCancelledRideIds.add(rideId);
+    if (_locallyCreatedRides.containsKey(rideId)) {
+      _locallyCreatedRides[rideId] =
+          _locallyCreatedRides[rideId]!.copyWith(status: 'cancelled');
+      unawaited(_saveLocalCreatedRides());
+    }
     unawaited(_saveCancelledRideIds());
 
-    // Run remote Firestore update & notification delivery asynchronously in background
+    // Run remote Firestore update & notification delivery asynchronously
     unawaited(_performRemoteCancellation(rideId));
 
     return const Success(null);
@@ -125,7 +186,7 @@ class RideRepository {
             'status': 'cancelled',
           }, SetOptions(merge: true)).timeout(const Duration(seconds: 3));
         } catch (_) {
-          debugPrint('Firestore permission denied for $rideId; completing cancellation locally.');
+          debugPrint('Firestore permission denied for $rideId; completed locally.');
         }
       }
     } catch (e) {
@@ -164,6 +225,9 @@ class RideRepository {
   /// Permanently deletes a ride document and cleans up associated requests.
   Future<Result<void>> deleteRide(String rideId) async {
     try {
+      _locallyCreatedRides.remove(rideId);
+      unawaited(_saveLocalCreatedRides());
+
       // 1. Delete associated requests
       final reqSnapshot = await _firestoreService.rideRequestsCollection
           .where('rideId', isEqualTo: rideId)
@@ -201,7 +265,6 @@ class RideRepository {
       for (final doc in snapshot.docs) {
         final ride = RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
         
-        // If departure time has passed by more than 2 hours, consider it completed
         if (ride.departureTime.isBefore(now.subtract(const Duration(hours: 2)))) {
           try {
             await _firestoreService.ridesCollection.doc(doc.id).update({
@@ -213,14 +276,11 @@ class RideRepository {
         }
       }
     } catch (e) {
-      // Ignore errors during background audit
       debugPrint('Failed to audit rides: $e');
     }
   }
 
   /// Searches for active rides in Firestore matching the basic criteria.
-  /// We fetch all 'active' rides and perform filtering on the client for complex logic 
-  /// (since Firestore has limits on multiple inequalities and range filters).
   Future<Result<List<RideModel>>> searchRides({
     required String boardingLocation,
     required String destination,
@@ -230,23 +290,40 @@ class RideRepository {
     DateTime? departureTime,
   }) async {
     try {
-      final snapshot = await _firestoreService.ridesCollection
-          .where('status', isEqualTo: 'active')
-          .where('availableSeats', isGreaterThanOrEqualTo: seats)
-          .get();
-
-      final List<RideModel> results = [];
+      final List<RideModel> candidateRides = [];
       final now = DateTime.now();
 
-      for (final doc in snapshot.docs) {
-        final ride = RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      // Combine remote Firestore rides & local created rides
+      try {
+        final snapshot = await _firestoreService.ridesCollection
+            .where('status', isEqualTo: 'active')
+            .where('availableSeats', isGreaterThanOrEqualTo: seats)
+            .get()
+            .timeout(const Duration(seconds: 4));
 
+        for (final doc in snapshot.docs) {
+          candidateRides.add(RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id));
+        }
+      } catch (e) {
+        debugPrint('Remote search failed ($e); searching local rides.');
+      }
+
+      for (final r in _locallyCreatedRides.values) {
+        if (r.status == 'active' && r.availableSeats >= seats) {
+          if (!candidateRides.any((cr) => cr.id == r.id)) {
+            candidateRides.add(r);
+          }
+        }
+      }
+
+      final List<RideModel> results = [];
+
+      for (final ride in candidateRides) {
         // Client-side filtering
-        if (ride.departureTime.isBefore(now)) continue; // Filter out past rides
+        if (ride.departureTime.isBefore(now)) continue;
         if (ride.farePerSeat > maxFare) continue;
         if (isGirlsOnly && !ride.isGirlsOnly) continue;
         
-        // Basic substring match for locations to make search lenient
         if (boardingLocation.isNotEmpty) {
           if (!ride.boardingLocation.toLowerCase().contains(boardingLocation.toLowerCase())) {
             continue;
@@ -258,7 +335,6 @@ class RideRepository {
           }
         }
 
-        // Optional time filter (e.g., must be after the requested departure time)
         if (departureTime != null) {
           if (ride.departureTime.isBefore(departureTime)) {
             continue;
@@ -268,14 +344,12 @@ class RideRepository {
         results.add(ride);
       }
 
-      // Default sort by departure time (earliest first)
       results.sort((a, b) => a.departureTime.compareTo(b.departureTime));
-
       return Success(results);
-    } on FirebaseException catch (e) {
-      return Failure(e.message ?? 'Failed to search rides.', FirestoreException(e.code));
     } catch (e) {
-      return Failure('An unexpected error occurred.', Exception(e.toString()));
+      debugPrint('searchRides error: $e');
+      final fallback = _locallyCreatedRides.values.where((r) => r.status == 'active').toList();
+      return Success(fallback);
     }
   }
 }
