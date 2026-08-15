@@ -19,12 +19,14 @@ class LoginPage extends ConsumerStatefulWidget {
   ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
+enum AuthAction { idle, email, google }
+
 class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _rememberMe = false;
-  bool _isLoading = false;
+  AuthAction _authAction = AuthAction.idle;
 
   @override
   void dispose() {
@@ -34,16 +36,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Future<void> _submitLogin() async {
+    if (_authAction != AuthAction.idle) return;
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    setState(() => _authAction = AuthAction.email);
 
     final result = await ref.read(authControllerProvider.notifier).login(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
 
-    setState(() => _isLoading = false);
+    setState(() => _authAction = AuthAction.idle);
 
     if (!mounted) return;
 
@@ -60,7 +63,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Future<void> _handleGoogleSignIn() async {
-    setState(() => _isLoading = true);
+    if (_authAction != AuthAction.idle) return;
+    setState(() => _authAction = AuthAction.google);
 
     try {
       final result = await ref.read(authControllerProvider.notifier).signInWithGoogle();
@@ -78,7 +82,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() => _authAction = AuthAction.idle);
       }
     }
   }
@@ -189,8 +193,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 // Login Button
                 LoadingButton(
                   text: 'Sign In',
-                  isLoading: _isLoading,
-                  onPressed: _submitLogin,
+                  isLoading: _authAction == AuthAction.email,
+                  onPressed: _authAction == AuthAction.idle ? _submitLogin : null,
                 ),
                 const SizedBox(height: 24),
 
@@ -199,8 +203,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                 // Google Button
                 GoogleButton(
-                  onPressed: _handleGoogleSignIn,
-                  isLoading: _isLoading,
+                  onPressed: _authAction == AuthAction.idle ? _handleGoogleSignIn : null,
+                  isLoading: _authAction == AuthAction.google,
                 ),
                 const SizedBox(height: 32),
 

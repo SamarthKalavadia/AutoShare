@@ -42,12 +42,19 @@ class AppDropdownField<T> extends StatelessWidget {
           onChanged: onChanged,
           validator: validator,
           style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
             color: theme.colorScheme.onSurface,
           ),
           icon: Icon(Icons.arrow_drop_down, color: theme.colorScheme.onSurface),
           dropdownColor: theme.colorScheme.surfaceContainerHighest,
           decoration: InputDecoration(
             hintText: hintText,
+            hintStyle: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
             prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: 22) : null,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             border: OutlineInputBorder(

@@ -24,6 +24,8 @@ class RegisterPage extends ConsumerStatefulWidget {
   ConsumerState<RegisterPage> createState() => _RegisterPageState();
 }
 
+enum AuthAction { idle, email, google }
+
 class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -36,7 +38,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   XFile? _selectedImage;
   Uint8List? _selectedImageBytes;
   bool _acceptedTerms = false;
-  bool _isLoading = false;
+  AuthAction _authAction = AuthAction.idle;
 
   @override
   void dispose() {
@@ -49,6 +51,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   }
 
   Future<void> _submitRegister() async {
+    if (_authAction != AuthAction.idle) return;
     if (!_formKey.currentState!.validate()) return;
 
     if (!_acceptedTerms) {
@@ -59,7 +62,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() => _authAction = AuthAction.email);
 
     final result = await ref.read(authControllerProvider.notifier).register(
           name: _nameController.text.trim(),
@@ -70,7 +73,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           profileImageFile: _selectedImage,
         );
 
-    setState(() => _isLoading = false);
+    setState(() => _authAction = AuthAction.idle);
 
     if (!mounted) return;
 
@@ -82,7 +85,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   }
 
   Future<void> _handleGoogleSignUp() async {
-    setState(() => _isLoading = true);
+    if (_authAction != AuthAction.idle) return;
+    setState(() => _authAction = AuthAction.google);
 
     try {
       final result = await ref.read(authControllerProvider.notifier).signInWithGoogle();
@@ -100,7 +104,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() => _authAction = AuthAction.idle);
       }
     }
   }
@@ -328,8 +332,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 // Register Button
                 LoadingButton(
                   text: 'Register Account',
-                  isLoading: _isLoading,
-                  onPressed: _submitRegister,
+                  isLoading: _authAction == AuthAction.email,
+                  onPressed: _authAction == AuthAction.idle ? _submitRegister : null,
                 ),
                 const SizedBox(height: 24),
 
@@ -339,8 +343,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 // Google Sign Up
                 GoogleButton(
                   text: 'Continue with Google',
-                  onPressed: _handleGoogleSignUp,
-                  isLoading: _isLoading,
+                  onPressed: _authAction == AuthAction.idle ? _handleGoogleSignUp : null,
+                  isLoading: _authAction == AuthAction.google,
                 ),
                 const SizedBox(height: 32),
               ],

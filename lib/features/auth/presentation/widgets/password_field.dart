@@ -44,8 +44,18 @@ class _PasswordFieldState extends State<PasswordField> {
           obscureText: _obscureText,
           validator: widget.validator,
           onChanged: widget.onChanged,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: theme.colorScheme.onSurface,
+          ),
           decoration: InputDecoration(
             hintText: widget.hintText,
+            hintStyle: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
             prefixIcon: const Icon(Icons.lock_outline_rounded, size: 22),
             suffixIcon: IconButton(
               icon: Icon(

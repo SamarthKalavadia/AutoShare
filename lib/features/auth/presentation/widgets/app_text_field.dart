@@ -59,9 +59,18 @@ class AppTextField extends StatelessWidget {
           readOnly: readOnly,
           onTap: onTap,
           maxLines: maxLines,
-          style: theme.textTheme.bodyMedium,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: theme.colorScheme.onSurface,
+          ),
           decoration: InputDecoration(
             hintText: hintText,
+            hintStyle: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
             prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: 22) : null,
             suffixIcon: suffixIcon,
             contentPadding:
