@@ -87,9 +87,9 @@ class RideRepository {
         }
       }
 
-      final effectiveDriverId = (authUser != null && authUser.uid.isNotEmpty)
-          ? authUser.uid
-          : (ride.driverId.isNotEmpty ? ride.driverId : 'driver_local');
+      final effectiveDriverId = ride.driverId.isNotEmpty
+          ? ride.driverId
+          : (authUser != null && authUser.uid.isNotEmpty ? authUser.uid : 'driver_local');
 
       final docRef = _firestoreService.ridesCollection.doc();
       final newRide = ride.copyWith(

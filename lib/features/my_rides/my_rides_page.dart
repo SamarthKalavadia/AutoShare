@@ -49,6 +49,16 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage>
       appBar: AppBar(
         backgroundColor: backgroundColor,
         elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_rounded, color: blackColor),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
+        ),
         centerTitle: true,
         title: Text(
           'My Rides',
