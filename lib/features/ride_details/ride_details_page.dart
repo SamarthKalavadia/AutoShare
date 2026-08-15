@@ -223,8 +223,15 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
   // ── AppBar ─────────────────────────────────────────────────────────────────
 
   Widget _buildAppBar(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor = theme.scaffoldBackgroundColor;
+    final iconBg = isDark ? const Color(0xFF28282A) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final iconColor = theme.colorScheme.onSurface;
+
     return SliverAppBar(
-      backgroundColor: const Color(0xFFFFFDF7),
+      backgroundColor: backgroundColor,
       scrolledUnderElevation: 0,
       pinned: true,
       elevation: 0,
@@ -233,17 +240,17 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: iconBg,
             shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFEAE5DD)),
-            boxShadow: const [
+            border: Border.all(color: borderColor),
+            boxShadow: isDark ? [] : const [
               BoxShadow(color: Color(0x0A121212), blurRadius: 8, offset: Offset(0, 2)),
             ],
           ),
-          child: const Icon(
+          child: Icon(
             Icons.arrow_back_ios_new_rounded,
             size: 16,
-            color: Color(0xFF121212),
+            color: iconColor,
           ),
         ),
         onPressed: () {
@@ -256,10 +263,8 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
       ),
       title: Text(
         'Ride Details',
-        style: GoogleFonts.inter(
-          fontSize: 17,
+        style: theme.textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w700,
-          color: const Color(0xFF121212),
         ),
       ),
       centerTitle: true,
@@ -269,17 +274,17 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: iconBg,
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFEAE5DD)),
-              boxShadow: const [
+              border: Border.all(color: borderColor),
+              boxShadow: isDark ? [] : const [
                 BoxShadow(color: Color(0x0A121212), blurRadius: 8, offset: Offset(0, 2)),
               ],
             ),
-            child: const Icon(
+            child: Icon(
               Icons.share_rounded,
               size: 18,
-              color: Color(0xFF121212),
+              color: iconColor,
             ),
           ),
           onPressed: () {
@@ -301,6 +306,12 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
     required bool isLoading,
     required Color backgroundColor,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = theme.colorScheme.primary;
+    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final disabledBg = isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3);
+
     return Container(
       padding: EdgeInsets.fromLTRB(
         20,
@@ -310,8 +321,8 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
       ),
       decoration: BoxDecoration(
         color: backgroundColor,
-        border: const Border(top: BorderSide(color: Color(0xFFEAE5DD))),
-        boxShadow: const [
+        border: Border(top: BorderSide(color: borderColor)),
+        boxShadow: isDark ? [] : const [
           BoxShadow(
             color: Color(0x12121212),
             blurRadius: 20,
@@ -327,7 +338,7 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFF6F5F3),
+                color: disabledBg,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -337,8 +348,7 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
                   const SizedBox(width: 6),
                   Text(
                     disabledReason,
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
+                    style: theme.textTheme.labelMedium?.copyWith(
                       color: const Color(0xFF9E9E9E),
                       fontWeight: FontWeight.w500,
                     ),
@@ -350,18 +360,13 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
           ],
           SizedBox(
             width: double.infinity,
-            height: 56,
             child: FilledButton(
               onPressed: canRequest ? _onRequestPressed : null,
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFF6C000),
-                disabledBackgroundColor: const Color(0xFFEAE5DD),
+                backgroundColor: primaryColor,
+                disabledBackgroundColor: disabledBg,
                 foregroundColor: const Color(0xFF121212),
-                disabledForegroundColor: const Color(0xFFAAAAAA),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                elevation: 0,
+                disabledForegroundColor: isDark ? Colors.white30 : const Color(0xFFAAAAAA),
               ),
               child: isLoading
                   ? const SizedBox(
@@ -372,13 +377,7 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
                         color: Color(0xFF121212),
                       ),
                     )
-                  : Text(
-                      _isOwnRide ? 'Your Ride' : 'Request Ride',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                  : Text(_isOwnRide ? 'Your Ride' : 'Request Ride'),
             ),
           ),
         ],
@@ -392,25 +391,27 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
 class _PrivacyNoticeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F4FF),
+        color: isDark ? const Color(0xFF1C223A) : const Color(0xFFF0F4FF),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFBBCBFF)),
+        border: Border.all(color: isDark ? const Color(0xFF283593) : const Color(0xFFBBCBFF)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.lock_outline_rounded, size: 16, color: Color(0xFF3D5AFE)),
+          Icon(Icons.lock_outline_rounded, size: 16, color: isDark ? const Color(0xFF7986CB) : const Color(0xFF3D5AFE)),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               'Phone number and contact details are revealed only after the ride owner accepts your request.',
-              style: GoogleFonts.inter(
-                fontSize: 12,
+              style: theme.textTheme.labelMedium?.copyWith(
                 fontWeight: FontWeight.w400,
-                color: const Color(0xFF3949AB),
+                color: isDark ? const Color(0xFFC5CAE9) : const Color(0xFF3949AB),
                 height: 1.5,
               ),
             ),

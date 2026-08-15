@@ -22,3 +22,13 @@ subprojects {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
+
+// Suppress Java compiler warnings (like deprecation/unchecked notes from third-party plugins)
+gradle.projectsEvaluated {
+    subprojects {
+        tasks.withType<JavaCompile> {
+            options.compilerArgs.addAll(listOf("-Xlint:none", "-nowarn"))
+            options.isWarnings = false
+        }
+    }
+}

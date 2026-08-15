@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../providers/search_ride_provider.dart';
 import '../../../shared/widgets/location_autocomplete_field.dart';
+import '../../auth/presentation/controllers/auth_controller.dart';
 
 class SearchFilterCard extends ConsumerWidget {
   const SearchFilterCard({super.key});
@@ -25,6 +26,9 @@ class SearchFilterCard extends ConsumerWidget {
 
     final state = ref.watch(searchRideProvider);
     final notifier = ref.read(searchRideProvider.notifier);
+    
+    final authState = ref.watch(authControllerProvider);
+    final isFemale = authState.value?.gender.toLowerCase() == 'female';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -32,14 +36,16 @@ class SearchFilterCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? const Color(0x33000000) : const Color(0x0F121212),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: isDark ? Border.all(color: borderColor, width: 1.1) : null,
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 20,
+                  offset: const Offset(0, 6),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,25 +54,31 @@ class SearchFilterCard extends ConsumerWidget {
           LocationAutocompleteField(
             fieldKey: 'search_boarding',
             hint: 'Where from?',
-            icon: Icons.trip_origin,
-            iconColor: successColor,
+            icon: Icons.circle_outlined,
+            iconColor: blackColor,
             onPlaceSelected: (prediction, details) async {
               notifier.updateBoardingLocation(prediction.description);
             },
           ),
-          const SizedBox(height: 16),
-          
+          Padding(
+            padding: const EdgeInsets.only(left: 18),
+            child: Container(
+              height: 12,
+              width: 2,
+              color: isDark ? Colors.white24 : Colors.black12,
+            ),
+          ),
           // Destination
           LocationAutocompleteField(
             fieldKey: 'search_destination',
             hint: 'Where to?',
             icon: Icons.location_on,
-            iconColor: dangerColor,
+            iconColor: primaryColor,
             onPlaceSelected: (prediction, details) async {
               notifier.updateDestination(prediction.description);
             },
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
 
           // Date and Time
           Row(
@@ -122,13 +134,13 @@ class SearchFilterCard extends ConsumerWidget {
                   children: [
                     Text(
                       'Required Seats',
-                      style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: mutedText),
+                      style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600, color: mutedText),
                     ),
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF28282A) : const Color(0xFFF6F5F3),
+                        color: isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
@@ -145,8 +157,7 @@ class SearchFilterCard extends ConsumerWidget {
                             child: Text(
                               '${state.requiredSeats}',
                               key: ValueKey(state.requiredSeats),
-                              style: GoogleFonts.inter(
-                                fontSize: 16,
+                              style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 color: blackColor,
                               ),
@@ -171,14 +182,14 @@ class SearchFilterCard extends ConsumerWidget {
                   children: [
                     Text(
                       'Max Fare (₹${state.maxFare.toInt()})',
-                      style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: mutedText),
+                      style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600, color: mutedText),
                     ),
                     SliderTheme(
                       data: SliderTheme.of(context).copyWith(
                         activeTrackColor: primaryColor,
                         inactiveTrackColor: isDark ? const Color(0xFF38383A) : const Color(0xFFEAE5DD),
                         thumbColor: primaryColor,
-                        overlayColor: primaryColor.withAlpha(50),
+                        overlayColor: primaryColor.withValues(alpha: 0.2),
                         trackHeight: 4,
                       ),
                       child: Slider(
@@ -197,53 +208,53 @@ class SearchFilterCard extends ConsumerWidget {
           const SizedBox(height: 16),
           
           // Girls Only Toggle
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF28282A) : const Color(0xFFF6F5F3),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.female_outlined, color: Color(0xFFD81B60), size: 22),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Girls Only Rides',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: blackColor,
-                      fontWeight: FontWeight.w600,
+          if (isFemale) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.female_rounded, size: 18, color: primaryColor),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Girls Only Rides',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: blackColor,
+                      ),
                     ),
                   ),
-                ),
-                Switch.adaptive(
-                  value: state.isGirlsOnly,
-                  onChanged: notifier.toggleGirlsOnly,
-                  activeThumbColor: const Color(0xFFD81B60),
-                  activeTrackColor: const Color(0xFFD81B60).withAlpha(100),
-                  inactiveTrackColor: borderColor,
-                ),
-              ],
+                  Switch.adaptive(
+                    value: state.isGirlsOnly,
+                    onChanged: notifier.toggleGirlsOnly,
+                    activeColor: primaryColor,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
+          ],
           
           // Search Button
           SizedBox(
             width: double.infinity,
-            height: 54,
             child: FilledButton(
               onPressed: state.isValid && !state.isLoading ? () => notifier.searchRides() : null,
               style: FilledButton.styleFrom(
                 backgroundColor: primaryColor,
                 foregroundColor: const Color(0xFF121212),
-                disabledBackgroundColor: isDark ? const Color(0xFF38383A) : primaryColor.withAlpha(100),
-                disabledForegroundColor: isDark ? Colors.white38 : blackColor.withAlpha(120),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: state.isValid ? 4 : 0,
+                disabledBackgroundColor: isDark ? const Color(0xFF38383A) : primaryColor.withValues(alpha: 0.4),
+                disabledForegroundColor: isDark ? Colors.white38 : blackColor.withValues(alpha: 0.5),
               ),
               child: state.isLoading 
                   ? const SizedBox(
@@ -251,13 +262,7 @@ class SearchFilterCard extends ConsumerWidget {
                       height: 24, 
                       child: CircularProgressIndicator(color: Color(0xFF121212), strokeWidth: 2.5),
                     )
-                  : Text(
-                      'Search Rides',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                  : const Text('Search Rides'),
             ),
           ),
         ],
@@ -283,7 +288,7 @@ class _DateTimeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final selectorBg = isDark ? const Color(0xFF28282A) : const Color(0xFFF6F5F3);
+    final selectorBg = isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3);
     final textColor = theme.colorScheme.onSurface;
 
     return InkWell(
@@ -302,8 +307,7 @@ class _DateTimeSelector extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               text,
-              style: GoogleFonts.inter(
-                fontSize: 14,
+              style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: textColor,
               ),

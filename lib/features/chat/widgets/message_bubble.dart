@@ -22,9 +22,15 @@ class MessageBubble extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const primaryColor = Color(0xFFF6C000);
-    const blackColor = Color(0xFF121212);
-    const mutedText = Color(0xFF6F6F72);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final primaryColor = theme.colorScheme.primary;
+    final blackColor = theme.colorScheme.onSurface;
+    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
+    final bubbleBgMy = primaryColor;
+    final bubbleBgOther = theme.cardTheme.color ?? (isDark ? const Color(0xFF2C2C2E) : Colors.white);
+    final deletedBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFEEEEEE);
 
     final currentUid = ref.watch(authControllerProvider).value?.uid ?? '';
     final isMe = message.senderId == currentUid;
@@ -43,12 +49,11 @@ class MessageBubble extends ConsumerWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFFEEEEEE),
+              color: deletedBg,
               borderRadius: BorderRadius.circular(18),
             ),
             child: Text('🚫 Message deleted',
-                style: GoogleFonts.inter(
-                    fontSize: 13,
+                style: theme.textTheme.bodySmall?.copyWith(
                     color: mutedText,
                     fontStyle: FontStyle.italic)),
           ),
@@ -75,7 +80,7 @@ class MessageBubble extends ConsumerWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: isMe ? primaryColor : Colors.white,
+              color: isMe ? bubbleBgMy : bubbleBgOther,
               borderRadius: BorderRadius.only(
                 topLeft: const Radius.circular(20),
                 topRight: const Radius.circular(20),
@@ -86,9 +91,9 @@ class MessageBubble extends ConsumerWidget {
                     ? const Radius.circular(4)
                     : const Radius.circular(20),
               ),
-              boxShadow: [
+              boxShadow: isDark ? [] : [
                 BoxShadow(
-                    color: blackColor.withAlpha(8),
+                    color: const Color(0xFF121212).withAlpha(8),
                     blurRadius: 8,
                     offset: const Offset(0, 2)),
               ],
@@ -100,24 +105,23 @@ class MessageBubble extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Text(message.senderName,
-                        style: GoogleFonts.inter(
-                            fontSize: 12,
+                        style: theme.textTheme.labelSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: primaryColor)),
                   ),
                 Text(message.text,
-                    style: GoogleFonts.inter(
-                        fontSize: 15, color: blackColor)),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isMe ? const Color(0xFF121212) : blackColor)),
                 const SizedBox(height: 4),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       DateFormat('h:mm a').format(message.sentAt),
-                      style: GoogleFonts.inter(
+                      style: theme.textTheme.labelSmall?.copyWith(
                           fontSize: 10,
                           color: isMe
-                              ? blackColor.withAlpha(100)
+                              ? const Color(0xFF121212).withAlpha(150)
                               : mutedText),
                     ),
                     if (isMe) ...[
@@ -126,8 +130,8 @@ class MessageBubble extends ConsumerWidget {
                         isRead ? Icons.done_all : Icons.done,
                         size: 14,
                         color: isRead
-                            ? Colors.blue.shade600
-                            : blackColor.withAlpha(100),
+                            ? Colors.blue.shade700
+                            : const Color(0xFF121212).withAlpha(150),
                       ),
                     ],
                   ],
@@ -142,9 +146,14 @@ class MessageBubble extends ConsumerWidget {
 
   void _showOptions(
       BuildContext context, WidgetRef ref, bool isMe, String rideId) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final sheetBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    final handleColor = isDark ? Colors.white24 : const Color(0xFFEAE5DD);
+
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: sheetBg,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => SafeArea(
@@ -156,14 +165,14 @@ class MessageBubble extends ConsumerWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                  color: const Color(0xFFEAE5DD),
+                  color: handleColor,
                   borderRadius: BorderRadius.circular(2)),
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.copy_rounded),
+              leading: Icon(Icons.copy_rounded, color: theme.colorScheme.onSurface),
               title: Text('Copy message',
-                  style: GoogleFonts.inter(fontSize: 15)),
+                  style: theme.textTheme.bodyLarge),
               onTap: () {
                 Clipboard.setData(ClipboardData(text: message.text));
                 Navigator.pop(context);
@@ -176,8 +185,7 @@ class MessageBubble extends ConsumerWidget {
                 leading:
                     const Icon(Icons.delete_outline_rounded, color: Colors.red),
                 title: Text('Delete message',
-                    style: GoogleFonts.inter(
-                        fontSize: 15, color: Colors.red)),
+                    style: theme.textTheme.bodyLarge?.copyWith(color: Colors.red)),
                 onTap: () {
                   ref
                       .read(chatProvider.notifier)

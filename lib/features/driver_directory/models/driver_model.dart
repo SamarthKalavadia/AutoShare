@@ -62,33 +62,31 @@ class DriverModel extends Equatable {
   }
 
   // ── Future Firebase integration ──────────────────────────────────────────────
-  // When you add Firebase, uncomment and use these:
+  Map<String, dynamic> toMap() {
+    return {
+      'driverId': driverId,
+      'name': name,
+      'phoneNumber': phoneNumber,
+      'area': area,
+      'city': city,
+      'available': available,
+      'verified': verified,
+      'rating': rating,
+      'profileImage': profileImage,
+    };
+  }
 
-  // Map<String, dynamic> toMap() {
-  //   return {
-  //     'driverId': driverId,
-  //     'name': name,
-  //     'phoneNumber': phoneNumber,
-  //     'area': area,
-  //     'city': city,
-  //     'available': available,
-  //     'verified': verified,
-  //     'rating': rating,
-  //     'profileImage': profileImage,
-  //   };
-  // }
-
-  // factory DriverModel.fromMap(Map<String, dynamic> map, String id) {
-  //   return DriverModel(
-  //     driverId: id,
-  //     name: map['name'] as String? ?? '',
-  //     phoneNumber: map['phoneNumber'] as String? ?? '',
-  //     area: map['area'] as String? ?? '',
-  //     city: map['city'] as String? ?? '',
-  //     available: map['available'] as bool? ?? false,
-  //     verified: map['verified'] as bool? ?? false,
-  //     rating: (map['rating'] as num?)?.toDouble() ?? 0.0,
-  //     profileImage: map['profileImage'] as String?,
-  //   );
-  // }
+  factory DriverModel.fromMap(Map<String, dynamic> map, String id) {
+    return DriverModel(
+      driverId: id,
+      name: map['name'] as String? ?? '',
+      phoneNumber: map['phone'] as String? ?? '', // Fallback to 'phone' if 'phoneNumber' not found
+      area: map['area'] as String? ?? '',
+      city: map['city'] as String? ?? '',
+      available: map['available'] as bool? ?? true, // Default true if not present
+      verified: map['emailVerified'] as bool? ?? false, // Mapped from emailVerified if verified not present
+      rating: (map['averageRating'] as num?)?.toDouble() ?? 0.0, // Map from averageRating in UserModel
+      profileImage: map['profileImage'] as String?,
+    );
+  }
 }

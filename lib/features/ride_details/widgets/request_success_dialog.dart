@@ -42,13 +42,17 @@ class _SuccessSheetState extends State<_SuccessSheet>
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFFF6C000);
-    const blackColor = Color(0xFF121212);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final primaryColor = theme.colorScheme.primary;
+    final blackColor = theme.colorScheme.onSurface;
+    final bgSheetColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      decoration: BoxDecoration(
+        color: bgSheetColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       ),
       padding: const EdgeInsets.fromLTRB(28, 12, 28, 40),
       child: Column(
@@ -59,7 +63,7 @@ class _SuccessSheetState extends State<_SuccessSheet>
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: const Color(0xFFDDDDDD),
+              color: isDark ? Colors.white24 : const Color(0xFFDDDDDD),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -74,15 +78,13 @@ class _SuccessSheetState extends State<_SuccessSheet>
                 width: 96,
                 height: 96,
                 decoration: BoxDecoration(
-                  gradient: const RadialGradient(
-                    colors: [Color(0xFFF6C000), Color(0xFFE6A800)],
-                  ),
+                  color: primaryColor,
                   shape: BoxShape.circle,
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(
-                      color: Color(0x44F6C000),
+                      color: primaryColor.withValues(alpha: 0.25),
                       blurRadius: 24,
-                      offset: Offset(0, 8),
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
@@ -99,8 +101,7 @@ class _SuccessSheetState extends State<_SuccessSheet>
 
           Text(
             'Request Sent!',
-            style: GoogleFonts.inter(
-              fontSize: 24,
+            style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w800,
               color: blackColor,
             ),
@@ -109,10 +110,8 @@ class _SuccessSheetState extends State<_SuccessSheet>
           Text(
             'The ride owner will review your request.\nYou\'ll be notified once they respond.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-              color: const Color(0xFF6F6F72),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: isDark ? Colors.white70 : const Color(0xFF6F6F72),
               height: 1.6,
             ),
           ),
@@ -123,21 +122,20 @@ class _SuccessSheetState extends State<_SuccessSheet>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFFBE6),
+              color: isDark ? primaryColor.withValues(alpha: 0.1) : const Color(0xFFFFFBE6),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: primaryColor.withAlpha(120)),
+              border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.hourglass_top_rounded, size: 16, color: Color(0xFFF6C000)),
+                Icon(Icons.hourglass_top_rounded, size: 16, color: primaryColor),
                 const SizedBox(width: 8),
                 Text(
                   'Status: Pending Owner Approval',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
+                  style: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF856200),
+                    color: isDark ? primaryColor : const Color(0xFF856200),
                   ),
                 ),
               ],
@@ -154,7 +152,7 @@ class _SuccessSheetState extends State<_SuccessSheet>
               onPressed: () => Navigator.of(context).pop(),
               style: FilledButton.styleFrom(
                 backgroundColor: primaryColor,
-                foregroundColor: blackColor,
+                foregroundColor: const Color(0xFF121212),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18),
                 ),
@@ -162,10 +160,9 @@ class _SuccessSheetState extends State<_SuccessSheet>
               ),
               child: Text(
                 'Done',
-                style: GoogleFonts.inter(
-                  fontSize: 16,
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: blackColor,
+                  color: const Color(0xFF121212),
                 ),
               ),
             ),

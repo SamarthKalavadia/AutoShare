@@ -217,4 +217,65 @@ class RideRepository {
       debugPrint('Failed to audit rides: $e');
     }
   }
+
+  /// Searches for active rides in Firestore matching the basic criteria.
+  /// We fetch all 'active' rides and perform filtering on the client for complex logic 
+  /// (since Firestore has limits on multiple inequalities and range filters).
+  Future<Result<List<RideModel>>> searchRides({
+    required String boardingLocation,
+    required String destination,
+    required int seats,
+    required double maxFare,
+    required bool isGirlsOnly,
+    DateTime? departureTime,
+  }) async {
+    try {
+      final snapshot = await _firestoreService.ridesCollection
+          .where('status', isEqualTo: 'active')
+          .where('availableSeats', isGreaterThanOrEqualTo: seats)
+          .get();
+
+      final List<RideModel> results = [];
+      final now = DateTime.now();
+
+      for (final doc in snapshot.docs) {
+        final ride = RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+
+        // Client-side filtering
+        if (ride.departureTime.isBefore(now)) continue; // Filter out past rides
+        if (ride.farePerSeat > maxFare) continue;
+        if (isGirlsOnly && !ride.isGirlsOnly) continue;
+        
+        // Basic substring match for locations to make search lenient
+        if (boardingLocation.isNotEmpty) {
+          if (!ride.boardingLocation.toLowerCase().contains(boardingLocation.toLowerCase())) {
+            continue;
+          }
+        }
+        if (destination.isNotEmpty) {
+          if (!ride.destination.toLowerCase().contains(destination.toLowerCase())) {
+            continue;
+          }
+        }
+
+        // Optional time filter (e.g., must be after the requested departure time)
+        if (departureTime != null) {
+          if (ride.departureTime.isBefore(departureTime)) {
+            continue;
+          }
+        }
+
+        results.add(ride);
+      }
+
+      // Default sort by departure time (earliest first)
+      results.sort((a, b) => a.departureTime.compareTo(b.departureTime));
+
+      return Success(results);
+    } on FirebaseException catch (e) {
+      return Failure(e.message ?? 'Failed to search rides.', FirestoreException(e.code));
+    } catch (e) {
+      return Failure('An unexpected error occurred.', Exception(e.toString()));
+    }
+  }
 }

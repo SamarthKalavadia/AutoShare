@@ -24,7 +24,7 @@ class ChatsListPage extends ConsumerWidget {
         elevation: 0,
         title: Text(
           'Chats',
-          style: GoogleFonts.inter(
+          style: theme.textTheme.titleLarge?.copyWith(
             color: textColor,
             fontWeight: FontWeight.w700,
           ),
@@ -42,11 +42,11 @@ class ChatsListPage extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
+                  Icon(Icons.chat_bubble_outline, size: 64, color: theme.brightness == Brightness.dark ? Colors.white24 : Colors.grey),
                   const SizedBox(height: 16),
                   Text(
                     'No active chats yet',
-                    style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600),
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
@@ -105,12 +105,15 @@ class _ChatCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: cardBg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor),
+          border: isDark ? Border.all(color: borderColor, width: 1.1) : null,
+          boxShadow: isDark ? [] : const [
+            BoxShadow(color: Color(0x05000000), blurRadius: 8, offset: Offset(0, 4)),
+          ],
         ),
         child: Row(
           children: [
             CircleAvatar(
-              backgroundColor: const Color(0xFFF6C000).withAlpha(50),
+              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
               child: Icon(Icons.person, color: isDark ? Colors.white : const Color(0xFF121212)),
             ),
             const SizedBox(width: 16),
@@ -120,14 +123,14 @@ class _ChatCard extends StatelessWidget {
                 children: [
                   Text(
                     '${data.ride.boardingLocation} → ${data.ride.destination}',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14, color: textColor),
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, color: textColor),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     isDriver ? 'Your Ride' : 'Ride with ${data.ride.driverName}',
-                    style: GoogleFonts.inter(color: subtextColor, fontSize: 13),
+                    style: theme.textTheme.bodyMedium?.copyWith(color: subtextColor),
                   ),
                 ],
               ),

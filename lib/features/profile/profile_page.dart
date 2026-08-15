@@ -63,10 +63,10 @@ class _ProfileBody extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Delete Account', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: const Color(0xFFD32F2F))),
+        title: Text('Delete Account', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: const Color(0xFFD32F2F))),
         content: Text(
           'Are you sure you want to delete your account? This action is permanent and will delete all your data, rides, and settings.',
-          style: GoogleFonts.inter(color: const Color(0xFF6F6F72)),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : const Color(0xFF6F6F72)),
         ),
         actions: [
           TextButton(
@@ -156,18 +156,22 @@ class _ProfileBody extends ConsumerWidget {
                           builder: (ctx, ref, _) {
                             final statsAsync = ref.watch(profileStatsProvider);
                             final stats = statsAsync.value ?? const ProfileStats();
-                            return GridView.count(
-                              crossAxisCount: 2,
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              childAspectRatio: 2.2,
+                            return Column(
                               children: [
-                                _StatCard(title: 'Created Rides', value: stats.createdRides.toString(), icon: Icons.local_taxi_rounded),
-                                _StatCard(title: 'Joined Rides', value: stats.joinedRides.toString(), icon: Icons.hail_rounded),
-                                _StatCard(title: 'Completed Rides', value: stats.completedRides.toString(), icon: Icons.check_circle_rounded, isSuccess: true),
-                                _StatCard(title: 'Cancelled Rides', value: stats.cancelledRides.toString(), icon: Icons.cancel_outlined),
+                                GridView.count(
+                                  crossAxisCount: 2,
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 2.2,
+                                  children: [
+                                    _StatCard(title: 'Created Rides', value: stats.createdRides.toString(), icon: Icons.local_taxi_rounded),
+                                    _StatCard(title: 'Joined Rides', value: stats.joinedRides.toString(), icon: Icons.hail_rounded),
+                                    _StatCard(title: 'Completed Rides', value: stats.completedRides.toString(), icon: Icons.check_circle_rounded, isSuccess: true),
+                                    _StatCard(title: 'Cancelled Rides', value: stats.cancelledRides.toString(), icon: Icons.cancel_outlined),
+                                  ],
+                                ),
                               ],
                             );
                           }
@@ -258,8 +262,7 @@ class _ProfileBody extends ConsumerWidget {
                                     user.averageRating > 0
                                         ? user.averageRating.toStringAsFixed(1)
                                         : '—',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 48,
+                                    style: theme.textTheme.displayMedium?.copyWith(
                                       fontWeight: FontWeight.w800,
                                       color: blackColor,
                                     ),
@@ -281,8 +284,7 @@ class _ProfileBody extends ConsumerWidget {
                                       const SizedBox(height: 4),
                                       Text(
                                         '${user.totalReviews} ${user.totalReviews == 1 ? 'review' : 'reviews'}',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 13,
+                                        style: theme.textTheme.labelMedium?.copyWith(
                                           color: mutedText,
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -304,8 +306,7 @@ class _ProfileBody extends ConsumerWidget {
                                       children: [
                                         Text(
                                           '$star',
-                                          style: GoogleFonts.inter(
-                                            fontSize: 12,
+                                          style: theme.textTheme.labelSmall?.copyWith(
                                             color: mutedText,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -327,8 +328,7 @@ class _ProfileBody extends ConsumerWidget {
                                         const SizedBox(width: 8),
                                         Text(
                                           '$count',
-                                          style: GoogleFonts.inter(
-                                            fontSize: 12,
+                                          style: theme.textTheme.labelSmall?.copyWith(
                                             color: mutedText,
                                           ),
                                         ),
@@ -346,8 +346,7 @@ class _ProfileBody extends ConsumerWidget {
                         if (ratings.isNotEmpty) ...[
                           Text(
                             'Recent Reviews',
-                            style: GoogleFonts.inter(
-                              fontSize: 20,
+                            style: theme.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w700,
                               color: blackColor,
                             ),
@@ -378,11 +377,11 @@ class _ProfileBody extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, left: 4),
       child: Text(
-        title,
-        style: GoogleFonts.inter(
-          fontSize: 14,
+        title.toUpperCase(),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
           fontWeight: FontWeight.w700,
           color: color ?? defaultColor,
+          letterSpacing: 0.8,
         ),
       ),
     );
@@ -403,13 +402,13 @@ class _ProfileBody extends ConsumerWidget {
 
     return ListTile(
       onTap: onTap,
-      title: Text(title, style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: effectiveColor)),
+      title: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, color: effectiveColor)),
       leading: Icon(icon, color: effectiveColor, size: 22),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (trailingText != null)
-            Text(trailingText, style: GoogleFonts.inter(color: subtextColor, fontSize: 14, fontWeight: FontWeight.w500)),
+            Text(trailingText, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: subtextColor, fontWeight: FontWeight.w500)),
           if (trailingText != null) const SizedBox(width: 8),
           Icon(Icons.chevron_right_rounded, color: chevronColor, size: 20),
         ],
@@ -428,13 +427,14 @@ class _ProfileBody extends ConsumerWidget {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : const Color(0xFF121212);
+    final theme = Theme.of(context);
 
     return SwitchListTile(
       value: value,
       onChanged: onChanged,
-      title: Text(title, style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: textColor)),
+      title: Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, color: textColor)),
       secondary: Icon(icon, color: textColor, size: 22),
-      activeTrackColor: const Color(0xFFF6C000),
+      activeTrackColor: theme.colorScheme.primary,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
@@ -471,8 +471,7 @@ class _ProfileHeader extends ConsumerWidget {
             child: getAvatarImageProvider(user.profileImage) == null
                 ? Text(
                     user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                    style: GoogleFonts.inter(
-                      fontSize: 32,
+                    style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: blackColor,
                     ),
@@ -485,8 +484,7 @@ class _ProfileHeader extends ConsumerWidget {
             children: [
               Text(
                 user.name,
-                style: GoogleFonts.inter(
-                  fontSize: 22,
+                style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: blackColor,
                 ),
@@ -500,8 +498,7 @@ class _ProfileHeader extends ConsumerWidget {
           const SizedBox(height: 4),
           Text(
             user.email,
-            style: GoogleFonts.inter(
-              fontSize: 14,
+            style: theme.textTheme.bodyMedium?.copyWith(
               color: mutedTextColor,
               fontWeight: FontWeight.w500,
             ),
@@ -581,18 +578,18 @@ class _MoreMenu extends StatelessWidget {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('Report User', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+          title: Text('Report User', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: reasons
                 .map(
                   (reason) => ListTile(
-                    title: Text(reason, style: GoogleFonts.inter()),
+                    title: Text(reason, style: Theme.of(context).textTheme.bodyLarge),
                     leading: Icon(
                       selected == reason
                           ? Icons.radio_button_checked
                           : Icons.radio_button_off,
-                      color: const Color(0xFF121212),
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                     onTap: () => setS(() => selected = reason),
                     shape: RoundedRectangleBorder(
@@ -643,10 +640,10 @@ class _MoreMenu extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Block ${user.name}?', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        title: Text('Block ${user.name}?', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
         content: Text(
           'Blocking this user will prevent them from chatting, requesting rides, or seeing your listings.',
-          style: GoogleFonts.inter(color: const Color(0xFF6F6F72)),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : const Color(0xFF6F6F72)),
         ),
         actions: [
           TextButton(
@@ -692,9 +689,9 @@ class _MoreMenu extends StatelessWidget {
           value: 'report',
           child: Row(
             children: [
-              const Icon(Icons.flag_outlined, color: Color(0xFF121212), size: 20),
+              Icon(Icons.flag_outlined, color: Theme.of(context).colorScheme.onSurface, size: 20),
               const SizedBox(width: 12),
-              Text('Report User', style: GoogleFonts.inter()),
+              Text('Report User', style: Theme.of(context).textTheme.bodyMedium),
             ],
           ),
         ),
@@ -704,7 +701,7 @@ class _MoreMenu extends StatelessWidget {
             children: [
               const Icon(Icons.block_rounded, color: Color(0xFFD32F2F), size: 20),
               const SizedBox(width: 12),
-              Text('Block User', style: GoogleFonts.inter(color: const Color(0xFFD32F2F))),
+              Text('Block User', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFFD32F2F))),
             ],
           ),
         ),
@@ -753,8 +750,7 @@ class _ReviewCard extends StatelessWidget {
               const Spacer(),
               Text(
                 DateFormat('MMM d, yyyy').format(rating.createdAt),
-                style: GoogleFonts.inter(
-                  fontSize: 12,
+                style: theme.textTheme.labelSmall?.copyWith(
                   color: subtextColor,
                 ),
               ),
@@ -764,8 +760,7 @@ class _ReviewCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               rating.review,
-              style: GoogleFonts.inter(
-                fontSize: 14,
+              style: theme.textTheme.bodyMedium?.copyWith(
                 color: textColor,
               ),
             ),
@@ -804,8 +799,7 @@ class _Chip extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: GoogleFonts.inter(
-              fontSize: 12,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: color,
               fontWeight: FontWeight.w700,
             ),
@@ -856,8 +850,7 @@ class _StatCard extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 value,
-                style: GoogleFonts.inter(
-                  fontSize: 20,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: contentColor,
                 ),
@@ -867,8 +860,7 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             title,
-            style: GoogleFonts.inter(
-              fontSize: 11,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.w600,
               color: subtextColor,
             ),
@@ -877,6 +869,155 @@ class _StatCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SustainabilityCard extends StatelessWidget {
+  final double co2SavedKg;
+  final int treesPlanted;
+  final double greenMiles;
+
+  const _SustainabilityCard({
+    required this.co2SavedKg,
+    required this.treesPlanted,
+    required this.greenMiles,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final bgGradient = isDark
+        ? const LinearGradient(colors: [Color(0xFF1A3824), Color(0xFF102818)])
+        : const LinearGradient(colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)]);
+        
+    final accentColor = isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32);
+    final textColor = isDark ? Colors.white : const Color(0xFF1B5E20);
+    final subtextColor = isDark ? Colors.white70 : const Color(0xFF388E3C);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: bgGradient,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: isDark ? [] : [
+          BoxShadow(
+            color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.eco_rounded, color: accentColor, size: 24),
+              const SizedBox(width: 8),
+              Text(
+                'Impact',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'AutoShare Green',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: accentColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _ImpactMetric(
+                  icon: Icons.cloud_outlined,
+                  value: '${co2SavedKg.toStringAsFixed(1)} kg',
+                  label: 'CO₂ Saved',
+                  color: textColor,
+                  subColor: subtextColor,
+                ),
+              ),
+              Container(width: 1, height: 40, color: accentColor.withValues(alpha: 0.3)),
+              Expanded(
+                child: _ImpactMetric(
+                  icon: Icons.forest_outlined,
+                  value: '$treesPlanted',
+                  label: 'Trees',
+                  color: textColor,
+                  subColor: subtextColor,
+                ),
+              ),
+              Container(width: 1, height: 40, color: accentColor.withValues(alpha: 0.3)),
+              Expanded(
+                child: _ImpactMetric(
+                  icon: Icons.directions_bike_outlined,
+                  value: '${greenMiles.toStringAsFixed(0)} mi',
+                  label: 'Green Miles',
+                  color: textColor,
+                  subColor: subtextColor,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ImpactMetric extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color color;
+  final Color subColor;
+
+  const _ImpactMetric({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+    required this.subColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(icon, size: 20, color: subColor),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            fontWeight: FontWeight.w500,
+            color: subColor,
+          ),
+        ),
+      ],
     );
   }
 }

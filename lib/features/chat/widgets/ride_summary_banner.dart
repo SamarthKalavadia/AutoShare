@@ -12,21 +12,26 @@ class RideSummaryBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFFF6C000);
-    const blackColor = Color(0xFF121212);
-    const mutedText = Color(0xFF6F6F72);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final primaryColor = theme.colorScheme.primary;
+    final blackColor = theme.colorScheme.onSurface;
+    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
+    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    final iconBg = primaryColor.withValues(alpha: isDark ? 0.2 : 0.3);
 
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: primaryColor.withAlpha(100), width: 1.5),
-        boxShadow: [
+        border: isDark ? Border.all(color: const Color(0xFF333333), width: 1.1) : Border.all(color: primaryColor.withValues(alpha: 0.1), width: 1.5),
+        boxShadow: isDark ? [] : [
           BoxShadow(
-            color: blackColor.withAlpha(8),
+            color: const Color(0xFF121212).withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 2),
           ),
@@ -37,10 +42,10 @@ class RideSummaryBanner extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: primaryColor.withAlpha(30),
+              color: iconBg,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.directions_car, color: primaryColor, size: 22),
+            child: Icon(Icons.directions_car, color: primaryColor, size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -49,8 +54,7 @@ class RideSummaryBanner extends StatelessWidget {
               children: [
                 Text(
                   '${ride.boardingLocation} → ${ride.destination}',
-                  style: GoogleFonts.outfit(
-                    fontSize: 14,
+                  style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: blackColor,
                   ),
@@ -60,8 +64,7 @@ class RideSummaryBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   DateFormat('MMM d • h:mm a').format(ride.departureTime),
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
+                  style: theme.textTheme.labelSmall?.copyWith(
                     color: mutedText,
                   ),
                 ),
@@ -73,15 +76,14 @@ class RideSummaryBanner extends StatelessWidget {
             children: [
               Text(
                 '₹${ride.farePerSeat.toInt()}',
-                style: GoogleFonts.outfit(
-                  fontSize: 16,
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: blackColor,
                 ),
               ),
               Text(
                 'per seat',
-                style: GoogleFonts.inter(fontSize: 10, color: mutedText),
+                style: theme.textTheme.labelSmall?.copyWith(fontSize: 10, color: mutedText),
               ),
             ],
           ),

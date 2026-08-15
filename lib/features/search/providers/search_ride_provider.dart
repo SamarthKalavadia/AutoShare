@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/result.dart';
 import '../../../data/models/ride_model.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
+import '../../../shared/providers.dart';
 
 class SearchRideFilterState {
   final String boardingLocation;
@@ -117,153 +119,53 @@ class SearchRideNotifier extends Notifier<SearchRideFilterState> {
 
     state = state.copyWith(isLoading: true, searchResults: [], hasSearched: true);
 
-    // Mock network delay
-    await Future.delayed(const Duration(seconds: 2));
-
-    // Generate 8 realistic dummy rides
-    final dummyRides = _generateDummyRides();
-
-    // Filter by Girls Only if toggle is ON
-    var filteredRides = dummyRides;
-    if (state.isGirlsOnly) {
-      filteredRides = filteredRides.where((r) => r.isGirlsOnly).toList();
+    DateTime? departureTimeFilter;
+    if (state.departureDate != null && state.departureTime != null) {
+      departureTimeFilter = DateTime(
+        state.departureDate!.year,
+        state.departureDate!.month,
+        state.departureDate!.day,
+        state.departureTime!.hour,
+        state.departureTime!.minute,
+      );
     }
-    
-    // Basic filter simulation: if the user searched for something, we just return the dummy rides 
-    // in a real app, we would query Firestore with parameters
 
-    state = state.copyWith(
-      isLoading: false,
-      searchResults: filteredRides,
+    final authState = ref.read(authControllerProvider);
+    final isFemale = authState.value?.gender.toLowerCase() == 'female';
+
+    // If the user checked "Girls Only" but isn't female, they shouldn't see them anyway.
+    // However, the UI should prevent checking the box if not female. 
+    // We enforce it strictly here.
+    final enforceGirlsOnly = isFemale && state.isGirlsOnly;
+
+    final result = await ref.read(rideRepositoryProvider).searchRides(
+      boardingLocation: state.boardingLocation,
+      destination: state.destination,
+      seats: state.requiredSeats,
+      maxFare: state.maxFare,
+      isGirlsOnly: enforceGirlsOnly,
+      departureTime: departureTimeFilter,
     );
-  }
 
-  List<RideModel> _generateDummyRides() {
-    final now = DateTime.now();
-    final currentUserId = ref.read(authControllerProvider).value?.uid ?? '';
+    if (result is Success<List<RideModel>>) {
+      var filteredRides = result.data;
+      
+      // Secondary strict filter: Non-females can NEVER see Girls Only rides
+      if (!isFemale) {
+        filteredRides = filteredRides.where((r) => !r.isGirlsOnly).toList();
+      }
 
-    return [
-      RideModel(
-        id: 'ride_1',
-        driverId: 'driver_a',
-        driverName: 'Rahul Sharma',
-        driverRating: 4.8,
-        boardingLocation: state.boardingLocation.isEmpty ? 'Koramangala' : state.boardingLocation,
-        destination: state.destination.isEmpty ? 'HSR Layout' : state.destination,
-        departureTime: now.add(const Duration(minutes: 15)),
-        availableSeats: 2,
-        farePerSeat: 45.0,
-        estimatedDuration: '25 mins',
-        distance: '6 km',
-        isGirlsOnly: false,
-        createdAt: now.subtract(const Duration(hours: 1)),
-      ),
-      RideModel(
-        id: 'ride_2',
-        driverId: 'driver_b',
-        driverName: 'Priya Patel',
-        driverRating: 4.9,
-        boardingLocation: state.boardingLocation.isEmpty ? 'Indiranagar' : state.boardingLocation,
-        destination: state.destination.isEmpty ? 'Whitefield' : state.destination,
-        departureTime: now.add(const Duration(minutes: 45)),
-        availableSeats: 1,
-        farePerSeat: 120.0,
-        estimatedDuration: '45 mins',
-        distance: '14 km',
-        isGirlsOnly: true,
-        createdAt: now.subtract(const Duration(minutes: 30)),
-      ),
-      RideModel(
-        id: 'ride_3',
-        driverId: currentUserId, // Current user's own ride (Owner logic test)
-        driverName: 'You',
-        driverRating: 5.0,
-        boardingLocation: state.boardingLocation.isEmpty ? 'BTM Layout' : state.boardingLocation,
-        destination: state.destination.isEmpty ? 'Electronic City' : state.destination,
-        departureTime: now.add(const Duration(hours: 1)),
-        availableSeats: 3,
-        farePerSeat: 80.0,
-        estimatedDuration: '35 mins',
-        distance: '10 km',
-        isGirlsOnly: false,
-        createdAt: now.subtract(const Duration(minutes: 10)),
-      ),
-      RideModel(
-        id: 'ride_4',
-        driverId: 'driver_c',
-        driverName: 'Amit Kumar',
-        driverRating: 4.6,
-        boardingLocation: state.boardingLocation.isEmpty ? 'Jayanagar' : state.boardingLocation,
-        destination: state.destination.isEmpty ? 'MG Road' : state.destination,
-        departureTime: now.add(const Duration(minutes: 20)),
-        availableSeats: 2,
-        farePerSeat: 60.0,
-        estimatedDuration: '30 mins',
-        distance: '8 km',
-        isGirlsOnly: false,
-        createdAt: now.subtract(const Duration(hours: 2)),
-      ),
-      RideModel(
-        id: 'ride_5',
-        driverId: 'driver_d',
-        driverName: 'Neha Gupta',
-        driverRating: 4.7,
-        boardingLocation: state.boardingLocation.isEmpty ? 'Marathahalli' : state.boardingLocation,
-        destination: state.destination.isEmpty ? 'Bellandur' : state.destination,
-        departureTime: now.add(const Duration(minutes: 5)),
-        availableSeats: 1,
-        farePerSeat: 30.0,
-        estimatedDuration: '15 mins',
-        distance: '4 km',
-        isGirlsOnly: true,
-        createdAt: now.subtract(const Duration(minutes: 5)),
-      ),
-      RideModel(
-        id: 'ride_6',
-        driverId: 'driver_e',
-        driverName: 'Vikram Singh',
-        driverRating: 4.5,
-        boardingLocation: state.boardingLocation.isEmpty ? 'Hebbal' : state.boardingLocation,
-        destination: state.destination.isEmpty ? 'Manyata Tech Park' : state.destination,
-        departureTime: now.add(const Duration(hours: 2)),
-        availableSeats: 3,
-        farePerSeat: 50.0,
-        estimatedDuration: '20 mins',
-        distance: '5 km',
-        isGirlsOnly: false,
-        createdAt: now.subtract(const Duration(hours: 3)),
-      ),
-      RideModel(
-        id: 'ride_7',
-        driverId: 'driver_f',
-        driverName: 'Anjali Desai',
-        driverRating: 4.9,
-        boardingLocation: state.boardingLocation.isEmpty ? 'Malleswaram' : state.boardingLocation,
-        destination: state.destination.isEmpty ? 'Rajajinagar' : state.destination,
-        departureTime: now.add(const Duration(minutes: 10)),
-        availableSeats: 2,
-        farePerSeat: 40.0,
-        estimatedDuration: '15 mins',
-        distance: '3 km',
-        isGirlsOnly: true,
-        createdAt: now.subtract(const Duration(minutes: 40)),
-      ),
-      RideModel(
-        id: 'ride_8',
-        driverId: 'driver_g',
-        driverName: 'Suresh Menon',
-        driverRating: 4.8,
-        boardingLocation: state.boardingLocation.isEmpty ? 'Banashankari' : state.boardingLocation,
-        destination: state.destination.isEmpty ? 'JP Nagar' : state.destination,
-        departureTime: now.add(const Duration(minutes: 50)),
-        availableSeats: 4,
-        farePerSeat: 35.0,
-        estimatedDuration: '20 mins',
-        distance: '5 km',
-        isGirlsOnly: false,
-        createdAt: now.subtract(const Duration(hours: 1, minutes: 20)),
-      ),
-    ];
+      state = state.copyWith(
+        isLoading: false,
+        searchResults: filteredRides,
+      );
+    } else {
+      // On error, just show empty
+      state = state.copyWith(
+        isLoading: false,
+        searchResults: [],
+      );
+    }
   }
 
   void sortRides(String criteria) {
@@ -273,7 +175,6 @@ class SearchRideNotifier extends Notifier<SearchRideFilterState> {
     
     switch (criteria) {
       case 'Nearest':
-        // Mock nearest by distance string length or just leave as is since it's dummy data
         sortedList.sort((a, b) => a.distance.compareTo(b.distance));
         break;
       case 'Lowest Fare':

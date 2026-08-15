@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constants/assets.dart';
 
 /// Animated AutoShare Logo with smooth scaling and fade animation.
 class AnimatedLogo extends StatefulWidget {
@@ -53,6 +52,9 @@ class _AnimatedLogoState extends State<AnimatedLogo>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary;
+
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
@@ -60,13 +62,34 @@ class _AnimatedLogoState extends State<AnimatedLogo>
           scale: _scaleAnimation.value,
           child: Opacity(
             opacity: _fadeAnimation.value,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(widget.size * 0.22),
-              child: Image.asset(
-                AppAssets.logo,
-                width: widget.size,
-                height: widget.size,
-                fit: BoxFit.cover,
+            child: Container(
+              width: widget.size,
+              height: widget.size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    primaryColor.withValues(alpha: 0.85),
+                    primaryColor,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryColor.withValues(alpha: 0.35),
+                    blurRadius: 20,
+                    spreadRadius: 4,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.directions_car_filled_rounded,
+                  size: widget.size * 0.55,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),

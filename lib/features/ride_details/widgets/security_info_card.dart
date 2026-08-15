@@ -29,21 +29,26 @@ class SecurityInfoCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const primaryColor = Color(0xFFF6C000);
-    const blackColor = Color(0xFF121212);
-    const borderColor = Color(0xFFEAE5DD);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final primaryColor = theme.colorScheme.primary;
+    final blackColor = theme.colorScheme.onSurface;
+    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    final successColor = isDark ? const Color(0xFF81C784) : const Color(0xFF4CAF50);
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFF4CAF50), width: 1.5),
-        boxShadow: const [
+        border: Border.all(color: successColor, width: 1.5),
+        boxShadow: isDark ? [] : [
           BoxShadow(
-            color: Color(0x144CAF50),
+            color: successColor.withValues(alpha: 0.1),
             blurRadius: 16,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -52,14 +57,13 @@ class SecurityInfoCard extends ConsumerWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.security_rounded, color: Color(0xFF4CAF50)),
+              Icon(Icons.security_rounded, color: successColor),
               const SizedBox(width: 8),
               Text(
                 'Ride Accepted',
-                style: GoogleFonts.outfit(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF4CAF50),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: successColor,
                 ),
               ),
             ],
@@ -67,14 +71,13 @@ class SecurityInfoCard extends ConsumerWidget {
           const SizedBox(height: 12),
           Text(
             'Contact details are now visible.',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: const Color(0xFF6F6F72),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: isDark ? Colors.white60 : const Color(0xFF6F6F72),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Divider(color: borderColor, height: 1),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Divider(color: isDark ? Colors.white10 : borderColor, height: 1),
           ),
           
           // Details
@@ -97,13 +100,14 @@ class SecurityInfoCard extends ConsumerWidget {
                     _launchUrl('tel:${driver.phone}');
                   },
                   icon: const Icon(Icons.phone_outlined, size: 18),
-                  label: Text('Call', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                  label: const Text('Call'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF8F7F4),
+                    backgroundColor: isDark ? const Color(0xFF28282A) : const Color(0xFFF8F7F4),
                     foregroundColor: blackColor,
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     padding: const EdgeInsets.symmetric(vertical: 12),
+                    textStyle: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -118,13 +122,14 @@ class SecurityInfoCard extends ConsumerWidget {
                     ));
                   },
                   icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                  label: Text('Chat', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                  label: const Text('Chat'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryColor,
-                    foregroundColor: blackColor,
+                    foregroundColor: const Color(0xFF121212),
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     padding: const EdgeInsets.symmetric(vertical: 12),
+                    textStyle: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -136,13 +141,14 @@ class SecurityInfoCard extends ConsumerWidget {
                     _launchUrl('https://wa.me/$cleanPhone');
                   },
                   icon: const Icon(Icons.message_outlined, size: 18), // WhatsApp placeholder icon
-                  label: Text('WhatsApp', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
+                  label: const Text('WhatsApp'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF25D366),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     padding: const EdgeInsets.symmetric(vertical: 12),
+                    textStyle: theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                 ),
               ),
@@ -163,25 +169,28 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
+    final blackColor = theme.colorScheme.onSurface;
+
     return Row(
       children: [
-        Icon(icon, size: 16, color: const Color(0xFF6F6F72)),
+        Icon(icon, size: 16, color: mutedText),
         const SizedBox(width: 8),
         Text(
           '$label: ',
-          style: GoogleFonts.inter(
-            fontSize: 14,
+          style: theme.textTheme.bodyMedium?.copyWith(
             fontWeight: FontWeight.w500,
-            color: const Color(0xFF6F6F72),
+            color: mutedText,
           ),
         ),
         Expanded(
           child: Text(
             value,
-            style: GoogleFonts.inter(
-              fontSize: 14,
+            style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF121212),
+              color: blackColor,
             ),
             overflow: TextOverflow.ellipsis,
           ),

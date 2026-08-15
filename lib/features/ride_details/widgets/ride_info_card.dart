@@ -12,29 +12,32 @@ class RideInfoCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const blackColor = Color(0xFF121212);
-    const borderColor = Color(0xFFEAE5DD);
-    const mutedText = Color(0xFF6F6F72);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final blackColor = theme.colorScheme.onSurface;
+    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
+    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
 
     final state = ref.watch(rideRequestProvider);
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: borderColor),
-        boxShadow: const [
-          BoxShadow(color: Color(0x0A121212), blurRadius: 12, offset: Offset(0, 4)),
+        border: isDark ? Border.all(color: borderColor, width: 1.1) : null,
+        boxShadow: isDark ? [] : const [
+          BoxShadow(color: Color(0x0A121212), blurRadius: 16, offset: Offset(0, 4)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Ride Details',
-            style: GoogleFonts.inter(
-              fontSize: 12,
+            'RIDE DETAILS',
+            style: theme.textTheme.labelMedium?.copyWith(
               fontWeight: FontWeight.w600,
               color: mutedText,
               letterSpacing: 0.8,
@@ -69,7 +72,7 @@ class RideInfoCard extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF6F5F3),
+              color: isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -81,16 +84,14 @@ class RideInfoCard extends ConsumerWidget {
                   children: [
                     Text(
                       'Requested Seats',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
+                      style: theme.textTheme.labelSmall?.copyWith(
                         color: mutedText,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     Text(
                       '${state.requestedSeats}',
-                      style: GoogleFonts.inter(
-                        fontSize: 18,
+                      style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: blackColor,
                       ),
@@ -125,23 +126,20 @@ class RideInfoCard extends ConsumerWidget {
           // Description (if present)
           if (ride.description.isNotEmpty) ...[
             const SizedBox(height: 12),
-            const Divider(height: 1, color: Color(0xFFEAE5DD)),
+            Divider(height: 1, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
             const SizedBox(height: 14),
             Text(
-              'Ride Note',
-              style: GoogleFonts.inter(
-                fontSize: 11,
+              'RIDE NOTE',
+              style: theme.textTheme.labelMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: mutedText,
-                letterSpacing: 0.5,
+                letterSpacing: 0.8,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               ride.description,
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
+              style: theme.textTheme.bodyMedium?.copyWith(
                 color: blackColor,
                 height: 1.5,
               ),
@@ -168,20 +166,26 @@ class _InfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFFF6C000);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = theme.colorScheme.primary;
+    final blackColor = theme.colorScheme.onSurface;
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
-        color: highlight ? const Color(0xFFFFFBE6) : const Color(0xFFF6F5F3),
+        color: highlight 
+            ? primaryColor.withValues(alpha: 0.1) 
+            : (isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3)),
         borderRadius: BorderRadius.circular(14),
-        border: highlight ? Border.all(color: primaryColor.withAlpha(100)) : null,
+        border: highlight ? Border.all(color: primaryColor.withValues(alpha: 0.3)) : null,
       ),
       child: Row(
         children: [
           Icon(
             icon,
             size: 18,
-            color: highlight ? primaryColor : const Color(0xFF6F6F72),
+            color: highlight ? primaryColor : (isDark ? Colors.white60 : const Color(0xFF6F6F72)),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -190,18 +194,16 @@ class _InfoTile extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: GoogleFonts.inter(
-                    fontSize: 10,
-                    color: const Color(0xFF9E9E9E),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: isDark ? Colors.white54 : const Color(0xFF9E9E9E),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 Text(
                   value,
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
+                  style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF121212),
+                    color: highlight ? primaryColor : blackColor,
                   ),
                 ),
               ],
@@ -220,34 +222,35 @@ class _VehicleNumberTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F4FF),
+        color: isDark ? const Color(0xFF1C223A) : const Color(0xFFF0F4FF),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFBBCBFF)),
+        border: Border.all(color: isDark ? const Color(0xFF283593) : const Color(0xFFBBCBFF)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.directions_car_rounded, size: 18, color: Color(0xFF3D5AFE)),
+          Icon(Icons.directions_car_rounded, size: 18, color: isDark ? const Color(0xFF7986CB) : const Color(0xFF3D5AFE)),
           const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Vehicle',
-                style: GoogleFonts.inter(
-                  fontSize: 10,
-                  color: const Color(0xFF9E9E9E),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: isDark ? Colors.white54 : const Color(0xFF9E9E9E),
                   fontWeight: FontWeight.w500,
                 ),
               ),
               Text(
                 vehicleNumber,
-                style: GoogleFonts.inter(
-                  fontSize: 15,
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF121212),
+                  color: theme.colorScheme.onSurface,
                   letterSpacing: 1.2,
                 ),
               ),
@@ -268,6 +271,8 @@ class _StepperButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isEnabled = onTap != null;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -275,16 +280,20 @@ class _StepperButton extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: isEnabled ? Colors.white : Colors.transparent,
+          color: isEnabled 
+              ? (isDark ? const Color(0xFF38383A) : Colors.white) 
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
           boxShadow: isEnabled
-              ? const [BoxShadow(color: Color(0x15000000), blurRadius: 6, offset: Offset(0, 2))]
+              ? (isDark ? [] : const [BoxShadow(color: Color(0x15000000), blurRadius: 6, offset: Offset(0, 2))])
               : [],
         ),
         child: Icon(
           icon,
           size: 18,
-          color: isEnabled ? const Color(0xFF121212) : const Color(0xFFD0D0D0),
+          color: isEnabled 
+              ? Theme.of(context).colorScheme.onSurface 
+              : (isDark ? Colors.white24 : const Color(0xFFD0D0D0)),
         ),
       ),
     );

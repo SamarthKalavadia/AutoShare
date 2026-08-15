@@ -1,11 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/providers.dart';
 import '../models/driver_model.dart';
 import '../repositories/driver_repository.dart';
 
 // ── Repository provider ─────────────────────────────────────────────────────
 final driverRepositoryProvider = Provider<DriverRepository>((ref) {
-  return const DriverRepository();
+  return DriverRepository(firestoreService: ref.watch(firestoreServiceProvider));
 });
 
 // ── Raw driver list ──────────────────────────────────────────────────────────

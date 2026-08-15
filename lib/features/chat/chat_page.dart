@@ -75,6 +75,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final blackColor = theme.colorScheme.onSurface;
     final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
     final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final appBarBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
 
     final currentUid = ref.watch(authControllerProvider).value?.uid ?? '';
     final chatInput = ref.watch(chatProvider);
@@ -98,7 +99,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       backgroundColor: backgroundColor,
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: appBarBg,
         elevation: 0,
         titleSpacing: 0,
         leading: IconButton(
@@ -110,13 +111,12 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundColor: borderColor,
+              backgroundColor: isDark ? const Color(0xFF2C2C2E) : borderColor,
               child: Text(
                 widget.args.otherParticipantName.isNotEmpty
                     ? widget.args.otherParticipantName[0].toUpperCase()
                     : '?',
-                style: GoogleFonts.outfit(
-                    fontSize: 18,
+                style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: blackColor),
               ),
@@ -126,14 +126,12 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(widget.args.otherParticipantName,
-                    style: GoogleFonts.outfit(
-                        fontSize: 17,
+                    style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: blackColor)),
                 if (typingUids.isNotEmpty)
                   Text('typing...',
-                      style: GoogleFonts.inter(
-                          fontSize: 12,
+                      style: theme.textTheme.labelSmall?.copyWith(
                           color: primaryColor,
                           fontStyle: FontStyle.italic)),
               ],
@@ -142,7 +140,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: borderColor),
+          child: Container(height: 1, color: isDark ? Colors.white10 : borderColor),
         ),
       ),
       body: Column(
@@ -156,13 +154,12 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.chat_bubble_outline_rounded,
-                            size: 64, color: Color(0xFFEAE5DD)),
+                        Icon(Icons.chat_bubble_outline_rounded,
+                            size: 64, color: isDark ? Colors.white24 : const Color(0xFFEAE5DD)),
                         const SizedBox(height: 16),
                         Text('No messages yet.\nSay hello! 👋',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
-                                fontSize: 15, color: mutedText)),
+                            style: theme.textTheme.bodyMedium?.copyWith(color: mutedText)),
                       ],
                     ),
                   );
@@ -209,7 +206,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   child: CircularProgressIndicator(color: primaryColor)),
               error: (e, _) => Center(
                   child: Text('Failed to load messages',
-                      style: GoogleFonts.inter())),
+                      style: theme.textTheme.bodyMedium)),
             ),
           ),
           if (typingUids.isNotEmpty) const _TypingIndicator(),
@@ -238,6 +235,11 @@ class _DateSeparator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dividerColor = isDark ? Colors.white10 : const Color(0xFFEAE5DD);
+    final badgeBg = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFEAE5DD);
+    final mutedText = isDark ? Colors.white70 : const Color(0xFF6F6F72);
+    
     final now = DateTime.now();
     final String label;
     if (_isSameDay(date, now)) {
@@ -251,23 +253,22 @@ class _DateSeparator extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
         children: [
-          const Expanded(child: Divider(color: Color(0xFFEAE5DD))),
+          Expanded(child: Divider(color: dividerColor)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                  color: const Color(0xFFEAE5DD),
+                  color: badgeBg,
                   borderRadius: BorderRadius.circular(12)),
               child: Text(label,
-                  style: GoogleFonts.inter(
-                      fontSize: 12,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF6F6F72))),
+                      color: mutedText)),
             ),
           ),
-          const Expanded(child: Divider(color: Color(0xFFEAE5DD))),
+          Expanded(child: Divider(color: dividerColor)),
         ],
       ),
     );
@@ -307,6 +308,10 @@ class _TypingIndicatorState extends State<_TypingIndicator>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = Theme.of(context).cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       child: Align(
@@ -315,7 +320,7 @@ class _TypingIndicatorState extends State<_TypingIndicator>
           padding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardBg,
               borderRadius: BorderRadius.circular(18)),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -331,7 +336,7 @@ class _TypingIndicatorState extends State<_TypingIndicator>
                     width: 8,
                     height: 8 + val * 4,
                     decoration: BoxDecoration(
-                        color: const Color(0xFFF6C000),
+                        color: primaryColor,
                         borderRadius: BorderRadius.circular(4)),
                   );
                 },
@@ -363,13 +368,17 @@ class _ChatInputBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFFF6C000);
-    const blackColor = Color(0xFF121212);
-    const borderColor = Color(0xFFEAE5DD);
-    final backgroundColor = Theme.of(context).scaffoldBackgroundColor;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final primaryColor = theme.colorScheme.primary;
+    final blackColor = theme.colorScheme.onSurface;
+    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final backgroundColor = theme.scaffoldBackgroundColor;
+    final barBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
 
     return Container(
-      color: Colors.white,
+      color: barBg,
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
@@ -383,7 +392,7 @@ class _ChatInputBar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: backgroundColor,
                 borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: borderColor, width: 1.5),
+                border: Border.all(color: borderColor, width: isDark ? 1.0 : 1.5),
               ),
               child: TextField(
                 controller: controller,
@@ -392,11 +401,11 @@ class _ChatInputBar extends StatelessWidget {
                 maxLines: 5,
                 minLines: 1,
                 textCapitalization: TextCapitalization.sentences,
-                style: GoogleFonts.inter(fontSize: 15, color: blackColor),
+                style: theme.textTheme.bodyLarge?.copyWith(color: blackColor),
                 decoration: InputDecoration(
                   hintText: 'Type a message...',
                   hintStyle:
-                      GoogleFonts.inter(color: const Color(0xFFAAAAAA)),
+                      theme.textTheme.bodyLarge?.copyWith(color: isDark ? Colors.white38 : const Color(0xFFAAAAAA)),
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: 18, vertical: 12),
                   border: InputBorder.none,
@@ -410,19 +419,19 @@ class _ChatInputBar extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: isSending ? borderColor : primaryColor,
+              color: isSending ? (isDark ? const Color(0xFF333333) : borderColor) : primaryColor,
               shape: BoxShape.circle,
             ),
             child: isSending
-                ? const Padding(
-                    padding: EdgeInsets.all(14),
+                ? Padding(
+                    padding: const EdgeInsets.all(14),
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Color(0xFF121212)),
+                        strokeWidth: 2, color: isDark ? Colors.white54 : const Color(0xFF121212)),
                   )
                 : IconButton(
                     onPressed: onSend,
-                    icon: const Icon(Icons.send_rounded,
-                        color: blackColor, size: 22),
+                    icon: Icon(Icons.send_rounded,
+                        color: isDark ? Colors.black : const Color(0xFF121212), size: 22),
                   ),
           ),
         ],

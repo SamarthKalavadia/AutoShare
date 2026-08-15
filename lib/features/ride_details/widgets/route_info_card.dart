@@ -11,10 +11,15 @@ class RouteInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const borderColor = Color(0xFFEAE5DD);
-    const mutedText = Color(0xFF6F6F72);
-    const successColor = Color(0xFF2E7D32);
-    const dangerColor = Color(0xFFD32F2F);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
+    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    
+    final successColor = isDark ? const Color(0xFF4CAF50) : const Color(0xFF2E7D32);
+    final dangerColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFD32F2F);
 
     final dateStr = DateFormat('EEE, d MMM yyyy').format(ride.departureTime);
     final timeStr = DateFormat('h:mm a').format(ride.departureTime);
@@ -22,11 +27,11 @@ class RouteInfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: borderColor),
-        boxShadow: const [
-          BoxShadow(color: Color(0x0A121212), blurRadius: 12, offset: Offset(0, 4)),
+        border: isDark ? Border.all(color: borderColor, width: 1.1) : null,
+        boxShadow: isDark ? [] : const [
+          BoxShadow(color: Color(0x0A121212), blurRadius: 16, offset: Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -34,9 +39,8 @@ class RouteInfoCard extends StatelessWidget {
         children: [
           // Section title
           Text(
-            'Route',
-            style: GoogleFonts.inter(
-              fontSize: 12,
+            'ROUTE',
+            style: theme.textTheme.labelMedium?.copyWith(
               fontWeight: FontWeight.w600,
               color: mutedText,
               letterSpacing: 0.8,
@@ -58,26 +62,16 @@ class RouteInfoCard extends StatelessWidget {
                         width: 12,
                         height: 12,
                         decoration: BoxDecoration(
-                          color: successColor,
+                          color: cardBg,
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                          boxShadow: const [
-                            BoxShadow(color: Color(0x332E7D32), blurRadius: 4),
-                          ],
+                          border: Border.all(color: theme.colorScheme.onSurface, width: 2),
                         ),
                       ),
                       Expanded(
                         child: Center(
                           child: Container(
                             width: 2,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF2E7D32), Color(0xFFD32F2F)],
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                              ),
-                              borderRadius: BorderRadius.circular(1),
-                            ),
+                            color: isDark ? Colors.white24 : Colors.black12,
                           ),
                         ),
                       ),
@@ -85,12 +79,9 @@ class RouteInfoCard extends StatelessWidget {
                         width: 12,
                         height: 12,
                         decoration: BoxDecoration(
-                          color: dangerColor,
+                          color: theme.colorScheme.onSurface,
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                          boxShadow: const [
-                            BoxShadow(color: Color(0x33D32F2F), blurRadius: 4),
-                          ],
+                          border: Border.all(color: cardBg, width: 2),
                         ),
                       ),
                     ],
@@ -122,7 +113,7 @@ class RouteInfoCard extends StatelessWidget {
           ),
 
           const SizedBox(height: 20),
-          const Divider(height: 1, color: Color(0xFFEAE5DD)),
+          Divider(height: 1, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
           const SizedBox(height: 16),
 
           // Date / Time / Duration row
@@ -190,25 +181,26 @@ class _LocationLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final blackColor = theme.colorScheme.onSurface;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label.toUpperCase(),
-          style: GoogleFonts.inter(
-            fontSize: 10,
+          style: theme.textTheme.labelSmall?.copyWith(
             fontWeight: FontWeight.w600,
-            color: color.withAlpha(180),
+            color: color.withValues(alpha: 0.8),
             letterSpacing: 0.8,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           value.isNotEmpty ? value : '—',
-          style: GoogleFonts.inter(
-            fontSize: 14,
+          style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
-            color: const Color(0xFF121212),
+            color: blackColor,
           ),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
@@ -231,15 +223,18 @@ class _MetaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F5F3),
+        color: isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: const Color(0xFF6F6F72)),
+          Icon(icon, size: 16, color: isDark ? Colors.white60 : const Color(0xFF6F6F72)),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -247,18 +242,15 @@ class _MetaChip extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: GoogleFonts.inter(
-                    fontSize: 10,
-                    color: const Color(0xFF9E9E9E),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: isDark ? Colors.white54 : const Color(0xFF9E9E9E),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 Text(
                   value,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
+                  style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF121212),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

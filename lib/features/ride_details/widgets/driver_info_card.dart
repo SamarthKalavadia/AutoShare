@@ -10,9 +10,14 @@ class DriverInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const blackColor = Color(0xFF121212);
-    const borderColor = Color(0xFFEAE5DD);
-    const mutedText = Color(0xFF6F6F72);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final blackColor = theme.colorScheme.onSurface;
+    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
+    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    final primaryColor = theme.colorScheme.primary;
 
     final initials = _getInitials(ride.driverName);
     final rating = ride.driverRating;
@@ -20,11 +25,11 @@ class DriverInfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: borderColor),
-        boxShadow: const [
-          BoxShadow(color: Color(0x0A121212), blurRadius: 12, offset: Offset(0, 4)),
+        border: isDark ? Border.all(color: borderColor, width: 1.1) : null,
+        boxShadow: isDark ? [] : const [
+          BoxShadow(color: Color(0x0A121212), blurRadius: 16, offset: Offset(0, 4)),
         ],
       ),
       child: Row(
@@ -33,24 +38,16 @@ class DriverInfoCard extends StatelessWidget {
           Hero(
             tag: 'driver-avatar-${ride.id}',
             child: Container(
-              width: 64,
-              height: 64,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFF6C000), Color(0xFFE6A800)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: isDark ? const Color(0xFF2A2A2C) : const Color(0xFFF3F3F3),
                 shape: BoxShape.circle,
-                boxShadow: const [
-                  BoxShadow(color: Color(0x33F6C000), blurRadius: 12, offset: Offset(0, 4)),
-                ],
               ),
               child: Center(
                 child: Text(
                   initials,
-                  style: GoogleFonts.inter(
-                    fontSize: 22,
+                  style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: blackColor,
                   ),
@@ -71,10 +68,8 @@ class DriverInfoCard extends StatelessWidget {
                     Flexible(
                       child: Text(
                         ride.driverName,
-                        style: GoogleFonts.inter(
-                          fontSize: 17,
+                        style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: blackColor,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -91,10 +86,9 @@ class DriverInfoCard extends StatelessWidget {
                     _StarRating(rating: rating),
                     const SizedBox(width: 6),
                     Text(
-                      rating > 0 ? rating.toStringAsFixed(1) : 'No rating yet',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                      rating > 0 ? rating.toStringAsFixed(1) : 'New',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
                         color: mutedText,
                       ),
                     ),
@@ -125,23 +119,26 @@ class DriverInfoCard extends StatelessWidget {
 class _VerifiedBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1B3D23) : const Color(0xFFE8F5E9);
+    final iconColor = isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F5E9),
+        color: bgColor,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.verified_rounded, size: 12, color: Color(0xFF2E7D32)),
+          Icon(Icons.verified_rounded, size: 12, color: iconColor),
           const SizedBox(width: 3),
           Text(
             'Verified',
-            style: GoogleFonts.inter(
-              fontSize: 11,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF2E7D32),
+              color: iconColor,
             ),
           ),
         ],
@@ -153,24 +150,25 @@ class _VerifiedBadge extends StatelessWidget {
 class _GirlsOnlyBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFFCE4EC),
+        color: primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFF48FB1)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.female_rounded, size: 14, color: Color(0xFFC2185B)),
+          Icon(Icons.female_rounded, size: 14, color: primaryColor),
           const SizedBox(width: 4),
           Text(
             'Girls Only',
-            style: GoogleFonts.inter(
-              fontSize: 11,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.w700,
-              color: const Color(0xFFC2185B),
+              color: primaryColor,
             ),
           ),
         ],
@@ -186,19 +184,15 @@ class _StarRating extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: List.generate(5, (i) {
-        final filled = i < rating.floor();
-        final half = !filled && (i < rating);
+      children: List.generate(1, (i) { // Show just 1 star in BlaBlaCar style instead of 5
         return Icon(
-          filled
-              ? Icons.star_rounded
-              : half
-                  ? Icons.star_half_rounded
-                  : Icons.star_outline_rounded,
-          size: 15,
-          color: const Color(0xFFF6C000),
+          Icons.star_rounded,
+          size: 16,
+          color: primaryColor,
         );
       }),
     );
