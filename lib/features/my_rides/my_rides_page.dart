@@ -197,11 +197,18 @@ class _RideListView extends ConsumerWidget {
 
           // Determine callbacks
           VoidCallback? onCancel;
+          VoidCallback? onDelete;
 
           if (data.role == 'driver' && data.displayStatus == 'active' && !data.isPast) {
             onCancel = () => _handleCancelRide(context, ref, data);
           } else if (data.role == 'passenger' && (data.displayStatus == 'pending' || data.displayStatus == 'joined') && !data.isPast) {
             onCancel = () => _handleCancelRequest(context, ref, data);
+          }
+
+          // Allow drivers to permanently delete their completed or cancelled rides
+          if (data.role == 'driver' &&
+              (data.displayStatus == 'completed' || data.displayStatus == 'cancelled')) {
+            onDelete = () => _handleDeleteRide(context, ref, data);
           }
 
           return MyRideCard(
@@ -210,6 +217,7 @@ class _RideListView extends ConsumerWidget {
               context.push('/ride-details', extra: data.ride);
             },
             onCancel: onCancel,
+            onDelete: onDelete,
             onTrack: data.role == 'passenger' && data.displayStatus == 'pending'
                 ? () {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -236,6 +244,50 @@ class _RideListView extends ConsumerWidget {
       case 'cancelled':
       default:
         return Icons.cancel_outlined;
+    }
+  }
+
+  void _handleDeleteRide(BuildContext context, WidgetRef ref, MyRideData data) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Ride', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+        content: Text(
+          'This will permanently delete this ride and all associated requests. This action cannot be undone.',
+          style: GoogleFonts.inter(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final result = await ref.read(rideActionProvider.notifier).deleteMyRide(data.ride.id);
+    if (!context.mounted) return;
+
+    if (result is Success<void>) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ride deleted successfully.')),
+      );
+      // No need to manually invalidate — the Firestore stream auto-updates
+    } else if (result is Failure<void>) {
+      // Surface the real error message — do NOT pretend deletion succeeded
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.message),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

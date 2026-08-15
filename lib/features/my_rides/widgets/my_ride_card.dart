@@ -14,6 +14,7 @@ class MyRideCard extends ConsumerWidget {
   final MyRideData data;
   final VoidCallback? onView;
   final VoidCallback? onCancel;
+  final VoidCallback? onDelete;
   final VoidCallback? onTrack;
 
   const MyRideCard({
@@ -21,6 +22,7 @@ class MyRideCard extends ConsumerWidget {
     required this.data,
     this.onView,
     this.onCancel,
+    this.onDelete,
     this.onTrack,
   });
 
@@ -216,6 +218,29 @@ class MyRideCard extends ConsumerWidget {
                     ),
                     child: Text(
                       'Cancel',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
+              if (onDelete != null) ...[
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onDelete,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      side: const BorderSide(color: Colors.red, width: 1.5),
+                    ),
+                    child: Text(
+                      'Delete',
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
