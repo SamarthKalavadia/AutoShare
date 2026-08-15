@@ -156,7 +156,7 @@ class CreateRidePage extends ConsumerWidget {
                             if (!context.mounted) return;
                             
                             if (result is Success<String>) {
-                              _showSuccessDialog(context);
+                              _showSuccessDialog(context, ref);
                             } else if (result is Failure<String>) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -190,7 +190,7 @@ class CreateRidePage extends ConsumerWidget {
                             ),
                           )
                         : Text(
-                            'Publish Ride',
+                            'Create Ride',
                             style: GoogleFonts.inter(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -205,7 +205,7 @@ class CreateRidePage extends ConsumerWidget {
       );
   }
 
-  void _showSuccessDialog(BuildContext context) {
+  void _showSuccessDialog(BuildContext context, WidgetRef ref) {
     showGeneralDialog(
       context: context,
       barrierDismissible: false,
@@ -274,9 +274,11 @@ class CreateRidePage extends ConsumerWidget {
                       height: 52,
                       child: FilledButton(
                         onPressed: () {
-                          // TODO: Navigate to ride details
-                          context.pop(); // Close dialog
-                          context.pop(); // Go back to Home
+                          ref.read(createRideProvider.notifier).reset();
+                          if (Navigator.of(context, rootNavigator: true).canPop()) {
+                            Navigator.of(context, rootNavigator: true).pop();
+                          }
+                          context.go('/my-rides');
                         },
                         style: FilledButton.styleFrom(
                           backgroundColor: const Color(0xFF121212),
@@ -300,8 +302,11 @@ class CreateRidePage extends ConsumerWidget {
                       height: 52,
                       child: TextButton(
                         onPressed: () {
-                          context.pop(); // Close dialog
-                          context.pop(); // Go back to Home
+                          ref.read(createRideProvider.notifier).reset();
+                          if (Navigator.of(context, rootNavigator: true).canPop()) {
+                            Navigator.of(context, rootNavigator: true).pop();
+                          }
+                          context.go('/home');
                         },
                         style: TextButton.styleFrom(
                           foregroundColor: const Color(0xFF6F6F72),

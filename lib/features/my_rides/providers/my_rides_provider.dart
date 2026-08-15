@@ -49,7 +49,7 @@ final myRidesProvider = StreamProvider.autoDispose<List<MyRideData>>((ref) {
   final rideRepo = ref.read(rideRepositoryProvider);
 
   // Silently audit rides in the background to handle client-side expiry
-  unawaited(rideRepo.auditRides());
+  unawaited(rideRepo.auditRides(user.uid));
 
   return ref.watch(rideRepositoryProvider).streamRidesByDriver(user.uid).asyncMap((driverRides) async {
     final requestRepo = ref.read(rideRequestRepositoryProvider);

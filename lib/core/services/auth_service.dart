@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../utils/result.dart';
@@ -61,20 +62,19 @@ class AuthService {
       // Save user to Firestore
       final createResult = await _userRepository.createUser(userModel);
       if (createResult is Failure) {
-        // We still return the user but log that DB creation failed
         // ignore: avoid_print
-        print('Warning: User created in Auth but failed in Firestore: \${createResult.message}');
+        print('Warning: User created in Auth but failed in Firestore: ${createResult.message}');
       }
 
       return Success(userModel);
     } on FirebaseAuthException catch (e) {
       // ignore: avoid_print
-      print('AuthService.signUp Error: \$e');
-      return Failure(_mapAuthErrorCode(e.code), AuthException(e.code));
+      print('AuthService.signUp Error: $e');
+      return Failure(_mapAuthErrorCode(e.code, defaultMessage: e.message), AuthException(e.code));
     } catch (e) {
       // ignore: avoid_print
-      print('AuthService.signUp Unknown Error: \$e');
-      return Failure('An unexpected error occurred.', Exception(e.toString()));
+      print('AuthService.signUp Unknown Error: $e');
+      return Failure(_mapGenericErrorMessage(e), Exception(e.toString()));
     }
   }
 
@@ -105,50 +105,76 @@ class AuthService {
       return Success(fallbackUser);
     } on FirebaseAuthException catch (e) {
       // ignore: avoid_print
-      print('AuthService.login Error: \$e');
-      return Failure(_mapAuthErrorCode(e.code), AuthException(e.code));
+      print('AuthService.login Error: $e');
+      return Failure(_mapAuthErrorCode(e.code, defaultMessage: e.message), AuthException(e.code));
     } catch (e) {
       // ignore: avoid_print
-      print('AuthService.login Unknown Error: \$e');
-      return Failure('An unexpected error occurred.', Exception(e.toString()));
+      print('AuthService.login Unknown Error: $e');
+      return Failure(_mapGenericErrorMessage(e), Exception(e.toString()));
     }
   }
 
-  /// Authenticates using Google Sign In.
+  /// Authenticates using Google Sign In across Web and Mobile/Desktop.
   Future<Result<UserModel>> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        return const Failure('Google Sign In was aborted.', AuthException('Aborted by user'));
+      User? user;
+
+      if (kIsWeb) {
+        // On Flutter Web, use Firebase Auth's built-in Google Auth Provider popup
+        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        googleProvider.addScope('email');
+        googleProvider.addScope('profile');
+        final UserCredential userCredential = await _auth.signInWithPopup(googleProvider);
+        user = userCredential.user;
+      } else {
+        // On Mobile/Desktop, clear any existing stale session first
+        try {
+          await _googleSignIn.signOut();
+        } catch (_) {}
+
+        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+        if (googleUser == null) {
+          return const Failure('Google Sign In was cancelled.', AuthException('Aborted by user'));
+        }
+
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        if (googleAuth.accessToken == null && googleAuth.idToken == null) {
+          return const Failure(
+            'Failed to obtain Google authentication tokens. Please check your Google Sign-In setup.',
+            AuthException('Missing Google tokens'),
+          );
+        }
+
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        final UserCredential userCredential = await _auth.signInWithCredential(credential);
+        user = userCredential.user;
       }
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final UserCredential userCredential = await _auth.signInWithCredential(credential);
-      final User? user = userCredential.user;
-      
       if (user == null) {
-        return const Failure('Google login failed.', AuthException('User is null'));
+        return const Failure('Google login failed. User credential is null.', AuthException('User is null'));
       }
 
-      // Check if user exists in DB
+      // Check if user already exists in Firestore
       final existingCheck = await _userRepository.checkUserExists(user.uid);
       if (existingCheck is Success<bool> && existingCheck.data) {
-        return await _userRepository.getUser(user.uid);
+        final dbUser = await _userRepository.getUser(user.uid);
+        if (dbUser is Success<UserModel>) {
+          return dbUser;
+        }
       }
 
-      // If new, create user in DB
+      // If new or missing in DB, create user model in Firestore
       final userModel = UserModel(
         uid: user.uid,
-        name: user.displayName ?? '',
+        name: user.displayName ?? (user.email != null ? user.email!.split('@').first : 'User'),
         email: user.email ?? '',
         phone: user.phoneNumber ?? '',
         profileImage: user.photoURL ?? '',
-        emailVerified: user.emailVerified,
+        emailVerified: user.emailVerified || (user.email != null && user.email!.isNotEmpty),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         lastSeen: DateTime.now(),
@@ -156,16 +182,21 @@ class AuthService {
         gender: '',
       );
 
-      await _userRepository.createUser(userModel);
+      final createResult = await _userRepository.createUser(userModel);
+      if (createResult is Failure) {
+        // ignore: avoid_print
+        print('Warning: Google user created in Auth but failed in Firestore: ${createResult.message}');
+      }
+
       return Success(userModel);
     } on FirebaseAuthException catch (e) {
       // ignore: avoid_print
-      print('AuthService.googleLogin Error: \$e');
-      return Failure(_mapAuthErrorCode(e.code), AuthException(e.code));
+      print('AuthService.googleLogin FirebaseAuthException: ${e.code} - ${e.message}');
+      return Failure(_mapAuthErrorCode(e.code, defaultMessage: e.message), AuthException(e.code));
     } catch (e) {
       // ignore: avoid_print
-      print('AuthService.googleLogin Unknown Error: \$e');
-      return Failure('An unexpected error occurred.', Exception(e.toString()));
+      print('AuthService.googleLogin Unknown Error: $e');
+      return Failure(_mapGenericErrorMessage(e), Exception(e.toString()));
     }
   }
 
@@ -174,12 +205,12 @@ class AuthService {
     try {
       await Future.wait([
         _auth.signOut(),
-        _googleSignIn.signOut(),
+        if (!kIsWeb) _googleSignIn.signOut(),
       ]);
       return const Success(null);
     } catch (e) {
       // ignore: avoid_print
-      print('AuthService.logout Unknown Error: \$e');
+      print('AuthService.logout Error: $e');
       return Failure('Failed to log out.', Exception(e.toString()));
     }
   }
@@ -191,12 +222,12 @@ class AuthService {
       return const Success(null);
     } on FirebaseAuthException catch (e) {
       // ignore: avoid_print
-      print('AuthService.resetPassword Error: \$e');
-      return Failure(_mapAuthErrorCode(e.code), AuthException(e.code));
+      print('AuthService.resetPassword Error: $e');
+      return Failure(_mapAuthErrorCode(e.code, defaultMessage: e.message), AuthException(e.code));
     } catch (e) {
       // ignore: avoid_print
-      print('AuthService.resetPassword Unknown Error: \$e');
-      return Failure('An unexpected error occurred.', Exception(e.toString()));
+      print('AuthService.resetPassword Unknown Error: $e');
+      return Failure(_mapGenericErrorMessage(e), Exception(e.toString()));
     }
   }
 
@@ -211,12 +242,12 @@ class AuthService {
       return const Success(null);
     } on FirebaseAuthException catch (e) {
       // ignore: avoid_print
-      print('AuthService.sendEmailVerification Error: \$e');
-      return Failure(_mapAuthErrorCode(e.code), AuthException(e.code));
+      print('AuthService.sendEmailVerification Error: $e');
+      return Failure(_mapAuthErrorCode(e.code, defaultMessage: e.message), AuthException(e.code));
     } catch (e) {
       // ignore: avoid_print
-      print('AuthService.sendEmailVerification Unknown Error: \$e');
-      return Failure('An unexpected error occurred.', Exception(e.toString()));
+      print('AuthService.sendEmailVerification Unknown Error: $e');
+      return Failure(_mapGenericErrorMessage(e), Exception(e.toString()));
     }
   }
 
@@ -236,20 +267,20 @@ class AuthService {
       return const Success(null);
     } on FirebaseAuthException catch (e) {
       // ignore: avoid_print
-      print('AuthService.deleteAccount Error: \$e');
+      print('AuthService.deleteAccount Error: $e');
       if (e.code == 'requires-recent-login') {
         return Failure('Please log in again to delete your account.', AuthException(e.code));
       }
-      return Failure(_mapAuthErrorCode(e.code), AuthException(e.code));
+      return Failure(_mapAuthErrorCode(e.code, defaultMessage: e.message), AuthException(e.code));
     } catch (e) {
       // ignore: avoid_print
-      print('AuthService.deleteAccount Unknown Error: \$e');
-      return Failure('An unexpected error occurred.', Exception(e.toString()));
+      print('AuthService.deleteAccount Unknown Error: $e');
+      return Failure(_mapGenericErrorMessage(e), Exception(e.toString()));
     }
   }
 
   /// Maps Firebase Error codes to human-readable messages.
-  String _mapAuthErrorCode(String code) {
+  String _mapAuthErrorCode(String code, {String? defaultMessage}) {
     switch (code) {
       case 'user-not-found':
         return 'No user found for that email.';
@@ -265,8 +296,37 @@ class AuthService {
         return 'This user account has been disabled.';
       case 'too-many-requests':
         return 'Too many attempts. Please try again later.';
+      case 'invalid-credential':
+        return 'Invalid credentials provided for Google Sign-In.';
+      case 'account-exists-with-different-credential':
+        return 'An account already exists with the same email using a different sign-in method.';
+      case 'operation-not-allowed':
+        return 'Google Sign-In is not enabled in Firebase Console.';
+      case 'popup-closed-by-user':
+        return 'Google Sign-In popup was closed before completion.';
+      case 'popup-blocked':
+        return 'Google Sign-In popup was blocked by your browser.';
+      case 'network-request-failed':
+        return 'Network connection failed. Please check your internet connection.';
       default:
-        return 'Authentication failed. Please try again.';
+        return defaultMessage != null && defaultMessage.isNotEmpty
+            ? defaultMessage
+            : 'Authentication failed ($code). Please try again.';
     }
+  }
+
+  /// Maps generic exception objects to user-friendly error messages.
+  String _mapGenericErrorMessage(dynamic e) {
+    final errString = e.toString().toLowerCase();
+    if (errString.contains('sign_in_failed') || errString.contains('api_exception: 10')) {
+      return 'Google Sign-In failed (Developer Error 10). Ensure SHA-1 fingerprint and Google Sign-In are configured in Firebase Console.';
+    } else if (errString.contains('12500')) {
+      return 'Google Sign-In failed (Error 12500). Check Google Play Services and Firebase Console setup.';
+    } else if (errString.contains('canceled') || errString.contains('cancelled') || errString.contains('aborted')) {
+      return 'Google Sign-In was cancelled.';
+    } else if (errString.contains('network') || errString.contains('socketexception')) {
+      return 'Network error occurred during Google Sign-In. Please check your internet connection.';
+    }
+    return 'An error occurred during authentication. Please try again.';
   }
 }

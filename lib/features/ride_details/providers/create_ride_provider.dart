@@ -137,6 +137,10 @@ class CreateRideNotifier extends Notifier<CreateRideState> {
     return const CreateRideState();
   }
 
+  void reset() {
+    state = const CreateRideState();
+  }
+
   void updateBoardingLocation(String value) {
     state = state.copyWith(boardingLocation: value);
   }
@@ -244,8 +248,12 @@ class CreateRideNotifier extends Notifier<CreateRideState> {
     state = state.copyWith(isLoading: false);
 
     if (result is Success<String>) {
-      // Schedule background reminders
-      await NotificationService().scheduleRideReminder(result.data, ride.departureTime);
+      // Schedule background reminders safely
+      try {
+        await NotificationService().scheduleRideReminder(result.data, ride.departureTime);
+      } catch (e) {
+        // Notification error should never prevent successful ride creation
+      }
     }
 
     return result;

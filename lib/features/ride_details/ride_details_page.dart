@@ -246,7 +246,13 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
             color: Color(0xFF121212),
           ),
         ),
-        onPressed: () => context.pop(),
+        onPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/home');
+          }
+        },
       ),
       title: Text(
         'Ride Details',

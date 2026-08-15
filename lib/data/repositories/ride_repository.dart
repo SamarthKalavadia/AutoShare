@@ -175,23 +175,29 @@ class RideRepository {
   }
 
   /// Audits rides to automatically expire or complete them if their departure time has passed.
-  Future<void> auditRides() async {
+  Future<void> auditRides([String? driverId]) async {
     try {
       final now = DateTime.now();
       
-      // Fetch all active rides
-      final snapshot = await _firestoreService.ridesCollection
-          .where('status', isEqualTo: 'active')
-          .get();
+      Query query = _firestoreService.ridesCollection.where('status', isEqualTo: 'active');
+      if (driverId != null && driverId.isNotEmpty) {
+        query = query.where('driverId', isEqualTo: driverId);
+      }
+
+      final snapshot = await query.get();
           
       for (final doc in snapshot.docs) {
         final ride = RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
         
         // If departure time has passed by more than 2 hours, consider it completed
         if (ride.departureTime.isBefore(now.subtract(const Duration(hours: 2)))) {
-          await _firestoreService.ridesCollection.doc(doc.id).update({
-            'status': 'completed',
-          });
+          try {
+            await _firestoreService.ridesCollection.doc(doc.id).update({
+              'status': 'completed',
+            });
+          } catch (e) {
+            debugPrint('Could not update status for ride ${doc.id}: $e');
+          }
         }
       }
     } catch (e) {

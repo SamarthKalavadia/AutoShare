@@ -25,34 +25,57 @@ class NotificationService {
   }
 
   Future<void> scheduleRideReminder(String rideId, DateTime departureTime) async {
-    // 30 min, 15 min, 5 min before
-    final reminders = {
-      '30 min': departureTime.subtract(const Duration(minutes: 30)),
-      '15 min': departureTime.subtract(const Duration(minutes: 15)),
-      '5 min': departureTime.subtract(const Duration(minutes: 5)),
-    };
+    try {
+      final reminders = {
+        '30 min': departureTime.subtract(const Duration(minutes: 30)),
+        '15 min': departureTime.subtract(const Duration(minutes: 15)),
+        '5 min': departureTime.subtract(const Duration(minutes: 5)),
+      };
 
-    int i = 0;
-    for (final entry in reminders.entries) {
-      if (entry.value.isAfter(DateTime.now())) {
-        await _flutterLocalNotificationsPlugin.zonedSchedule(
-          id: rideId.hashCode + i,
-          title: 'Ride Starting Soon',
-          body: 'Your ride starts in ${entry.key}. Please get ready!',
-          scheduledDate: tz.TZDateTime.from(entry.value, tz.local),
-          notificationDetails: const NotificationDetails(
-            android: AndroidNotificationDetails(
-              'ride_reminders',
-              'Ride Reminders',
-              channelDescription: 'Notifications before a ride starts',
-              importance: Importance.high,
-              priority: Priority.high,
-            ),
-          ),
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        );
+      int i = 0;
+      for (final entry in reminders.entries) {
+        if (entry.value.isAfter(DateTime.now())) {
+          try {
+            await _flutterLocalNotificationsPlugin.zonedSchedule(
+              id: rideId.hashCode + i,
+              title: 'Ride Starting Soon',
+              body: 'Your ride starts in ${entry.key}. Please get ready!',
+              scheduledDate: tz.TZDateTime.from(entry.value, tz.local),
+              notificationDetails: const NotificationDetails(
+                android: AndroidNotificationDetails(
+                  'ride_reminders',
+                  'Ride Reminders',
+                  channelDescription: 'Notifications before a ride starts',
+                  importance: Importance.high,
+                  priority: Priority.high,
+                ),
+              ),
+              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            );
+          } catch (_) {
+            // Fallback to inexact scheduling if exact alarms are not allowed
+            await _flutterLocalNotificationsPlugin.zonedSchedule(
+              id: rideId.hashCode + i,
+              title: 'Ride Starting Soon',
+              body: 'Your ride starts in ${entry.key}. Please get ready!',
+              scheduledDate: tz.TZDateTime.from(entry.value, tz.local),
+              notificationDetails: const NotificationDetails(
+                android: AndroidNotificationDetails(
+                  'ride_reminders',
+                  'Ride Reminders',
+                  channelDescription: 'Notifications before a ride starts',
+                  importance: Importance.high,
+                  priority: Priority.high,
+                ),
+              ),
+              androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            );
+          }
+        }
+        i++;
       }
-      i++;
+    } catch (_) {
+      // Ignore notification failures gracefully to never crash ride operations
     }
   }
 }

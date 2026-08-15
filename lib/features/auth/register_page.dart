@@ -84,16 +84,24 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   Future<void> _handleGoogleSignUp() async {
     setState(() => _isLoading = true);
 
-    final result = await ref.read(authControllerProvider.notifier).signInWithGoogle();
+    try {
+      final result = await ref.read(authControllerProvider.notifier).signInWithGoogle();
 
-    setState(() => _isLoading = false);
+      if (!mounted) return;
 
-    if (!mounted) return;
-
-    if (result is Success<UserModel>) {
-      context.go('/home');
-    } else if (result is Failure<UserModel>) {
-      SnackbarHelper.show(context, result.message);
+      if (result is Success<UserModel>) {
+        context.go('/home');
+      } else if (result is Failure<UserModel>) {
+        SnackbarHelper.show(context, result.message);
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackbarHelper.show(context, 'Google Sign-Up failed: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
