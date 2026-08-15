@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/utils/result.dart';
+import '../requests/providers/incoming_requests_provider.dart';
+import '../requests/widgets/request_card.dart';
 import 'providers/my_rides_provider.dart';
 import 'widgets/my_ride_card.dart';
 
@@ -42,7 +44,8 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage>
     final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
 
     final ridesAsync = ref.watch(myRidesProvider);
-    final isActionLoading = ref.watch(rideActionProvider);
+    final requestsAsync = ref.watch(incomingRequestsProvider);
+    final isActionLoading = ref.watch(rideActionProvider) || ref.watch(requestActionProvider);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -107,11 +110,8 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage>
               final created = allRides.where((r) => 
                   r.role == 'driver' && r.displayStatus == 'active' && !r.isPast).toList();
               
-              final requested = allRides.where((r) => 
-                  r.role == 'passenger' && r.displayStatus == 'pending' && !r.isPast).toList();
-                  
               final joined = allRides.where((r) => 
-                  r.displayStatus == 'joined' && !r.isPast).toList();
+                  r.role == 'passenger' && (r.displayStatus == 'joined' || r.displayStatus == 'pending') && !r.isPast).toList();
                   
               final completed = allRides.where((r) => 
                   r.displayStatus == 'completed' || (r.isPast && !['cancelled', 'rejected'].contains(r.displayStatus))).toList();
@@ -123,7 +123,26 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage>
                 controller: _tabController,
                 children: [
                   _RideListView(rides: created, type: 'created'),
-                  _RideListView(rides: requested, type: 'requested'),
+                  requestsAsync.when(
+                    data: (requests) {
+                      // Sort pending first
+                      final sorted = List<IncomingRequestData>.from(requests)
+                        ..sort((a, b) {
+                          if (a.request.status.name == 'pending' && b.request.status.name != 'pending') return -1;
+                          if (b.request.status.name == 'pending' && a.request.status.name != 'pending') return 1;
+                          return b.request.requestedAt.compareTo(a.request.requestedAt);
+                        });
+                      return _IncomingRequestsView(requests: sorted);
+                    },
+                    loading: () => Center(child: CircularProgressIndicator(color: primaryColor)),
+                    error: (err, stack) => Center(
+                      child: Text(
+                        'Failed to load requests\n$err',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(color: Colors.red),
+                      ),
+                    ),
+                  ),
                   _RideListView(rides: joined, type: 'joined'),
                   _RideListView(rides: completed, type: 'completed'),
                   _RideListView(rides: cancelled, type: 'cancelled'),
@@ -370,6 +389,92 @@ class _RideListView extends ConsumerWidget {
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+}
+
+class _IncomingRequestsView extends ConsumerWidget {
+  final List<IncomingRequestData> requests;
+
+  const _IncomingRequestsView({required this.requests});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (requests.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.inbox_outlined,
+              size: 64,
+              color: Color(0xFFEAE5DD),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No ride requests yet',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF6F6F72),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(incomingRequestsProvider);
+      },
+      color: const Color(0xFFF6C000),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(20),
+        itemCount: requests.length,
+        itemBuilder: (context, index) {
+          final data = requests[index];
+          return RequestCard(
+            data: data,
+            onAccept: () => _handleAccept(context, ref, data),
+            onReject: () => _handleReject(context, ref, data),
+          );
+        },
+      ),
+    );
+  }
+
+  void _handleAccept(BuildContext context, WidgetRef ref, IncomingRequestData data) async {
+    try {
+      await ref.read(requestActionProvider.notifier).accept(data.request);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Request accepted successfully')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to accept: $e')),
+        );
+      }
+    }
+  }
+
+  void _handleReject(BuildContext context, WidgetRef ref, IncomingRequestData data) async {
+    try {
+      await ref.read(requestActionProvider.notifier).reject(data.request);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Request rejected')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to reject: $e')),
+        );
+      }
     }
   }
 }
