@@ -128,8 +128,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               children: [
                 const AuthHeader(
                   showLogo: true,
-                  title: 'Create Account 🚀',
-                  subtitle: 'Share rides. Save money. Travel together.',
+                  title: 'Create your account',
+                  subtitle: 'Join AutoShare and start sharing rides.',
                 ),
                 const SizedBox(height: 24),
 
@@ -153,8 +153,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 // Full Name
                 AppTextField(
                   controller: _nameController,
-                  labelText: 'Full Name',
-                  hintText: 'John Doe',
+                  labelText: 'Full name',
+                  hintText: 'Enter your full name',
                   prefixIcon: Icons.person_outline_rounded,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -168,8 +168,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 // Email Address
                 AppTextField(
                   controller: _emailController,
-                  labelText: 'Email Address',
-                  hintText: 'name@example.com',
+                  labelText: 'Email address',
+                  hintText: 'Enter your email address',
                   prefixIcon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
@@ -188,8 +188,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 // Phone Number
                 AppTextField(
                   controller: _phoneController,
-                  labelText: 'Phone Number',
-                  hintText: '+1 234 567 8900',
+                  labelText: 'Phone number',
+                  hintText: 'Enter your phone number',
                   prefixIcon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
                   inputFormatters: [
@@ -217,7 +217,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 AppDropdownField<String>(
                   value: _selectedGender,
                   labelText: 'Gender',
-                  hintText: 'Select Gender',
+                  hintText: 'Select your gender',
                   prefixIcon: Icons.person_outline_rounded,
                   items: const [
                     DropdownMenuItem(value: 'Male', child: Text('Male')),
@@ -242,6 +242,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 PasswordField(
                   controller: _passwordController,
                   labelText: 'Password',
+                  hintText: 'Create a password',
                   onChanged: (_) => setState(() {}),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -259,7 +260,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 // Confirm Password
                 PasswordField(
                   controller: _confirmPasswordController,
-                  labelText: 'Confirm Password',
+                  labelText: 'Confirm password',
+                  hintText: 'Re-enter your password',
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please confirm your password';
@@ -336,7 +338,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
                 // Google Sign Up
                 GoogleButton(
-                  text: 'Sign Up with Google',
+                  text: 'Continue with Google',
                   onPressed: _handleGoogleSignUp,
                   isLoading: _isLoading,
                 ),

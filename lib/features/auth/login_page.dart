@@ -99,7 +99,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 const SizedBox(height: 12),
                 const AuthHeader(
                   showLogo: true,
-                  title: 'Welcome Back 👋',
+                  title: 'Welcome to AutoShare',
                   subtitle: 'Share rides. Save money. Travel together.',
                 ),
                 const SizedBox(height: 32),
@@ -107,8 +107,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 // Email Field
                 AppTextField(
                   controller: _emailController,
-                  labelText: 'Email Address',
-                  hintText: 'name@example.com',
+                  labelText: 'Email address',
+                  hintText: 'Enter your email address',
                   prefixIcon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
@@ -127,6 +127,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 // Password Field
                 PasswordField(
                   controller: _passwordController,
+                  labelText: 'Password',
+                  hintText: 'Enter your password',
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your password';
@@ -173,7 +175,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     TextButton(
                       onPressed: () => context.push('/forgot-password'),
                       child: Text(
-                        'Forgot Password?',
+                        'Forgot password?',
                         style: TextStyle(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.w600,
