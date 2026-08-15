@@ -2,7 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class HomeSearchState {
   final String boarding;
+  final String? boardingPlaceId;
+  final String? boardingAddress;
+  final double? boardingLat;
+  final double? boardingLng;
   final String destination;
+  final String? destinationPlaceId;
+  final String? destinationAddress;
+  final double? destinationLat;
+  final double? destinationLng;
   final DateTime? departureDate;
   final String? departureTime; // e.g. "08:30 AM"
   final int passengers;
@@ -10,7 +18,15 @@ class HomeSearchState {
 
   const HomeSearchState({
     this.boarding = '',
+    this.boardingPlaceId,
+    this.boardingAddress,
+    this.boardingLat,
+    this.boardingLng,
     this.destination = '',
+    this.destinationPlaceId,
+    this.destinationAddress,
+    this.destinationLat,
+    this.destinationLng,
     this.departureDate,
     this.departureTime,
     this.passengers = 1,
@@ -19,7 +35,15 @@ class HomeSearchState {
 
   HomeSearchState copyWith({
     String? boarding,
+    String? boardingPlaceId,
+    String? boardingAddress,
+    double? boardingLat,
+    double? boardingLng,
     String? destination,
+    String? destinationPlaceId,
+    String? destinationAddress,
+    double? destinationLat,
+    double? destinationLng,
     DateTime? departureDate,
     String? departureTime,
     int? passengers,
@@ -27,7 +51,15 @@ class HomeSearchState {
   }) {
     return HomeSearchState(
       boarding: boarding ?? this.boarding,
+      boardingPlaceId: boardingPlaceId ?? this.boardingPlaceId,
+      boardingAddress: boardingAddress ?? this.boardingAddress,
+      boardingLat: boardingLat ?? this.boardingLat,
+      boardingLng: boardingLng ?? this.boardingLng,
       destination: destination ?? this.destination,
+      destinationPlaceId: destinationPlaceId ?? this.destinationPlaceId,
+      destinationAddress: destinationAddress ?? this.destinationAddress,
+      destinationLat: destinationLat ?? this.destinationLat,
+      destinationLng: destinationLng ?? this.destinationLng,
       departureDate: departureDate ?? this.departureDate,
       departureTime: departureTime ?? this.departureTime,
       passengers: passengers ?? this.passengers,
@@ -42,8 +74,20 @@ class HomeSearchNotifier extends Notifier<HomeSearchState> {
     return const HomeSearchState();
   }
 
-  void updateBoarding(String value) => state = state.copyWith(boarding: value);
-  void updateDestination(String value) => state = state.copyWith(destination: value);
+  void updateBoarding(String value, {String? placeId, String? address, double? lat, double? lng}) => state = state.copyWith(
+    boarding: value,
+    boardingPlaceId: placeId,
+    boardingAddress: address,
+    boardingLat: lat,
+    boardingLng: lng,
+  );
+  void updateDestination(String value, {String? placeId, String? address, double? lat, double? lng}) => state = state.copyWith(
+    destination: value,
+    destinationPlaceId: placeId,
+    destinationAddress: address,
+    destinationLat: lat,
+    destinationLng: lng,
+  );
   void updateDate(DateTime value) => state = state.copyWith(departureDate: value);
   void updateTime(String value) => state = state.copyWith(departureTime: value);
   void updatePassengers(int value) => state = state.copyWith(passengers: value);

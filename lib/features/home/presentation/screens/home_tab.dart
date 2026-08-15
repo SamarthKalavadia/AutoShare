@@ -7,11 +7,13 @@ import 'package:intl/intl.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../notifications/providers/notification_provider.dart';
 import '../../providers/home_dashboard_provider.dart';
-
 import '../../providers/home_search_provider.dart';
 import '../../../profile/providers/user_profile_provider.dart';
 import '../../../../shared/utils/avatar_utils.dart';
 import '../../../ride_details/providers/create_ride_provider.dart';
+import '../../../../shared/widgets/location_autocomplete_field.dart';
+import '../../../../services/location_service.dart' show LocationService, PermissionException, HttpException;
+
 
 class HomeTab extends ConsumerWidget {
   const HomeTab({super.key});
@@ -293,11 +295,10 @@ class HomeTab extends ConsumerWidget {
                                             ? 'Current Location'
                                             : searchState.boarding,
                                         isBold: searchState.boarding.isNotEmpty,
-                                        onTap: () => _showInputDialog(
+                                        onTap: () => _showLocationPicker(
                                           context,
                                           ref,
                                           'boarding',
-                                          searchState.boarding,
                                         ),
                                       ),
                                       Divider(
@@ -311,11 +312,10 @@ class HomeTab extends ConsumerWidget {
                                             ? 'Where to?'
                                             : searchState.destination,
                                         isBold: searchState.destination.isNotEmpty,
-                                        onTap: () => _showInputDialog(
+                                        onTap: () => _showLocationPicker(
                                           context,
                                           ref,
                                           'destination',
-                                          searchState.destination,
                                         ),
                                       ),
                                     ],
@@ -671,9 +671,25 @@ class HomeTab extends ConsumerWidget {
     final notifier = ref.read(createRideProvider.notifier);
     if (boarding.isNotEmpty) {
       notifier.updateBoardingLocation(boarding);
+      if (searchState.boardingPlaceId != null && searchState.boardingAddress != null) {
+        notifier.updateBoardingDetails(
+          placeId: searchState.boardingPlaceId!,
+          address: searchState.boardingAddress!,
+          lat: searchState.boardingLat,
+          lng: searchState.boardingLng,
+        );
+      }
     }
     if (destination.isNotEmpty) {
       notifier.updateDestinationLocation(destination);
+      if (searchState.destinationPlaceId != null && searchState.destinationAddress != null) {
+        notifier.updateDestinationDetails(
+          placeId: searchState.destinationPlaceId!,
+          address: searchState.destinationAddress!,
+          lat: searchState.destinationLat,
+          lng: searchState.destinationLng,
+        );
+      }
     }
     if (searchState.departureDate != null) {
       notifier.updateDepartureDate(searchState.departureDate!);
@@ -704,45 +720,38 @@ class HomeTab extends ConsumerWidget {
     );
   }
 
-  void _showInputDialog(
+  void _showLocationPicker(
     BuildContext context,
     WidgetRef ref,
     String field,
-    String initialValue,
   ) {
-    final controller = TextEditingController(text: initialValue);
-    showDialog(
+    final isBoarding = field == 'boarding';
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          'Enter ${field == 'boarding' ? 'Boarding Location' : 'Destination'}',
-        ),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: 'e.g. Indiranagar'),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (field == 'boarding') {
-                ref
-                    .read(homeSearchProvider.notifier)
-                    .updateBoarding(controller.text);
-              } else {
-                ref
-                    .read(homeSearchProvider.notifier)
-                    .updateDestination(controller.text);
-              }
-              Navigator.pop(ctx);
-            },
-            child: const Text('Save'),
-          ),
-        ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _LocationPickerSheet(
+        title: isBoarding ? 'Boarding Location' : 'Destination',
+        isBoarding: isBoarding,
+        onSelected: (label, details) {
+          if (isBoarding) {
+            ref.read(homeSearchProvider.notifier).updateBoarding(
+              label,
+              placeId: details?.placeId,
+              address: details?.description,
+              lat: details?.latitude,
+              lng: details?.longitude,
+            );
+          } else {
+            ref.read(homeSearchProvider.notifier).updateDestination(
+              label,
+              placeId: details?.placeId,
+              address: details?.description,
+              lat: details?.latitude,
+              lng: details?.longitude,
+            );
+          }
+        },
       ),
     );
   }
@@ -877,6 +886,170 @@ class _ActionCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _LocationPickerSheet extends StatefulWidget {
+  final String title;
+  final bool isBoarding;
+  final void Function(String label, dynamic details) onSelected;
+
+  const _LocationPickerSheet({
+    required this.title,
+    required this.isBoarding,
+    required this.onSelected,
+  });
+
+  @override
+  State<_LocationPickerSheet> createState() => _LocationPickerSheetState();
+}
+
+class _LocationPickerSheetState extends State<_LocationPickerSheet> {
+  bool _isLoadingCurrentLocation = false;
+  String? _errorMessage;
+
+  Future<void> _handleCurrentLocation() async {
+    setState(() {
+      _isLoadingCurrentLocation = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final location = await LocationService.getCurrentLocation();
+      widget.onSelected(location.description, location);
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } on PermissionException catch (e) {
+      setState(() {
+        _errorMessage = e.message;
+      });
+    } catch (e) {
+      debugPrint('Technical failure in getCurrentLocation: $e');
+      setState(() {
+        _errorMessage = 'Unable to get your current location. Please try again or search manually.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingCurrentLocation = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor = isDark ? const Color(0xFF181818) : Colors.white;
+    final primaryColor = isDark ? const Color(0xFFFFC400) : theme.colorScheme.primary;
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.9,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white24 : Colors.black12,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            widget.title,
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 20),
+          if (widget.isBoarding) ...[
+            InkWell(
+              onTap: _isLoadingCurrentLocation ? null : _handleCurrentLocation,
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF202020) : const Color(0xFFF3F3F3),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.my_location_rounded,
+                      color: primaryColor,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        'Current Location',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: primaryColor,
+                        ),
+                      ),
+                    ),
+                    if (_isLoadingCurrentLocation)
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: primaryColor,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage!,
+                style: theme.textTheme.bodySmall?.copyWith(color: Colors.red),
+              ),
+            ],
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: Divider(color: isDark ? Colors.white12 : Colors.black12)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'OR',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: isDark ? Colors.white54 : Colors.black54,
+                    ),
+                  ),
+                ),
+                Expanded(child: Divider(color: isDark ? Colors.white12 : Colors.black12)),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+          Expanded(
+            child: LocationAutocompleteField(
+              fieldKey: widget.isBoarding ? 'home_boarding' : 'home_destination',
+              hint: 'Search location...',
+              icon: widget.isBoarding ? Icons.circle_outlined : Icons.location_on,
+              iconColor: widget.isBoarding ? (isDark ? Colors.white : Colors.black) : primaryColor,
+              onPlaceSelected: (prediction, details) async {
+                widget.onSelected(prediction.description, details);
+                Navigator.pop(context);
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

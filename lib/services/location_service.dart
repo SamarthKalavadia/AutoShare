@@ -192,18 +192,18 @@ class LocationService {
   static Future<PlacePrediction> getCurrentLocation() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      throw PermissionException('Location services are disabled.');
+      throw PermissionException('Location services are turned off. Please enable them or search manually.');
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        throw PermissionException('Location permission denied.');
+        throw PermissionException('Location permission is required to use your current location.');
       }
     }
     if (permission == LocationPermission.deniedForever) {
-      throw PermissionException('Location permission permanently denied.');
+      throw PermissionException('Location permission is disabled. Enable it in Settings or search for a location manually.');
     }
 
     final position = await Geolocator.getCurrentPosition(
