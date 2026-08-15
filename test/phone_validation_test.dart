@@ -36,7 +36,7 @@ void main() {
 
       // Find by AppTextField since we know RegisterPage uses it
       final appTextFieldFinder = find.byWidgetPredicate(
-        (widget) => widget is AppTextField && widget.labelText == 'Phone Number'
+        (widget) => widget is AppTextField && widget.labelText == 'Phone number'
       );
       expect(appTextFieldFinder, findsOneWidget);
 
@@ -117,7 +117,7 @@ void main() {
 
       // Find the TextField by its hint text
       final textFieldFinder = find.byWidgetPredicate(
-        (widget) => widget is TextField && widget.decoration?.hintText == '+91 9876543210'
+        (widget) => widget is TextField && widget.decoration?.hintText == 'Enter your phone number'
       );
       expect(textFieldFinder, findsOneWidget);
 

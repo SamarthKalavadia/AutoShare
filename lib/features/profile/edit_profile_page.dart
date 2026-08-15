@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../auth/presentation/controllers/auth_controller.dart';
+import '../auth/presentation/widgets/app_text_field.dart';
+import '../auth/presentation/widgets/app_dropdown_field.dart';
 import '../../core/utils/result.dart';
 import '../../data/models/user_model.dart';
 import '../../shared/providers.dart';
@@ -165,11 +167,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final blackColor = theme.colorScheme.onSurface;
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
     const primaryColor = Color(0xFFF6C000);
-    final cardColor = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -241,15 +240,25 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     const SizedBox(height: 32),
 
                     // Form Fields
-                    _buildLabel('Full Name'),
-                    _buildTextField(_nameController, 'John Doe', Icons.person_outline_rounded),
+                    AppTextField(
+                      controller: _nameController,
+                      labelText: 'Full name',
+                      hintText: 'Enter your full name',
+                      prefixIcon: Icons.person_outline_rounded,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'This field is required';
+                        }
+                        return null;
+                      },
+                    ),
                     
                     const SizedBox(height: 16),
-                    _buildLabel('Phone Number'),
-                    _buildTextField(
-                      _phoneController,
-                      '+91 9876543210',
-                      Icons.phone_outlined,
+                    AppTextField(
+                      controller: _phoneController,
+                      labelText: 'Phone number',
+                      hintText: 'Enter your phone number',
+                      prefixIcon: Icons.phone_outlined,
                       keyboardType: TextInputType.phone,
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
@@ -272,44 +281,63 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     ),
 
                     const SizedBox(height: 16),
-                    _buildLabel('Gender'),
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: borderColor),
-                        borderRadius: BorderRadius.circular(16),
-                        color: cardColor,
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _gender.isNotEmpty ? _gender : null,
-                          dropdownColor: cardColor,
-                          isExpanded: true,
-                          hint: Text('Select Gender', style: GoogleFonts.inter(color: Colors.grey[400])),
-                          items: ['Male', 'Female', 'Other'].map((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value, style: GoogleFonts.inter(color: blackColor)),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) setState(() => _gender = val);
-                          },
-                        ),
-                      ),
+                    AppDropdownField<String>(
+                      value: _gender.isNotEmpty ? _gender : null,
+                      labelText: 'Gender',
+                      hintText: 'Select your gender',
+                      prefixIcon: Icons.person_outline_rounded,
+                      items: const [
+                        DropdownMenuItem(value: 'Male', child: Text('Male')),
+                        DropdownMenuItem(value: 'Female', child: Text('Female')),
+                        DropdownMenuItem(value: 'Other', child: Text('Other')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _gender = val);
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select your gender';
+                        }
+                        return null;
+                      },
                     ),
 
                     const SizedBox(height: 16),
-                    _buildLabel('City'),
-                    _buildTextField(_cityController, 'Mumbai', Icons.location_city_rounded),
+                    AppTextField(
+                      controller: _cityController,
+                      labelText: 'City',
+                      hintText: 'Enter your city',
+                      prefixIcon: Icons.location_city_rounded,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'This field is required';
+                        }
+                        return null;
+                      },
+                    ),
 
                     const SizedBox(height: 16),
-                    _buildLabel('Emergency Contact (Optional)'),
-                    _buildTextField(_emergencyController, 'Relation & Number', Icons.health_and_safety_outlined, isRequired: false),
+                    AppTextField(
+                      controller: _emergencyController,
+                      labelText: 'Emergency Contact (Optional)',
+                      hintText: 'Relation & Number',
+                      prefixIcon: Icons.health_and_safety_outlined,
+                      validator: (value) {
+                        return null;
+                      },
+                    ),
 
                     const SizedBox(height: 16),
-                    _buildLabel('Bio (Optional)'),
-                    _buildTextField(_bioController, 'A bit about yourself...', Icons.edit_note_rounded, maxLines: 3, isRequired: false),
+                    AppTextField(
+                      controller: _bioController,
+                      labelText: 'Bio (Optional)',
+                      hintText: 'A bit about yourself...',
+                      prefixIcon: Icons.edit_note_rounded,
+                      maxLines: 3,
+                      validator: (value) {
+                        return null;
+                      },
+                    ),
 
                     const SizedBox(height: 32),
                     SizedBox(
@@ -337,70 +365,5 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     );
   }
 
-  Widget _buildLabel(String text) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8, left: 4),
-      child: Text(
-        text,
-        style: GoogleFonts.inter(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white70 : const Color(0xFF6F6F72),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildTextField(
-    TextEditingController controller, 
-    String hint, 
-    IconData icon, 
-    {
-      TextInputType? keyboardType, 
-      int maxLines = 1, 
-      bool isRequired = true,
-      List<TextInputFormatter>? inputFormatters,
-      String? Function(String?)? validator,
-    }
-  ) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
-    final textColor = theme.colorScheme.onSurface;
-
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      inputFormatters: inputFormatters,
-      style: GoogleFonts.inter(color: textColor),
-      validator: validator ?? (val) {
-        if (isRequired && (val == null || val.trim().isEmpty)) {
-          return 'This field is required';
-        }
-        return null;
-      },
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: GoogleFonts.inter(color: Colors.grey[400]),
-        prefixIcon: maxLines == 1 ? Icon(icon, color: isDark ? Colors.grey[400] : const Color(0xFF8E8E93)) : null,
-        filled: true,
-        fillColor: cardBg,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: borderColor),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: borderColor),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: isDark ? const Color(0xFFF6C000) : const Color(0xFF121212), width: 1.5),
-        ),
-      ),
-    );
-  }
 }
