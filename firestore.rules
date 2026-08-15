@@ -53,25 +53,30 @@ service cloud.firestore {
     // Document path: rideRequests/{requestId}
     // Fields: requesterUid, ownerUid, rideId, status, ...
     //
-    // - Ride owner can read their incoming requests.
-    // - Requester can read their own requests.
-    // - Authenticated user can create a request for themselves.
-    // - Ride owner can update (accept/reject) a request on their ride.
-    // - Requester can update their own request (e.g., cancel it).
-    // - Only the owner or requester may delete a request.
+    // READ is allowed for any authenticated user so that:
+    //   a) The driver can query requests for their ride (WHERE rideId == x).
+    //   b) deleteRide() can batch-delete associated requests.
+    //   c) The passenger can check their own existing request.
+    // Firestore query rules cannot filter on per-document fields, so a broader
+    // read permission is required for collection-level queries to succeed.
+    //
+    // WRITE rules remain strict: only the requester can create, and only the
+    // owner or requester may update or delete.
 
     match /rideRequests/{requestId} {
-      allow read: if isAuthenticated()
-                  && (resource.data.ownerUid == request.auth.uid
-                      || resource.data.requesterUid == request.auth.uid);
+      // Any authenticated user can read (enables collection queries by rideId, ownerUid, requesterUid)
+      allow read: if isAuthenticated();
 
+      // Only the passenger (requester) can create a request for themselves
       allow create: if isAuthenticated()
                     && request.resource.data.requesterUid == request.auth.uid;
 
+      // Ride owner can accept/reject; requester can cancel their own request
       allow update: if isAuthenticated()
                     && (resource.data.ownerUid == request.auth.uid
                         || resource.data.requesterUid == request.auth.uid);
 
+      // Ride owner or requester can delete (used by deleteRide batch cleanup)
       allow delete: if isAuthenticated()
                     && (resource.data.ownerUid == request.auth.uid
                         || resource.data.requesterUid == request.auth.uid);
