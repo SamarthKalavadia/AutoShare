@@ -292,13 +292,14 @@ class RideRepository {
     try {
       final List<RideModel> candidateRides = [];
       final now = DateTime.now();
+      // Allow a 1-hour grace period so rides departing "right now" don't instantly disappear
+      final oneHourAgo = now.subtract(const Duration(hours: 1));
 
       // Combine remote Firestore rides & local created rides
       try {
         final snapshot = await _firestoreService.ridesCollection
             .where('status', isEqualTo: 'active')
-            // .where('availableSeats', isGreaterThanOrEqualTo: seats) // Removed to avoid composite index requirement
-            .get()
+            .get(const GetOptions(source: Source.serverAndCache))
             .timeout(const Duration(seconds: 4));
 
         for (final doc in snapshot.docs) {
@@ -326,7 +327,7 @@ class RideRepository {
 
       for (final ride in candidateRides) {
         // Client-side filtering
-        if (ride.departureTime.isBefore(now)) continue;
+        if (ride.departureTime.isBefore(oneHourAgo)) continue;
         if (ride.farePerSeat > maxFare) continue;
         if (isGirlsOnly && !ride.isGirlsOnly) continue;
         
