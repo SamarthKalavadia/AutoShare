@@ -1,5 +1,5 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -246,7 +246,30 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     
                     const SizedBox(height: 16),
                     _buildLabel('Phone Number'),
-                    _buildTextField(_phoneController, '+91 9876543210', Icons.phone_outlined, keyboardType: TextInputType.phone),
+                    _buildTextField(
+                      _phoneController,
+                      '+91 9876543210',
+                      Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(10),
+                      ],
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'This field is required';
+                        }
+                        final cleanValue = value.trim();
+                        if (cleanValue.length != 10) {
+                          return 'Please enter a valid 10-digit phone number';
+                        }
+                        final firstChar = cleanValue[0];
+                        if (firstChar != '6' && firstChar != '7' && firstChar != '8' && firstChar != '9') {
+                          return 'Please enter a valid 10-digit mobile number';
+                        }
+                        return null;
+                      },
+                    ),
 
                     const SizedBox(height: 16),
                     _buildLabel('Gender'),
@@ -333,7 +356,13 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     TextEditingController controller, 
     String hint, 
     IconData icon, 
-    {TextInputType? keyboardType, int maxLines = 1, bool isRequired = true}
+    {
+      TextInputType? keyboardType, 
+      int maxLines = 1, 
+      bool isRequired = true,
+      List<TextInputFormatter>? inputFormatters,
+      String? Function(String?)? validator,
+    }
   ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -345,8 +374,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      inputFormatters: inputFormatters,
       style: GoogleFonts.inter(color: textColor),
-      validator: (val) {
+      validator: validator ?? (val) {
         if (isRequired && (val == null || val.trim().isEmpty)) {
           return 'This field is required';
         }

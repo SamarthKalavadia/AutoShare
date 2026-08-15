@@ -1,5 +1,5 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -192,12 +192,21 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   hintText: '+1 234 567 8900',
                   prefixIcon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter your phone number';
                     }
-                    if (value.trim().length < 7) {
-                      return 'Enter a valid phone number';
+                    final cleanValue = value.trim();
+                    if (cleanValue.length != 10) {
+                      return 'Please enter a valid 10-digit phone number';
+                    }
+                    final firstChar = cleanValue[0];
+                    if (firstChar != '6' && firstChar != '7' && firstChar != '8' && firstChar != '9') {
+                      return 'Please enter a valid 10-digit mobile number';
                     }
                     return null;
                   },
