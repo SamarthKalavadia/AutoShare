@@ -297,13 +297,19 @@ class RideRepository {
       try {
         final snapshot = await _firestoreService.ridesCollection
             .where('status', isEqualTo: 'active')
-            .where('availableSeats', isGreaterThanOrEqualTo: seats)
+            // .where('availableSeats', isGreaterThanOrEqualTo: seats) // Removed to avoid composite index requirement
             .get()
             .timeout(const Duration(seconds: 4));
 
         for (final doc in snapshot.docs) {
-          candidateRides.add(RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id));
+          final ride = RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+          // Client-side seat filter
+          if (ride.availableSeats >= seats) {
+            candidateRides.add(ride);
+          }
         }
+      } on FirebaseException catch (e) {
+        debugPrint('FirebaseException in searchRides: [${e.code}] ${e.message}');
       } catch (e) {
         debugPrint('Remote search failed ($e); searching local rides.');
       }
