@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-
+import '../../../../core/constants/assets.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../notifications/providers/notification_provider.dart';
 import '../../providers/home_dashboard_provider.dart';
@@ -67,7 +67,7 @@ class HomeTab extends ConsumerWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: Image.asset(
-                'assets/images/logo.png',
+                AppAssets.logo,
                 width: 44,
                 height: 44,
                 fit: BoxFit.cover,

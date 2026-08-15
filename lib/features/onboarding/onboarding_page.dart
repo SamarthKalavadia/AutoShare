@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../auth/presentation/controllers/onboarding_controller.dart';
 import '../auth/presentation/widgets/primary_button.dart';
+import '../../core/constants/assets.dart';
 
 class OnboardingItem {
   final String title;
@@ -82,9 +83,14 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        Icons.directions_car_rounded,
-                        color: theme.colorScheme.primary,
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(
+                          AppAssets.logo,
+                          width: 28,
+                          height: 28,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Text(
