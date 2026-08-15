@@ -123,6 +123,7 @@ class _ProfileBody extends ConsumerWidget {
     return Scaffold(
       backgroundColor: backgroundColor,
       body: profileAsync.when(
+        skipLoadingOnReload: true,
         data: (user) {
           final ratings = ratingsAsync.value ?? [];
           return CustomScrollView(

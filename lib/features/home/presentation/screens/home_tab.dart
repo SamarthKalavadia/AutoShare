@@ -44,7 +44,6 @@ class HomeTab extends ConsumerWidget {
 
     final user = ref.watch(authControllerProvider).value;
     final searchState = ref.watch(homeSearchProvider);
-    final activeRideAsync = ref.watch(activeRideProvider);
     final isFemale = user?.gender.toLowerCase() == 'female';
 
     String greeting = 'Good Morning,';
@@ -451,8 +450,12 @@ class HomeTab extends ConsumerWidget {
                   style: theme.textTheme.titleLarge?.copyWith(color: textPrimary),
                 ),
                 const SizedBox(height: 16),
-                activeRideAsync.when(
-                  data: (activeRideData) {
+                Consumer(
+                  builder: (context, ref, _) {
+                    final activeRideAsync = ref.watch(activeRideProvider);
+                    return activeRideAsync.when(
+                      skipLoadingOnReload: true,
+                      data: (activeRideData) {
                     if (activeRideData == null) {
                       return _animatedCard(
                         duration: 550,
@@ -641,8 +644,10 @@ class HomeTab extends ConsumerWidget {
                   },
                   loading: () => const Center(child: CircularProgressIndicator()),
                   error: (err, _) => Center(child: Text('Error: $err')),
-                ),
-                const SizedBox(height: 24),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
             ],
           ),
         ),
