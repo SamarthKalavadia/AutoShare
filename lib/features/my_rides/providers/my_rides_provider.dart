@@ -47,36 +47,64 @@ final myRidesProvider = StreamProvider.autoDispose<List<MyRideData>>((ref) {
   }
 
   final rideRepo = ref.read(rideRepositoryProvider);
+  final requestRepo = ref.read(rideRequestRepositoryProvider);
 
   // Silently audit rides in the background to handle client-side expiry
   unawaited(rideRepo.auditRides(user.uid));
 
-  return ref.watch(rideRepositoryProvider).streamRidesByDriver(user.uid).asyncMap((driverRides) async {
-    final requestRepo = ref.read(rideRequestRepositoryProvider);
-    final passengerRequests = await requestRepo.getRequestsByPassenger(user.uid);
+  final driverStream = rideRepo.streamRidesByDriver(user.uid);
+  final passengerStream = requestRepo.streamRequestsByPassenger(user.uid);
 
+  final controller = StreamController<List<MyRideData>>();
+
+  List<RideModel> latestDriverRides = [];
+  List<RideRequestModel> latestPassengerRequests = [];
+
+  Future<void> emitCombined() async {
     final List<MyRideData> allRides = [];
 
     // Add Driver Rides
-    for (final ride in driverRides) {
+    for (final ride in latestDriverRides) {
       allRides.add(MyRideData(ride: ride, role: 'driver'));
     }
 
     // Add Passenger Rides
-    for (final req in passengerRequests) {
+    for (final req in latestPassengerRequests) {
       final result = await requestRepo.getRide(req.rideId);
-      if (result is Success<RideModel>) {
-        allRides.add(MyRideData(
-          ride: result.data,
-          request: req,
-          role: 'passenger',
-        ));
-      }
+      final rideModel = result is Success<RideModel>
+          ? result.data
+          : RideModel.empty().copyWith(id: req.rideId, boardingLocation: 'Requested Ride');
+          
+      allRides.add(MyRideData(
+        ride: rideModel,
+        request: req,
+        role: 'passenger',
+      ));
     }
 
     allRides.sort((a, b) => b.ride.departureTime.compareTo(a.ride.departureTime));
-    return allRides;
+    if (!controller.isClosed) {
+      controller.add(allRides);
+    }
+  }
+
+  final sub1 = driverStream.listen((driverRides) {
+    latestDriverRides = driverRides;
+    emitCombined();
+  }, onError: (e) => emitCombined());
+
+  final sub2 = passengerStream.listen((passengerRequests) {
+    latestPassengerRequests = passengerRequests;
+    emitCombined();
+  }, onError: (e) => emitCombined());
+
+  ref.onDispose(() {
+    sub1.cancel();
+    sub2.cancel();
+    controller.close();
   });
+
+  return controller.stream;
 });
 
 class RideActionNotifier extends Notifier<bool> {

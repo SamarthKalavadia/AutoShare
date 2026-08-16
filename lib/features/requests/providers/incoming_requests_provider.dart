@@ -62,8 +62,7 @@ final incomingRequestsProvider = StreamProvider.autoDispose<List<IncomingRequest
           ride = result.data;
           rideCache[req.rideId] = ride;
         } else {
-          // If ride fetch fails, we skip showing this request (or handle it otherwise).
-          continue;
+          ride = RideModel.empty().copyWith(id: req.rideId, boardingLocation: 'Requested Ride');
         }
       }
 

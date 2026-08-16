@@ -9,6 +9,7 @@ import '../../data/models/request_model.dart';
 import '../auth/presentation/controllers/auth_controller.dart';
 import 'providers/ride_request_provider.dart';
 import 'providers/driver_profile_provider.dart';
+import '../my_rides/providers/my_rides_provider.dart';
 import 'widgets/driver_info_card.dart';
 import 'widgets/route_info_card.dart';
 import 'widgets/ride_info_card.dart';
@@ -103,7 +104,18 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
     final backgroundColor = theme.scaffoldBackgroundColor;
 
     final state = ref.watch(rideRequestProvider);
-    final disabledReason = _disabledReason;
+    final existingReqAsync = ref.watch(currentRideRequestProvider(widget.ride.id));
+    final existingReq = existingReqAsync.value;
+
+    String? disabledReason = _disabledReason;
+    if (disabledReason == null && existingReq != null) {
+      if (existingReq.status == RideRequestStatus.pending) {
+        disabledReason = 'Request Pending - Waiting for driver response';
+      } else if (existingReq.status == RideRequestStatus.accepted) {
+        disabledReason = 'Request Accepted - You have joined this ride';
+      }
+    }
+
     final canRequest = disabledReason == null && !state.isLoading;
 
     // Listen for error messages to show snackbar.
@@ -124,9 +136,9 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
               action: SnackBarAction(
                 label: 'OK',
                 textColor: primaryColor,
-                onPressed: () => ref
-                    .read(rideRequestProvider.notifier)
-                    .clearError(),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                },
               ),
             ),
           );
@@ -213,6 +225,7 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
           context: context,
           canRequest: canRequest,
           disabledReason: disabledReason,
+          existingReq: existingReq,
           isLoading: state.isLoading,
           backgroundColor: backgroundColor,
         ),
@@ -303,6 +316,7 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
     required BuildContext context,
     required bool canRequest,
     required String? disabledReason,
+    required RideRequestModel? existingReq,
     required bool isLoading,
     required Color backgroundColor,
   }) {
@@ -311,6 +325,15 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
     final primaryColor = theme.colorScheme.primary;
     final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
     final disabledBg = isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3);
+
+    String buttonLabel = 'Request Ride';
+    if (_isOwnRide) {
+      buttonLabel = 'Your Ride';
+    } else if (existingReq != null) {
+      buttonLabel = existingReq.status == RideRequestStatus.accepted
+          ? 'Already Joined'
+          : 'Request Pending';
+    }
 
     return Container(
       padding: EdgeInsets.fromLTRB(
@@ -358,28 +381,92 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
             ),
             const SizedBox(height: 10),
           ],
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: canRequest ? _onRequestPressed : null,
-              style: FilledButton.styleFrom(
-                backgroundColor: primaryColor,
-                disabledBackgroundColor: disabledBg,
-                foregroundColor: const Color(0xFF121212),
-                disabledForegroundColor: isDark ? Colors.white30 : const Color(0xFFAAAAAA),
-              ),
-              child: isLoading
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Color(0xFF121212),
-                      ),
-                    )
-                  : Text(_isOwnRide ? 'Your Ride' : 'Request Ride'),
+          if (existingReq != null && existingReq.status == RideRequestStatus.pending) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text('Cancel Request', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                          content: const Text('Are you sure you want to cancel your request for this ride?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(false),
+                              child: const Text('No'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(true),
+                              style: TextButton.styleFrom(foregroundColor: Colors.red),
+                              child: const Text('Cancel Request'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirmed == true) {
+                        await ref.read(rideActionProvider.notifier).cancelMyRequest(existingReq);
+                        ref.invalidate(currentRideRequestProvider(widget.ride.id));
+                        ref.invalidate(myRidesProvider);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Request cancelled successfully.')),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.cancel_outlined, color: Colors.red, size: 18),
+                    label: Text('Cancel Request', style: GoogleFonts.inter(color: Colors.red, fontWeight: FontWeight.w600)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.red),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      disabledBackgroundColor: primaryColor.withAlpha(120),
+                      foregroundColor: const Color(0xFF121212),
+                      disabledForegroundColor: const Color(0xFF121212),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: Text('Requested', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
             ),
-          ),
+          ] else ...[
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: canRequest ? _onRequestPressed : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  disabledBackgroundColor: disabledBg,
+                  foregroundColor: const Color(0xFF121212),
+                  disabledForegroundColor: isDark ? Colors.white30 : const Color(0xFFAAAAAA),
+                ),
+                child: isLoading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Color(0xFF121212),
+                        ),
+                      )
+                    : Text(buttonLabel),
+              ),
+            ),
+          ],
         ],
       ),
     );

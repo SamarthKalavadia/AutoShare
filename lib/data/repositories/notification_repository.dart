@@ -17,10 +17,15 @@ class NotificationRepository {
   Stream<List<NotificationModel>> streamNotifications(String userId) {
     return _notifCollection
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((s) =>
-            s.docs.map((d) => NotificationModel.fromDocument(d as DocumentSnapshot<Map<String, dynamic>>)).toList());
+        .map((s) {
+          final list = s.docs
+              .map((d) => NotificationModel.fromDocument(d as DocumentSnapshot<Map<String, dynamic>>))
+              .toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        })
+        .handleError((error) => <NotificationModel>[]);
   }
 
   /// Creates a new notification document.
