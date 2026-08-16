@@ -15,14 +15,6 @@ class DriverDirectoryPage extends ConsumerStatefulWidget {
 }
 
 class _DriverDirectoryPageState extends ConsumerState<DriverDirectoryPage> {
-  final _searchController = TextEditingController();
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -30,10 +22,8 @@ class _DriverDirectoryPageState extends ConsumerState<DriverDirectoryPage> {
 
     final blackColor = theme.colorScheme.onSurface;
     final backgroundColor = theme.scaffoldBackgroundColor;
-    final primaryColor = theme.colorScheme.primary;
     final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
 
-    final searchState = ref.watch(driverSearchProvider);
     final filteredAsync = ref.watch(filteredDriversProvider);
 
     return Scaffold(
@@ -71,88 +61,6 @@ class _DriverDirectoryPageState extends ConsumerState<DriverDirectoryPage> {
       ),
       body: Column(
         children: [
-          // ── Search bar ────────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (val) => ref.read(driverSearchProvider.notifier).updateQuery(val),
-              decoration: InputDecoration(
-                hintText: 'Search by name, area or city…',
-                hintStyle: GoogleFonts.inter(color: Colors.grey[400], fontSize: 14),
-                prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF8E8E93)),
-                suffixIcon: searchState.query.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, color: Color(0xFF8E8E93), size: 18),
-                        onPressed: () {
-                          _searchController.clear();
-                          ref.read(driverSearchProvider.notifier).updateQuery('');
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: Color(0xFFEAE5DD)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: Color(0xFFEAE5DD)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: blackColor, width: 1.5),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          // ── Filter chips ──────────────────────────────────────────────────
-          SizedBox(
-            height: 38,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: DriverFilter.values.map((filter) {
-                final selected = searchState.filter == filter;
-                final label = switch (filter) {
-                  DriverFilter.all => 'All',
-                  DriverFilter.available => 'Available',
-                  DriverFilter.verified => 'Verified',
-                };
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(
-                      label,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: selected ? blackColor : mutedText,
-                      ),
-                    ),
-                    selected: selected,
-                    onSelected: (_) =>
-                        ref.read(driverSearchProvider.notifier).updateFilter(filter),
-                    selectedColor: primaryColor,
-                    backgroundColor: Colors.white,
-                    checkmarkColor: blackColor,
-                    side: BorderSide(
-                      color: selected ? primaryColor : const Color(0xFFEAE5DD),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    showCheckmark: false,
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 8),
           // ── List ──────────────────────────────────────────────────────────
           Expanded(
             child: filteredAsync.when(
@@ -173,19 +81,11 @@ class _DriverDirectoryPageState extends ConsumerState<DriverDirectoryPage> {
                             size: 64, color: Color(0xFFCCCCCC)),
                         const SizedBox(height: 16),
                         Text(
-                          'No drivers found.',
+                          'No drivers available',
                           style: GoogleFonts.inter(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                             color: const Color(0xFF6F6F72),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Try adjusting your search or filters.',
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            color: const Color(0xFFAAAAAA),
                           ),
                         ),
                       ],
@@ -193,7 +93,7 @@ class _DriverDirectoryPageState extends ConsumerState<DriverDirectoryPage> {
                   );
                 }
                 return ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                   itemCount: drivers.length,
                   separatorBuilder: (context, index) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
@@ -237,8 +137,6 @@ class _DriverCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const blackColor = Color(0xFF121212);
-    const primaryColor = Color(0xFFF6C000);
-    const successColor = Color(0xFF2E7D32);
     const mutedText = Color(0xFF6F6F72);
     const borderColor = Color(0xFFEAE5DD);
 
@@ -275,101 +173,38 @@ class _DriverCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             onTap: () {}, // Future: open detail page
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ── Avatar ──────────────────────────────────────────────
                   _DriverAvatar(driver: driver),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 12),
                   // ── Info ────────────────────────────────────────────────
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Name + rating row
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                driver.name,
-                                style: GoogleFonts.inter(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: blackColor,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Icon(Icons.star_rounded,
-                                size: 14, color: primaryColor),
-                            const SizedBox(width: 2),
-                            Text(
-                              driver.rating.toStringAsFixed(1),
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: blackColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        // Area · City
+                        // Name row
                         Text(
-                          '${driver.area} · ${driver.city}',
+                          driver.name,
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: blackColor,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        // Phone number
+                        Text(
+                          '+${driver.phoneNumber.replaceAll('\nHome', '')}',
                           style: GoogleFonts.inter(
                             fontSize: 13,
                             color: mutedText,
                             fontWeight: FontWeight.w500,
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        // Badges row
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            if (driver.verified)
-                              _Badge(
-                                label: 'Verified',
-                                icon: Icons.verified_rounded,
-                                color: successColor,
-                                bgColor: const Color(0xFFEAF5ED),
-                              ),
-                            _Badge(
-                              label: driver.available ? 'Available' : 'Unavailable',
-                              icon: driver.available
-                                  ? Icons.check_circle_rounded
-                                  : Icons.cancel_rounded,
-                              color: driver.available
-                                  ? successColor
-                                  : const Color(0xFFD32F2F),
-                              bgColor: driver.available
-                                  ? const Color(0xFFEAF5ED)
-                                  : const Color(0xFFFDECEC),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        // Phone number
-                        Row(
-                          children: [
-                            const Icon(Icons.phone_outlined,
-                                size: 13, color: mutedText),
-                            const SizedBox(width: 4),
-                            Text(
-                              '+${driver.phoneNumber}',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: mutedText,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
                         ),
                         const SizedBox(height: 12),
                         // Buttons
@@ -381,10 +216,10 @@ class _DriverCard extends StatelessWidget {
                                 icon: Icons.call_rounded,
                                 bgColor: blackColor,
                                 fgColor: Colors.white,
-                                onTap: () => _launchUrl(
-                                  context,
-                                  'tel:+${driver.phoneNumber}',
-                                ),
+                                onTap: () {
+                                  final cleanPhone = driver.phoneNumber.split('\n').first.trim();
+                                  _launchUrl(context, 'tel:+$cleanPhone');
+                                },
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -394,10 +229,10 @@ class _DriverCard extends StatelessWidget {
                                 icon: Icons.chat_rounded,
                                 bgColor: const Color(0xFF25D366),
                                 fgColor: Colors.white,
-                                onTap: () => _launchUrl(
-                                  context,
-                                  'https://wa.me/${driver.phoneNumber}',
-                                ),
+                                onTap: () {
+                                  final cleanPhone = driver.phoneNumber.split('\n').first.trim();
+                                  _launchUrl(context, 'https://wa.me/$cleanPhone');
+                                },
                               ),
                             ),
                           ],
@@ -463,47 +298,6 @@ class _Initials extends StatelessWidget {
   }
 }
 
-// ── Badge ─────────────────────────────────────────────────────────────────────
-
-class _Badge extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color color;
-  final Color bgColor;
-
-  const _Badge({
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.bgColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              color: color,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ── Action Button ─────────────────────────────────────────────────────────────
 

@@ -10,99 +10,71 @@ class DriverRepository {
   DriverRepository({FirestoreService? firestoreService})
       : _firestoreService = firestoreService ?? FirestoreService();
 
-  /// Returns the full list of drivers (currently all users).
+  /// Returns the list of drivers from Firestore.
   Future<List<DriverModel>> fetchDrivers() async {
-    return const [
-      DriverModel(
-        driverId: 'bhupabhai',
-        name: 'Bhupabhai',
-        phoneNumber: '91 74054 08910\nHome',
-        area: 'Changa',
-        city: 'Anand',
-        available: true,
-        verified: true,
-        rating: 5.0,
-      ),
-      DriverModel(
-        driverId: 'dashrathbhai',
-        name: 'Dashrathbhai',
-        phoneNumber: '91 92651 34763\nHome',
-        area: 'Changa',
-        city: 'Anand',
-        available: true,
-        verified: true,
-        rating: 5.0,
-      ),
-      DriverModel(
-        driverId: 'ghanshyam',
-        name: 'Ghanshyam',
-        phoneNumber: '91 98248 66946\nHome',
-        area: 'Changa',
-        city: 'Anand',
-        available: true,
-        verified: true,
-        rating: 4.8,
-      ),
-      DriverModel(
-        driverId: 'rahul',
-        name: 'Rahul',
-        phoneNumber: '91 97279 35297\nHome',
-        area: 'Changa',
-        city: 'Anand',
-        available: true,
-        verified: true,
-        rating: 4.7,
-      ),
-      DriverModel(
-        driverId: 'rajubhai',
-        name: 'Rajubhai',
-        phoneNumber: '91 79904 96596\n+91 87994 71402\nHome',
-        area: 'Changa',
-        city: 'Anand',
-        available: true,
-        verified: true,
-        rating: 4.9,
-      ),
-      DriverModel(
-        driverId: 'vishalbhai',
-        name: 'Vishalbhai',
-        phoneNumber: '91 93273 44904\nHome',
-        area: 'Changa',
-        city: 'Anand',
-        available: true,
-        verified: true,
-        rating: 4.8,
-      ),
-      DriverModel(
-        driverId: 'vijaybhai',
-        name: 'Vijaybhai',
-        phoneNumber: '91 78745 12833\nHome',
-        area: 'Changa',
-        city: 'Anand',
-        available: true,
-        verified: true,
-        rating: 4.6,
-      ),
-      DriverModel(
-        driverId: 'kantibhai',
-        name: 'Kantibhai',
-        phoneNumber: '91 79906 97077\nHome',
-        area: 'Changa',
-        city: 'Anand',
-        available: true,
-        verified: true,
-        rating: 4.8,
-      ),
-      DriverModel(
-        driverId: 'sandipbhai',
-        name: 'Sandipbhai',
-        phoneNumber: '91 99042 64835\nHome',
-        area: 'Changa',
-        city: 'Anand',
-        available: true,
-        verified: true,
-        rating: 4.7,
-      ),
-    ];
+    try {
+      final snapshot = await _firestoreService.usersCollection.get();
+      
+      final List<DriverModel> drivers = [];
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final role = data['role'] as String?;
+        
+        // We only want to display drivers.
+        if (role == 'driver' || role == 'auto_driver') {
+          drivers.add(DriverModel.fromMap(data, doc.id));
+        }
+      }
+
+      return drivers;
+    } catch (e) {
+      print('Error fetching drivers: $e');
+      return [];
+    }
   }
+
+  /// Creates or updates a driver based on phone number.
+  Future<void> saveDriver(DriverModel driver) async {
+    try {
+      final data = driver.toMap()..addAll({'role': 'driver'});
+
+      // Check if driver exists with same phone
+      final snapshot = await _firestoreService.usersCollection
+          .where('phone', isEqualTo: driver.phoneNumber)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        // Update existing
+        await snapshot.docs.first.reference.update(data);
+      } else {
+        // Check by name just in case
+        final nameSnapshot = await _firestoreService.usersCollection
+            .where('name', isEqualTo: driver.name)
+            .limit(1)
+            .get();
+        if (nameSnapshot.docs.isNotEmpty) {
+          await nameSnapshot.docs.first.reference.update(data);
+        } else {
+           // Create new
+          await _firestoreService.usersCollection.doc(driver.driverId).set(data);
+        }
+      }
+    } catch (e) {
+      print('Error saving driver: $e');
+      rethrow;
+    }
+  }
+
+  /// Deletes a driver.
+  Future<void> deleteDriver(String driverId) async {
+    try {
+      await _firestoreService.usersCollection.doc(driverId).delete();
+    } catch (e) {
+      print('Error deleting driver: $e');
+      rethrow;
+    }
+  }
+
 }

@@ -16,21 +16,9 @@ class MyRidesPage extends ConsumerStatefulWidget {
   ConsumerState<MyRidesPage> createState() => _MyRidesPageState();
 }
 
-class _MyRidesPageState extends ConsumerState<MyRidesPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 5, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+class _MyRidesPageState extends ConsumerState<MyRidesPage> {
+  int _selectedSegment = 0;
+  String _activityFilter = 'All';
 
   @override
   Widget build(BuildContext context) {
@@ -40,12 +28,15 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage>
     final primaryColor = theme.colorScheme.primary;
     final backgroundColor = theme.scaffoldBackgroundColor;
     final blackColor = theme.colorScheme.onSurface;
-    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
 
     final ridesAsync = ref.watch(myRidesProvider);
     final requestsAsync = ref.watch(incomingRequestsProvider);
     final isActionLoading = ref.watch(rideActionProvider) || ref.watch(requestActionProvider);
+
+    final pendingCount = requestsAsync.maybeWhen(
+      data: (reqs) => reqs.where((r) => r.request.status.name == 'pending').length,
+      orElse: () => 0,
+    );
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -71,91 +62,22 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage>
             color: blackColor,
           ),
         ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: borderColor, width: 1)),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              labelColor: blackColor,
-              unselectedLabelColor: mutedText,
-              labelStyle: GoogleFonts.inter(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-              unselectedLabelStyle: GoogleFonts.inter(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
-              indicatorColor: primaryColor,
-              indicatorWeight: 3,
-              tabs: const [
-                Tab(text: 'Created'),
-                Tab(text: 'Requested'),
-                Tab(text: 'Joined'),
-                Tab(text: 'Completed'),
-                Tab(text: 'Cancelled'),
-              ],
-            ),
-          ),
-        ),
       ),
       body: Stack(
         children: [
-          ridesAsync.when(
-            data: (allRides) {
-              final created = allRides.where((r) => 
-                  r.role == 'driver' && r.displayStatus == 'active' && !r.isPast).toList();
-              
-              final joined = allRides.where((r) => 
-                  r.role == 'passenger' && (r.displayStatus == 'joined' || r.displayStatus == 'pending') && !r.isPast).toList();
-                  
-              final completed = allRides.where((r) => 
-                  r.displayStatus == 'completed' || (r.isPast && !['cancelled', 'rejected'].contains(r.displayStatus))).toList();
-                  
-              final cancelled = allRides.where((r) => 
-                  ['cancelled', 'rejected'].contains(r.displayStatus)).toList();
-
-              return TabBarView(
-                controller: _tabController,
-                children: [
-                  _RideListView(rides: created, type: 'created'),
-                  requestsAsync.when(
-                    data: (requests) {
-                      // Sort pending first
-                      final sorted = List<IncomingRequestData>.from(requests)
-                        ..sort((a, b) {
-                          if (a.request.status.name == 'pending' && b.request.status.name != 'pending') return -1;
-                          if (b.request.status.name == 'pending' && a.request.status.name != 'pending') return 1;
-                          return b.request.requestedAt.compareTo(a.request.requestedAt);
-                        });
-                      return _IncomingRequestsView(requests: sorted);
-                    },
-                    loading: () => Center(child: CircularProgressIndicator(color: primaryColor)),
-                    error: (err, stack) => Center(
-                      child: Text(
-                        'Failed to load requests\n$err',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(color: Colors.red),
-                      ),
-                    ),
-                  ),
-                  _RideListView(rides: joined, type: 'joined'),
-                  _RideListView(rides: completed, type: 'completed'),
-                  _RideListView(rides: cancelled, type: 'cancelled'),
-                ],
-              );
-            },
-            loading: () => Center(child: CircularProgressIndicator(color: primaryColor)),
-            error: (err, stack) => Center(
-              child: Text(
-                'Failed to load rides\n$err',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(color: Colors.red),
-              ),
+          SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                _buildSegmentedControl(context, primaryColor, blackColor, pendingCount),
+                const SizedBox(height: 12),
+                if (_selectedSegment == 0) _buildFilterDropdown(context),
+                Expanded(
+                  child: _selectedSegment == 0 
+                    ? _buildMyActivity(ridesAsync) 
+                    : _buildRequests(requestsAsync, primaryColor),
+                ),
+              ],
             ),
           ),
           if (isActionLoading)
@@ -166,6 +88,260 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage>
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSegmentedControl(BuildContext context, Color primaryColor, Color blackColor, int pendingCount) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFEAE5DD);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      height: 48,
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _SegmentButton(
+              title: 'My Activity',
+              isSelected: _selectedSegment == 0,
+              onTap: () => setState(() => _selectedSegment = 0),
+              primaryColor: primaryColor,
+              blackColor: blackColor,
+            ),
+          ),
+          Expanded(
+            child: _SegmentButton(
+              title: 'Requests',
+              isSelected: _selectedSegment == 1,
+              badgeCount: pendingCount,
+              onTap: () => setState(() => _selectedSegment = 1),
+              primaryColor: primaryColor,
+              blackColor: blackColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterDropdown(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => _showFilterSheet(context),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              border: Border.all(color: isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD)),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _activityFilter,
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showFilterSheet(BuildContext context) {
+    final filters = ['All', 'Created', 'Joined', 'Completed', 'Cancelled'];
+    
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withAlpha(50),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Text(
+                  'Filter Activity',
+                  style: GoogleFonts.outfit(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...filters.map((f) => ListTile(
+                  title: Text(
+                    f,
+                    style: GoogleFonts.inter(
+                      fontWeight: _activityFilter == f ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                  ),
+                  trailing: _activityFilter == f ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary) : null,
+                  onTap: () {
+                    setState(() => _activityFilter = f);
+                    Navigator.pop(context);
+                  },
+                )),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMyActivity(AsyncValue<List<MyRideData>> ridesAsync) {
+    return ridesAsync.when(
+      data: (allRides) {
+        List<MyRideData> filtered = [];
+        
+        switch (_activityFilter) {
+          case 'Created':
+            filtered = allRides.where((r) => r.role == 'driver' && r.displayStatus == 'active' && !r.isPast).toList();
+            break;
+          case 'Joined':
+            filtered = allRides.where((r) => r.role == 'passenger' && (r.displayStatus == 'joined' || r.displayStatus == 'pending') && !r.isPast).toList();
+            break;
+          case 'Completed':
+            filtered = allRides.where((r) => r.displayStatus == 'completed' || (r.isPast && !['cancelled', 'rejected'].contains(r.displayStatus))).toList();
+            break;
+          case 'Cancelled':
+            filtered = allRides.where((r) => ['cancelled', 'rejected'].contains(r.displayStatus)).toList();
+            break;
+          case 'All':
+          default:
+            filtered = allRides.toList();
+            break;
+        }
+
+        return _RideListView(rides: filtered, type: _activityFilter.toLowerCase());
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(
+        child: Text('Failed to load rides\n$err', textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.red)),
+      ),
+    );
+  }
+
+  Widget _buildRequests(AsyncValue<List<IncomingRequestData>> requestsAsync, Color primaryColor) {
+    return requestsAsync.when(
+      data: (requests) {
+        final sorted = List<IncomingRequestData>.from(requests)
+          ..sort((a, b) {
+            if (a.request.status.name == 'pending' && b.request.status.name != 'pending') return -1;
+            if (b.request.status.name == 'pending' && a.request.status.name != 'pending') return 1;
+            return b.request.requestedAt.compareTo(a.request.requestedAt);
+          });
+        return _IncomingRequestsView(requests: sorted);
+      },
+      loading: () => Center(child: CircularProgressIndicator(color: primaryColor)),
+      error: (err, stack) => Center(
+        child: Text('Failed to load requests\n$err', textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.red)),
+      ),
+    );
+  }
+}
+
+class _SegmentButton extends StatelessWidget {
+  final String title;
+  final bool isSelected;
+  final int badgeCount;
+  final VoidCallback onTap;
+  final Color primaryColor;
+  final Color blackColor;
+
+  const _SegmentButton({
+    required this.title,
+    required this.isSelected,
+    this.badgeCount = 0,
+    required this.onTap,
+    required this.primaryColor,
+    required this.blackColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: isSelected ? (isDark ? const Color(0xFF333333) : Colors.white) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: isSelected && !isDark
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(10), // ~0.04 alpha
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected ? blackColor : (isDark ? Colors.white60 : const Color(0xFF6F6F72)),
+              ),
+            ),
+            if (badgeCount > 0) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: primaryColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  badgeCount.toString(),
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black, // Always black text on yellow accent
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -191,7 +367,7 @@ class _RideListView extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'No $type rides',
+              type == 'all' ? 'No rides yet' : 'No $type rides',
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
