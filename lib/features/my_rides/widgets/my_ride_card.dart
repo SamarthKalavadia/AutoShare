@@ -202,7 +202,7 @@ class MyRideCard extends ConsumerWidget {
           ),
 
           // ── Actions ──
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           Row(
             children: [
               if (onCancel != null) ...[
@@ -214,7 +214,7 @@ class MyRideCard extends ConsumerWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      side: BorderSide(color: borderColor, width: 2),
+                      side: const BorderSide(color: Colors.red, width: 1.5),
                     ),
                     child: Text(
                       'Cancel',
@@ -226,7 +226,7 @@ class MyRideCard extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
               ],
               if (onDelete != null) ...[
                 Expanded(
@@ -249,7 +249,7 @@ class MyRideCard extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
               ],
               Expanded(
                 child: ElevatedButton(
@@ -272,95 +272,8 @@ class MyRideCard extends ConsumerWidget {
                   ),
                 ),
               ),
-              if (data.role == 'passenger' && data.displayStatus == 'joined') ...[
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Consumer(
-                    builder: (context, ref, _) {
-                      final driverAsync = ref.watch(userProfileProvider(ride.driverId));
-                      return driverAsync.when(
-                        data: (driver) {
-                          return Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    context.push('/chat', extra: ChatPageArgs(
-                                      ride: ride,
-                                      otherParticipantUid: driver.uid,
-                                      otherParticipantName: driver.name,
-                                    ));
-                                  },
-                                  icon: const Icon(Icons.chat_bubble_outline, size: 16),
-                                  label: const SizedBox.shrink(),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFF6C000), // Primary Yellow
-                                    foregroundColor: blackColor,
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () async {
-                                    final url = Uri.parse('tel:${driver.phone}');
-                                    if (await canLaunchUrl(url)) {
-                                      await launchUrl(url, mode: LaunchMode.externalApplication);
-                                    }
-                                  },
-                                  icon: const Icon(Icons.phone_outlined, size: 16),
-                                  label: const SizedBox.shrink(),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFF8F7F4),
-                                    foregroundColor: blackColor,
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: () async {
-                                    final cleanPhone = driver.phone.replaceAll(RegExp(r'[^\d+]'), '');
-                                    final url = Uri.parse('https://wa.me/$cleanPhone');
-                                    if (await canLaunchUrl(url)) {
-                                      await launchUrl(url, mode: LaunchMode.externalApplication);
-                                    }
-                                  },
-                                  icon: const Icon(Icons.message_outlined, size: 16),
-                                  label: const SizedBox.shrink(),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF25D366),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                        loading: () => const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
-                        error: (err, stack) => const SizedBox.shrink(),
-                      );
-                    },
-                  ),
-                ),
-              ],
               if (onTrack != null) ...[
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: onTrack,
@@ -385,6 +298,129 @@ class MyRideCard extends ConsumerWidget {
               ],
             ],
           ),
+
+          // ── Dedicated Contact Row (When Joined) ──
+          if (data.role == 'passenger' && data.displayStatus == 'joined') ...[
+            const SizedBox(height: 12),
+            Consumer(
+              builder: (context, ref, _) {
+                final driverAsync = ref.watch(userProfileProvider(ride.driverId));
+                return driverAsync.when(
+                  data: (driver) {
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              context.push('/chat', extra: ChatPageArgs(
+                                ride: ride,
+                                otherParticipantUid: driver.uid,
+                                otherParticipantName: driver.name,
+                              ));
+                            },
+                            borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF6C000), // Primary Yellow
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.chat_bubble_outline, size: 16, color: blackColor),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Chat',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: blackColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () async {
+                              final url = Uri.parse('tel:${driver.phone}');
+                              if (await canLaunchUrl(url)) {
+                                await launchUrl(url, mode: LaunchMode.externalApplication);
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.phone_outlined, size: 16, color: blackColor),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Call',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: blackColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () async {
+                              final cleanPhone = driver.phone.replaceAll(RegExp(r'[^\d+]'), '');
+                              final url = Uri.parse('https://wa.me/$cleanPhone');
+                              if (await canLaunchUrl(url)) {
+                                await launchUrl(url, mode: LaunchMode.externalApplication);
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF25D366), // WhatsApp Green
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.message_outlined, size: 16, color: Colors.white),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'WhatsApp',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                  loading: () => const SizedBox.shrink(),
+                  error: (err, stack) => const SizedBox.shrink(),
+                );
+              },
+            ),
+          ],
         ],
       ),
     );

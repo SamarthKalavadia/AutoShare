@@ -235,90 +235,108 @@ class RequestCard extends ConsumerWidget {
                 ],
                 if (isAccepted) ...[
                   Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
+                    child: InkWell(
+                      onTap: () {
                         context.push('/chat', extra: ChatPageArgs(
                           ride: ride,
                           otherParticipantUid: passenger.uid,
                           otherParticipantName: passenger.name,
                         ));
                       },
-                      icon: Icon(Icons.chat_bubble_outline, size: 18, color: blackColor),
-                      label: Text(
-                        'Message',
-                        style: GoogleFonts.inter(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: blackColor,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF6C000), // Primary Yellow
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.chat_bubble_outline, size: 16, color: blackColor),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Chat',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: blackColor,
+                              ),
+                            ),
+                          ],
                         ),
-                        side: BorderSide(color: borderColor, width: 2),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
+                    child: InkWell(
+                      onTap: () async {
                         final url = Uri.parse('tel:${passenger.phone}');
                         if (await canLaunchUrl(url)) {
                           await launchUrl(url, mode: LaunchMode.externalApplication);
                         }
                       },
-                      icon: const Icon(Icons.phone_outlined, size: 18),
-                      label: Text(
-                        'Call',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF8F7F4),
-                        foregroundColor: blackColor,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.phone_outlined, size: 16, color: blackColor),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Call',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: blackColor,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
+                    child: InkWell(
+                      onTap: () async {
                         final cleanPhone = passenger.phone.replaceAll(RegExp(r'[^\d+]'), '');
                         final url = Uri.parse('https://wa.me/$cleanPhone');
                         if (await canLaunchUrl(url)) {
                           await launchUrl(url, mode: LaunchMode.externalApplication);
                         }
                       },
-                      icon: const Icon(Icons.message_outlined, size: 18),
-                      label: Text(
-                        'WhatsApp',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF25D366),
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF25D366),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.message_outlined, size: 16, color: Colors.white),
+                            const SizedBox(width: 6),
+                            Text(
+                              'WhatsApp',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
-
                 ],
               ],
             ),
