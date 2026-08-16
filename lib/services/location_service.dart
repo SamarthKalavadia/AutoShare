@@ -364,19 +364,23 @@ class LocationService {
   }
 
   /// Google Places API (New) Autocomplete
-  static Future<List<PlacePrediction>> _fetchGooglePredictions(String query) async {
+  static Future<List<PlacePrediction>> _fetchGooglePredictions(
+    String query,
+  ) async {
     final uri = Uri.https('places.googleapis.com', '/v1/places:autocomplete');
-    final response = await http.post(
-      uri,
-      headers: {
-        'X-Goog-Api-Key': MapsConfig.googleMapsApiKey,
-        'Content-Type': 'application/json',
-      },
-      body: json.encode({
-        'input': query,
-        'includedRegionCodes': ['IN'],
-      }),
-    ).timeout(const Duration(seconds: 2));
+    final response = await http
+        .post(
+          uri,
+          headers: {
+            'X-Goog-Api-Key': MapsConfig.googleMapsApiKey,
+            'Content-Type': 'application/json',
+          },
+          body: json.encode({
+            'input': query,
+            'includedRegionCodes': ['IN'],
+          }),
+        )
+        .timeout(const Duration(seconds: 2));
 
     if (response.statusCode != 200) {
       throw HttpException('HTTP ${response.statusCode}');
@@ -387,16 +391,23 @@ class LocationService {
 
     return suggestions.take(15).map((e) {
       final suggestion = e as Map<String, dynamic>;
-      final prediction = suggestion['placePrediction'] as Map<String, dynamic>? ?? {};
-      final placeId = prediction['place'] as String? ?? prediction['placeId'] as String? ?? '';
-      
+      final prediction =
+          suggestion['placePrediction'] as Map<String, dynamic>? ?? {};
+      final placeId =
+          prediction['place'] as String? ??
+          prediction['placeId'] as String? ??
+          '';
+
       final textObj = prediction['text'] as Map<String, dynamic>? ?? {};
       final description = textObj['text'] as String? ?? '';
 
-      final structuredFormat = prediction['structuredFormat'] as Map<String, dynamic>? ?? {};
-      final mainTextObj = structuredFormat['mainText'] as Map<String, dynamic>? ?? {};
-      final secondaryTextObj = structuredFormat['secondaryText'] as Map<String, dynamic>? ?? {};
-      
+      final structuredFormat =
+          prediction['structuredFormat'] as Map<String, dynamic>? ?? {};
+      final mainTextObj =
+          structuredFormat['mainText'] as Map<String, dynamic>? ?? {};
+      final secondaryTextObj =
+          structuredFormat['secondaryText'] as Map<String, dynamic>? ?? {};
+
       final primaryText = mainTextObj['text'] as String? ?? description;
       final secondaryText = secondaryTextObj['text'] as String? ?? '';
 
@@ -410,7 +421,9 @@ class LocationService {
   }
 
   /// OpenStreetMap Nominatim Search Fallback
-  static Future<List<PlacePrediction>> _fetchNominatimPredictions(String query) async {
+  static Future<List<PlacePrediction>> _fetchNominatimPredictions(
+    String query,
+  ) async {
     final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
       'q': query,
       'format': 'json',
@@ -419,12 +432,12 @@ class LocationService {
       'countrycodes': 'in',
     });
 
-    final response = await http.get(
-      uri,
-      headers: {
-        'User-Agent': 'AutoShareApp/1.0 (com.autoshare.app)',
-      },
-    ).timeout(const Duration(seconds: 2));
+    final response = await http
+        .get(
+          uri,
+          headers: {'User-Agent': 'AutoShareApp/1.0 (com.autoshare.app)'},
+        )
+        .timeout(const Duration(seconds: 2));
 
     if (response.statusCode != 200) return [];
 
@@ -437,14 +450,17 @@ class LocationService {
       final displayName = map['display_name'] as String? ?? '';
       final address = map['address'] as Map<String, dynamic>? ?? {};
 
-      final mainName = address['city'] as String? ??
+      final mainName =
+          address['city'] as String? ??
           address['town'] as String? ??
           address['village'] as String? ??
           address['suburb'] as String? ??
           displayName.split(',').first;
 
       final parts = displayName.split(',');
-      final secondary = parts.length > 1 ? parts.sublist(1).join(',').trim() : '';
+      final secondary = parts.length > 1
+          ? parts.sublist(1).join(',').trim()
+          : '';
 
       final lat = double.tryParse(map['lat']?.toString() ?? '');
       final lng = double.tryParse(map['lon']?.toString() ?? '');
@@ -479,22 +495,28 @@ class LocationService {
 
     try {
       final uri = Uri.https('places.googleapis.com', '/v1/places/$placeId');
-      final response = await http.get(
-        uri,
-        headers: {
-          'X-Goog-Api-Key': MapsConfig.googleMapsApiKey,
-          'X-Goog-FieldMask': 'id,formattedAddress,displayName,location',
-        },
-      ).timeout(const Duration(seconds: 4));
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              'X-Goog-Api-Key': MapsConfig.googleMapsApiKey,
+              'X-Goog-FieldMask': 'id,formattedAddress,displayName,location',
+            },
+          )
+          .timeout(const Duration(seconds: 4));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         final location = data['location'] as Map<String, dynamic>? ?? {};
-        final displayNameObj = data['displayName'] as Map<String, dynamic>? ?? {};
+        final displayNameObj =
+            data['displayName'] as Map<String, dynamic>? ?? {};
 
         final prediction = PlacePrediction(
           placeId: data['id'] as String? ?? placeId,
-          description: data['formattedAddress'] as String? ?? displayNameObj['text'] as String? ?? '',
+          description:
+              data['formattedAddress'] as String? ??
+              displayNameObj['text'] as String? ??
+              '',
           primaryText: displayNameObj['text'] as String? ?? '',
           secondaryText: data['formattedAddress'] as String? ?? '',
           latitude: (location['latitude'] as num?)?.toDouble(),
@@ -537,10 +559,16 @@ class LocationService {
             final best = results.first as Map<String, dynamic>;
             final placeId = best['place_id'] as String? ?? '';
             final formatted = best['formatted_address'] as String? ?? '';
-            final location = (best['geometry'] as Map<String, dynamic>?)?['location'] as Map<String, dynamic>? ?? {};
-            final components = best['address_components'] as List<dynamic>? ?? [];
+            final location =
+                (best['geometry'] as Map<String, dynamic>?)?['location']
+                    as Map<String, dynamic>? ??
+                {};
+            final components =
+                best['address_components'] as List<dynamic>? ?? [];
             final primaryText = components.isNotEmpty
-                ? (components.first as Map<String, dynamic>)['long_name'] as String? ?? formatted
+                ? (components.first as Map<String, dynamic>)['long_name']
+                          as String? ??
+                      formatted
                 : formatted;
 
             final prediction = PlacePrediction(
@@ -562,7 +590,10 @@ class LocationService {
     return await _reverseGeocodeNominatim(lat, lng);
   }
 
-  static Future<PlacePrediction> _reverseGeocodeNominatim(double lat, double lng) async {
+  static Future<PlacePrediction> _reverseGeocodeNominatim(
+    double lat,
+    double lng,
+  ) async {
     try {
       final uri = Uri.https('nominatim.openstreetmap.org', '/reverse', {
         'lat': '$lat',
@@ -572,28 +603,51 @@ class LocationService {
         'zoom': '18', // Building/street precision level
       });
 
-      final response = await http.get(
-        uri,
-        headers: {'User-Agent': 'AutoShareApp/1.0 (com.autoshare.app)'},
-      ).timeout(const Duration(seconds: 6));
+      final response = await http
+          .get(
+            uri,
+            headers: {'User-Agent': 'AutoShareApp/1.0 (com.autoshare.app)'},
+          )
+          .timeout(const Duration(seconds: 6));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         final displayName = data['display_name'] as String? ?? '';
         final address = data['address'] as Map<String, dynamic>? ?? {};
 
-        final house = address['house_number'] as String? ?? address['building'] as String? ?? address['amenity'] as String?;
-        final road = address['road'] as String? ?? address['pedestrian'] as String? ?? address['suburb'] as String? ?? address['neighbourhood'] as String?;
-        final villageCity = address['city'] as String? ?? address['town'] as String? ?? address['village'] as String? ?? address['county'] as String?;
+        final house =
+            address['house_number'] as String? ??
+            address['building'] as String? ??
+            address['amenity'] as String?;
+        final road =
+            address['road'] as String? ??
+            address['pedestrian'] as String? ??
+            address['suburb'] as String? ??
+            address['neighbourhood'] as String?;
+        final villageCity =
+            address['city'] as String? ??
+            address['town'] as String? ??
+            address['village'] as String? ??
+            address['county'] as String?;
         final state = address['state'] as String? ?? '';
         final postcode = address['postcode'] as String? ?? '';
 
         final List<String> addressParts = [];
-        if (house != null && house.isNotEmpty) addressParts.add(house);
-        if (road != null && road.isNotEmpty) addressParts.add(road);
-        if (villageCity != null && villageCity.isNotEmpty) addressParts.add(villageCity);
-        if (state.isNotEmpty) addressParts.add(state);
-        if (postcode.isNotEmpty) addressParts.add(postcode);
+        if (house != null && house.isNotEmpty) {
+          addressParts.add(house);
+        }
+        if (road != null && road.isNotEmpty) {
+          addressParts.add(road);
+        }
+        if (villageCity != null && villageCity.isNotEmpty) {
+          addressParts.add(villageCity);
+        }
+        if (state.isNotEmpty) {
+          addressParts.add(state);
+        }
+        if (postcode.isNotEmpty) {
+          addressParts.add(postcode);
+        }
 
         final preciseAddress = addressParts.isNotEmpty
             ? addressParts.join(', ')
@@ -618,8 +672,10 @@ class LocationService {
     } catch (_) {}
 
     final fallback = PlacePrediction(
-      placeId: 'current_loc_${lat.toStringAsFixed(4)}_${lng.toStringAsFixed(4)}',
-      description: 'Current Location (${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)})',
+      placeId:
+          'current_loc_${lat.toStringAsFixed(4)}_${lng.toStringAsFixed(4)}',
+      description:
+          'Current Location (${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)})',
       primaryText: 'Current Location',
       secondaryText: '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}',
       latitude: lat,
@@ -633,49 +689,57 @@ class LocationService {
   static Future<PlacePrediction> getCurrentLocation() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      throw PermissionException('Location services are turned off. Please enable them or search manually.');
+      throw PermissionException(
+        'Location services are turned off. Please enable them or search manually.',
+      );
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        throw PermissionException('Location permission is required to use your current location.');
+        throw PermissionException(
+          'Location permission is required to use your current location.',
+        );
       }
     }
     if (permission == LocationPermission.deniedForever) {
-      throw PermissionException('Location permission is disabled. Enable it in Settings or search for a location manually.');
+      throw PermissionException(
+        'Location permission is disabled. Enable it in Settings or search for a location manually.',
+      );
     }
 
-    // Force high precision hardware GPS satellite position
-    Position? position;
-    try {
-      position = await Geolocator.getCurrentPosition(
-        locationSettings: AndroidSettings(
-          accuracy: LocationAccuracy.bestForNavigation,
-          forceLocationManager: true,
-          intervalDuration: const Duration(milliseconds: 500),
-          timeLimit: const Duration(seconds: 10),
-        ),
-      );
-    } catch (_) {
+    Position? bestPosition;
+    const int maxRetries = 3;
+
+    for (int i = 0; i < maxRetries; i++) {
       try {
-        position = await Geolocator.getCurrentPosition(
+        final position = await Geolocator.getCurrentPosition(
           locationSettings: const LocationSettings(
             accuracy: LocationAccuracy.best,
             timeLimit: Duration(seconds: 8),
           ),
         );
+
+        if (bestPosition == null || position.accuracy < bestPosition.accuracy) {
+          bestPosition = position;
+        }
+
+        if (bestPosition.accuracy <= 50.0) {
+          break;
+        }
       } catch (_) {
-        position = await Geolocator.getLastKnownPosition();
+        // Ignore timeout or errors and retry
       }
     }
 
-    if (position == null) {
-      throw PermissionException('Unable to acquire GPS signal. Please check your device location settings.');
+    if (bestPosition == null || bestPosition.accuracy > 100.0) {
+      throw const PermissionException(
+        'Unable to get an accurate current location. Please move to an open area and try again.',
+      );
     }
 
-    return reverseGeocode(position.latitude, position.longitude);
+    return reverseGeocode(bestPosition.latitude, bestPosition.longitude);
   }
 }
 

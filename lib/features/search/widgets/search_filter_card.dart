@@ -27,10 +27,7 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
     const primaryColor = Color(0xFFF6C000);
     final blackColor = theme.colorScheme.onSurface;
     final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
-    const successColor = Color(0xFF2E7D32);
-    const dangerColor = Color(0xFFD32F2F);
     final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
-    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
 
     final state = ref.watch(searchRideProvider);
     final notifier = ref.read(searchRideProvider.notifier);
@@ -39,111 +36,116 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
     final isFemale = authState.value?.gender.toLowerCase() == 'female';
     final isSearching = _isSearchingBoarding || _isSearchingDestination;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(24),
-        border: isDark ? Border.all(color: borderColor, width: 1.1) : null,
-        boxShadow: isDark
-            ? []
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 20,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-      ),
+    final cardColor = isDark ? const Color(0xFF181818) : Colors.white;
+    final secondaryBg = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF6F5F3);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Boarding Location & Destination with Swap Button
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  LocationAutocompleteField(
-                    fieldKey: 'search_boarding',
-                    hint: 'Pickup location',
-                    icon: Icons.circle_outlined,
-                    iconColor: blackColor,
-                    initialValue: state.boardingLocation,
-                    showCurrentLocationButton: true,
-                    onSuggestionsVisibilityChanged: (visible) {
-                      if (_isSearchingBoarding != visible) {
-                        setState(() => _isSearchingBoarding = visible);
-                      }
-                    },
-                    onPlaceSelected: (prediction, details) async {
-                      notifier.updateBoardingLocation(prediction.description);
-                    },
+          Container(
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: borderColor),
+              boxShadow: isDark
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(5),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+            ),
+            child: Stack(
+              alignment: Alignment.centerLeft,
+              children: [
+                Positioned(
+                  left: 25,
+                  top: 40,
+                  bottom: 40,
+                  child: Container(
+                    width: 1.5,
+                    color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 18),
-                    child: Container(
-                      height: 12,
-                      width: 2,
-                      color: isDark ? Colors.white24 : Colors.black12,
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    LocationAutocompleteField(
+                      fieldKey: 'search_boarding',
+                      hint: 'Pickup location',
+                      icon: Icons.radio_button_checked,
+                      iconColor: primaryColor,
+                      initialValue: state.boardingLocation,
+                      showCurrentLocationButton: true,
+                      transparentBackground: true,
+                      onSuggestionsVisibilityChanged: (visible) {
+                        if (_isSearchingBoarding != visible) {
+                          setState(() => _isSearchingBoarding = visible);
+                        }
+                      },
+                      onPlaceSelected: (prediction, details) async {
+                        notifier.updateBoardingLocation(prediction.description);
+                      },
                     ),
-                  ),
-                  LocationAutocompleteField(
-                    fieldKey: 'search_destination',
-                    hint: 'Dropoff location',
-                    icon: Icons.location_on,
-                    iconColor: primaryColor,
-                    initialValue: state.destination,
-                    showCurrentLocationButton: false,
-                    onSuggestionsVisibilityChanged: (visible) {
-                      if (_isSearchingDestination != visible) {
-                        setState(() => _isSearchingDestination = visible);
-                      }
-                    },
-                    onPlaceSelected: (prediction, details) async {
-                      notifier.updateDestination(prediction.description);
-                    },
-                  ),
-                ],
-              ),
-              // Center-aligned Swap Button - Automatically hidden when searching suggestions to prevent overlap
-              if (!isSearching)
-                Align(
-                  alignment: Alignment.center,
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => notifier.swapLocations(),
-                      borderRadius: BorderRadius.circular(24),
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: primaryColor,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                            width: 3,
+                    const SizedBox(height: 16),
+                    Divider(
+                      height: 1,
+                      indent: 52,
+                      endIndent: 68,
+                      color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
+                    ),
+                    const SizedBox(height: 16),
+                    LocationAutocompleteField(
+                      fieldKey: 'search_destination',
+                      hint: 'Dropoff location',
+                      icon: Icons.location_on,
+                      iconColor: isDark ? Colors.white : Colors.black87,
+                      initialValue: state.destination,
+                      showCurrentLocationButton: false,
+                      transparentBackground: true,
+                      onSuggestionsVisibilityChanged: (visible) {
+                        if (_isSearchingDestination != visible) {
+                          setState(() => _isSearchingDestination = visible);
+                        }
+                      },
+                      onPlaceSelected: (prediction, details) async {
+                        notifier.updateDestination(prediction.description);
+                      },
+                    ),
+                  ],
+                ),
+                // Right-aligned Swap Button
+                if (!isSearching)
+                  Positioned(
+                    right: 16,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => notifier.swapLocations(),
+                        borderRadius: BorderRadius.circular(24),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: secondaryBg,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: borderColor),
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(35),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.swap_vert_rounded,
-                          color: Color(0xFF121212),
-                          size: 22,
+                          child: Icon(
+                            Icons.swap_vert_rounded,
+                            color: blackColor,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 24),
 
@@ -205,10 +207,20 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3),
-                        borderRadius: BorderRadius.circular(16),
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: borderColor),
+                        boxShadow: isDark
+                            ? []
+                            : [
+                                BoxShadow(
+                                  color: Colors.black.withAlpha(5),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -251,20 +263,37 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                       'Max Fare (₹${state.maxFare.toInt()})',
                       style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600, color: mutedText),
                     ),
-                    SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: primaryColor,
-                        inactiveTrackColor: isDark ? const Color(0xFF38383A) : const Color(0xFFEAE5DD),
-                        thumbColor: primaryColor,
-                        overlayColor: primaryColor.withValues(alpha: 0.2),
-                        trackHeight: 4,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: borderColor),
+                        boxShadow: isDark
+                            ? []
+                            : [
+                                BoxShadow(
+                                  color: Colors.black.withAlpha(5),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                       ),
-                      child: Slider(
-                        value: state.maxFare,
-                        min: 50,
-                        max: 1000,
-                        divisions: 19,
-                        onChanged: (val) => notifier.updateMaxFare(val),
+                      child: SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          activeTrackColor: primaryColor,
+                          inactiveTrackColor: isDark ? const Color(0xFF38383A) : const Color(0xFFEAE5DD),
+                          thumbColor: primaryColor,
+                          overlayColor: primaryColor.withValues(alpha: 0.2),
+                          trackHeight: 4,
+                        ),
+                        child: Slider(
+                          value: state.maxFare,
+                          min: 50,
+                          max: 1000,
+                          divisions: 19,
+                          onChanged: (val) => notifier.updateMaxFare(val),
+                        ),
                       ),
                     ),
                   ],
@@ -275,12 +304,22 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
           const SizedBox(height: 16),
           
           // Girls Only Toggle
-          if (isFemale) ...[
+          if (isFemale)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3),
-                borderRadius: BorderRadius.circular(16),
+                color: cardColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: borderColor),
+                boxShadow: isDark
+                    ? []
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(5),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
               ),
               child: Row(
                 children: [
@@ -304,32 +343,44 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                   Switch.adaptive(
                     value: state.isGirlsOnly,
                     onChanged: notifier.toggleGirlsOnly,
-                    activeColor: primaryColor,
+                    activeTrackColor: primaryColor,
                   ),
                 ],
               ),
             ),
+          if (isFemale)
             const SizedBox(height: 24),
-          ],
           
           // Search Button
           SizedBox(
             width: double.infinity,
+            height: 56,
             child: FilledButton(
               onPressed: state.isValid && !state.isLoading ? () => notifier.searchRides() : null,
               style: FilledButton.styleFrom(
-                backgroundColor: primaryColor,
-                foregroundColor: const Color(0xFF121212),
-                disabledBackgroundColor: isDark ? const Color(0xFF38383A) : primaryColor.withValues(alpha: 0.4),
-                disabledForegroundColor: isDark ? Colors.white38 : blackColor.withValues(alpha: 0.5),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: state.isValid ? 4 : 0,
               ),
               child: state.isLoading 
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 24, 
                       height: 24, 
-                      child: CircularProgressIndicator(color: Color(0xFF121212), strokeWidth: 2.5),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          isDark ? Colors.black : Colors.white,
+                        ),
+                      ),
                     )
-                  : const Text('Search Rides'),
+                  : Text(
+                      'Search Rides',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
             ),
           ),
         ],
@@ -355,17 +406,28 @@ class _DateTimeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final selectorBg = isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3);
+    final cardColor = isDark ? const Color(0xFF181818) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEAE5DD);
     final textColor = theme.colorScheme.onSurface;
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: selectorBg,
-          borderRadius: BorderRadius.circular(16),
+          color: cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: borderColor),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(5),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

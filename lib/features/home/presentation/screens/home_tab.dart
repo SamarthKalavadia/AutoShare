@@ -12,8 +12,9 @@ import '../../../profile/providers/user_profile_provider.dart';
 import '../../../../shared/utils/avatar_utils.dart';
 import '../../../ride_details/providers/create_ride_provider.dart';
 import '../../../../shared/widgets/location_autocomplete_field.dart';
-import '../../../../services/location_service.dart' show LocationService, PermissionException, HttpException;
-
+import '../../../../services/location_service.dart'
+    show LocationService, PermissionException, HttpException;
+import 'home_page.dart' show homeNavigationProvider;
 
 class HomeTab extends ConsumerWidget {
   const HomeTab({super.key});
@@ -201,449 +202,563 @@ class HomeTab extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                const SizedBox(height: 10),
-                AnimatedOpacity(
-                  opacity: 1,
+              const SizedBox(height: 10),
+              AnimatedOpacity(
+                opacity: 1,
+                duration: const Duration(milliseconds: 400),
+                child: AnimatedSlide(
+                  offset: const Offset(0, 0),
                   duration: const Duration(milliseconds: 400),
-                  child: AnimatedSlide(
-                    offset: const Offset(0, 0),
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.easeOut,
-                    child: Text(
-                      'Where to next?',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        color: textPrimary,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
-                      ),
+                  curve: Curves.easeOut,
+                  child: Text(
+                    'Where to next?',
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      color: textPrimary,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                _animatedCard(
-                  duration: 500,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: BorderRadius.circular(24),
-                      border: isDark ? Border.all(color: borderColor, width: 1.1) : null,
-                      boxShadow: isDark
-                          ? []
-                          : [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.06),
-                                blurRadius: 24,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                    ),
-                    child: Column(
-                      children: [
-                        // Uber-style stacked location inputs
-                        InkWell(
-                          onTap: () => context.push('/create-ride'),
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                            decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF202020) : const Color(0xFFF3F3F3),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: IntrinsicHeight(
-                              child: Row(
-                                children: [
-                                  // Visual Route Line
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 8),
-                                    child: Column(
-                                      children: [
-                                        Container(
-                                          width: 10,
-                                          height: 10,
-                                          decoration: BoxDecoration(
-                                            color: isDark ? Colors.white70 : Colors.black87,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Container(
-                                            width: 2,
-                                            color: isDark ? Colors.white24 : Colors.black12,
-                                            margin: const EdgeInsets.symmetric(vertical: 6),
-                                          ),
-                                        ),
-                                        Container(
-                                          width: 10,
-                                          height: 10,
-                                          decoration: BoxDecoration(
-                                            color: primaryColor,
-                                            shape: BoxShape.rectangle,
-                                            borderRadius: BorderRadius.circular(2),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 20),
-                                  // Inputs
-                                  Expanded(
-                                    child: Column(
-                                      children: [
-                                        _uberInput(
-                                          context: context,
-                                          label: searchState.boarding.isEmpty
-                                              ? 'Pickup location'
-                                              : searchState.boarding,
-                                          isBold: searchState.boarding.isNotEmpty,
-                                          onTap: () => context.push('/create-ride'),
-                                        ),
-                                        Divider(
-                                          height: 24,
-                                          thickness: 1,
-                                          color: isDark ? Colors.white12 : Colors.black12,
-                                        ),
-                                        _uberInput(
-                                          context: context,
-                                          label: searchState.destination.isEmpty
-                                              ? 'Dropoff location'
-                                              : searchState.destination,
-                                          isBold: searchState.destination.isNotEmpty,
-                                          onTap: () => context.push('/create-ride'),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _uberActionButton(
-                                context: context,
-                                icon: Icons.calendar_today_rounded,
-                                label: searchState.departureDate == null
-                                    ? 'Today'
-                                    : DateFormat('MMM d').format(searchState.departureDate!),
-                                onTap: () async {
-                                  final date = await showDatePicker(
-                                    context: context,
-                                    initialDate: searchState.departureDate ?? DateTime.now(),
-                                    firstDate: DateTime.now(),
-                                    lastDate: DateTime.now().add(const Duration(days: 30)),
-                                  );
-                                  if (date != null) {
-                                    ref.read(homeSearchProvider.notifier).updateDate(date);
-                                  }
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _uberActionButton(
-                                context: context,
-                                icon: Icons.person_rounded,
-                                label: '${searchState.passengers} ${searchState.passengers > 1 ? 'Seats' : 'Seat'}',
-                                onTap: () {
-                                  int p = searchState.passengers % 4 + 1;
-                                  ref.read(homeSearchProvider.notifier).updatePassengers(p);
-                                },
-                              ),
+              ),
+              const SizedBox(height: 20),
+              _animatedCard(
+                duration: 500,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(24),
+                    border: isDark
+                        ? Border.all(color: borderColor, width: 1.1)
+                        : null,
+                    boxShadow: isDark
+                        ? []
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
                             ),
                           ],
-                        ),
-                        if (isFemale) const SizedBox(height: 16),
-                        if (isFemale)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF202020) : const Color(0xFFF3F3F3),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Row(
+                  ),
+                  child: Column(
+                    children: [
+                      // Uber-style stacked location inputs
+                      InkWell(
+                        onTap: () => context.push('/create-ride'),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: cardColor,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: borderColor),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withAlpha(5),
+                                blurRadius: 10,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: AbsorbPointer(
+                            child: Stack(
+                              alignment: Alignment.centerLeft,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: primaryColor.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(8),
+                                Positioned(
+                                  left: 25,
+                                  top: 40,
+                                  bottom: 40,
+                                  child: Container(
+                                    width: 1.5,
+                                    color: isDark
+                                        ? const Color(0xFF333333)
+                                        : const Color(0xFFE0E0E0),
                                   ),
-                                  child: Icon(Icons.female_rounded, size: 18, color: primaryColor),
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    'Girls Only Ride',
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      color: textPrimary,
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    LocationAutocompleteField(
+                                      fieldKey: 'home_dummy_boarding',
+                                      hint: 'Pickup location',
+                                      icon: Icons.radio_button_checked,
+                                      iconColor: primaryColor,
+                                      initialValue: searchState.boarding.isEmpty
+                                          ? null
+                                          : searchState.boarding,
+                                      showCurrentLocationButton: true,
+                                      transparentBackground: true,
+                                      onChanged: (_) {},
+                                      onPlaceSelected: (_, __) async {},
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Divider(
+                                      height: 1,
+                                      indent: 52,
+                                      endIndent: 68,
+                                      color: isDark
+                                          ? const Color(0xFF333333)
+                                          : const Color(0xFFE0E0E0),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    LocationAutocompleteField(
+                                      fieldKey: 'home_dummy_destination',
+                                      hint: 'Dropoff location',
+                                      icon: Icons.location_on,
+                                      iconColor: isDark
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      initialValue:
+                                          searchState.destination.isEmpty
+                                          ? null
+                                          : searchState.destination,
+                                      showCurrentLocationButton: false,
+                                      transparentBackground: true,
+                                      onChanged: (_) {},
+                                      onPlaceSelected: (_, __) async {},
+                                    ),
+                                  ],
+                                ),
+                                // Right-aligned Swap Button
+                                Positioned(
+                                  right: 16,
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () {},
+                                      borderRadius: BorderRadius.circular(24),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? const Color(0xFF2A2A2A)
+                                              : const Color(0xFFE8E8E8),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: borderColor,
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          Icons.swap_vert_rounded,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black,
+                                          size: 20,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                Switch.adaptive(
-                                  value: searchState.girlsOnly,
-                                  onChanged: (val) => ref
-                                      .read(homeSearchProvider.notifier)
-                                      .toggleGirlsOnly(val),
-                                  activeThumbColor: primaryColor,
-                                  activeTrackColor: primaryColor.withValues(alpha: 0.7),
                                 ),
                               ],
                             ),
                           ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton(
-                            onPressed: () => _handleCreateRideCTA(context, ref, searchState),
-                            child: const Text('Create Ride'),
-                          ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Quick Actions',
-                  style: theme.textTheme.titleLarge?.copyWith(color: textPrimary),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ActionCard(
-                        icon: Icons.search_rounded,
-                        label: 'Find a Ride',
-                        onTap: () => context.push('/search-ride'),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _ActionCard(
-                        icon: Icons.directions_car_rounded,
-                        label: 'My Rides',
-                        onTap: () => context.push('/my-rides'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _ActionCard(
-                        icon: Icons.directions_car_rounded,
-                        label: 'Driver Directory',
-                        onTap: () => context.push('/driver-directory'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Active Ride',
-                  style: theme.textTheme.titleLarge?.copyWith(color: textPrimary),
-                ),
-                const SizedBox(height: 16),
-                Consumer(
-                  builder: (context, ref, _) {
-                    final activeRideAsync = ref.watch(activeRideProvider);
-                    return activeRideAsync.when(
-                      skipLoadingOnReload: true,
-                      data: (activeRideData) {
-                    if (activeRideData == null) {
-                      return _animatedCard(
-                        duration: 550,
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(24),
-                            border: isDark ? Border.all(color: borderColor, width: 1.1) : null,
-                            boxShadow: isDark
-                                ? []
-                                : [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.04),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _uberActionButton(
+                              context: context,
+                              icon: Icons.calendar_today_rounded,
+                              label: searchState.departureDate == null
+                                  ? 'Today'
+                                  : DateFormat(
+                                      'MMM d',
+                                    ).format(searchState.departureDate!),
+                              onTap: () async {
+                                final date = await showDatePicker(
+                                  context: context,
+                                  initialDate:
+                                      searchState.departureDate ??
+                                      DateTime.now(),
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime.now().add(
+                                    const Duration(days: 30),
+                                  ),
+                                );
+                                if (date != null) {
+                                  ref
+                                      .read(homeSearchProvider.notifier)
+                                      .updateDate(date);
+                                }
+                              },
+                            ),
                           ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _uberActionButton(
+                              context: context,
+                              icon: Icons.person_rounded,
+                              label:
+                                  '${searchState.passengers} ${searchState.passengers > 1 ? 'Seats' : 'Seat'}',
+                              onTap: () {
+                                int p = searchState.passengers % 4 + 1;
+                                ref
+                                    .read(homeSearchProvider.notifier)
+                                    .updatePassengers(p);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (isFemale) const SizedBox(height: 16),
+                      if (isFemale)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF202020)
+                                : const Color(0xFFF3F3F3),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
                             children: [
-                              Icon(
-                                Icons.directions_car_filled_rounded,
-                                size: 48,
-                                color: textSecondary.withValues(alpha: 0.5),
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: primaryColor.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.female_rounded,
+                                  size: 18,
+                                  color: primaryColor,
+                                ),
                               ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No active rides',
-                                textAlign: TextAlign.center,
-                                style: theme.textTheme.titleMedium?.copyWith(color: textPrimary),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Girls Only Ride',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: textPrimary,
+                                  ),
+                                ),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Your current or upcoming trips will appear here.',
-                                textAlign: TextAlign.center,
-                                style: theme.textTheme.bodyMedium?.copyWith(color: textSecondary),
+                              Switch.adaptive(
+                                value: searchState.girlsOnly,
+                                onChanged: (val) => ref
+                                    .read(homeSearchProvider.notifier)
+                                    .toggleGirlsOnly(val),
+                                activeThumbColor: primaryColor,
+                                activeTrackColor: primaryColor.withValues(
+                                  alpha: 0.7,
+                                ),
                               ),
                             ],
                           ),
                         ),
-                      );
-                    }
-
-                    final ride = activeRideData.ride;
-                    return _animatedCard(
-                      duration: 600,
-                      child: InkWell(
-                        onTap: () => context.push('/ride-details', extra: ride),
-                        borderRadius: BorderRadius.circular(24),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(24),
-                            border: isDark ? Border.all(color: borderColor, width: 1.1) : null,
-                            boxShadow: isDark
-                                ? []
-                                : [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.05),
-                                      blurRadius: 24,
-                                      offset: const Offset(0, 6),
-                                    ),
-                                  ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: primaryColor.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      'UPCOMING',
-                                      style: theme.textTheme.labelSmall?.copyWith(
-                                        color: primaryColor,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    DateFormat('MMM d, h:mm a').format(ride.departureTime),
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: textSecondary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 20),
-                              IntrinsicHeight(
-                                child: Row(
-                                  children: [
-                                    Column(
-                                      children: [
-                                        Icon(Icons.circle, size: 10, color: textSecondary),
-                                        Expanded(
-                                          child: Container(
-                                            width: 2,
-                                            color: textSecondary.withValues(alpha: 0.3),
-                                            margin: const EdgeInsets.symmetric(vertical: 4),
-                                          ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: () =>
+                              _handleCreateRideCTA(context, ref, searchState),
+                          child: const Text('Create Ride'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'Quick Actions',
+                style: theme.textTheme.titleLarge?.copyWith(color: textPrimary),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ActionCard(
+                      icon: Icons.search_rounded,
+                      label: 'Find Ride',
+                      onTap: () {
+                        ref.read(homeNavigationProvider.notifier).setIndex(1);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _ActionCard(
+                      icon: Icons.directions_car_filled_rounded,
+                      label: 'My Rides',
+                      onTap: () => context.push('/my-rides'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _ActionCard(
+                      icon: Icons.person_rounded,
+                      label: 'Drivers',
+                      onTap: () => context.push('/driver-directory'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'Active Ride',
+                style: theme.textTheme.titleLarge?.copyWith(color: textPrimary),
+              ),
+              const SizedBox(height: 16),
+              Consumer(
+                builder: (context, ref, _) {
+                  final activeRideAsync = ref.watch(activeRideProvider);
+                  return activeRideAsync.when(
+                    skipLoadingOnReload: true,
+                    data: (activeRideData) {
+                      if (activeRideData == null) {
+                        return _animatedCard(
+                          duration: 550,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 32,
+                              horizontal: 24,
+                            ),
+                            decoration: BoxDecoration(
+                              color: cardColor,
+                              borderRadius: BorderRadius.circular(24),
+                              border: isDark
+                                  ? Border.all(color: borderColor, width: 1.1)
+                                  : null,
+                              boxShadow: isDark
+                                  ? []
+                                  : [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.04,
                                         ),
-                                        Icon(Icons.location_on, size: 14, color: primaryColor),
-                                      ],
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            ride.boardingLocation,
-                                            style: theme.textTheme.titleMedium?.copyWith(
-                                              color: textPrimary,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            ride.destination,
-                                            style: theme.textTheme.titleMedium?.copyWith(
-                                              color: textPrimary,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ],
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 4),
                                       ),
+                                    ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.directions_car_filled_rounded,
+                                  size: 48,
+                                  color: textSecondary.withValues(alpha: 0.5),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No active rides',
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Your current or upcoming trips will appear here.',
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      final ride = activeRideData.ride;
+                      return _animatedCard(
+                        duration: 600,
+                        child: InkWell(
+                          onTap: () =>
+                              context.push('/ride-details', extra: ride),
+                          borderRadius: BorderRadius.circular(24),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: cardColor,
+                              borderRadius: BorderRadius.circular(24),
+                              border: isDark
+                                  ? Border.all(color: borderColor, width: 1.1)
+                                  : null,
+                              boxShadow: isDark
+                                  ? []
+                                  : [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.05,
+                                        ),
+                                        blurRadius: 24,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: primaryColor.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        'UPCOMING',
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(
+                                              color: primaryColor,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 0.5,
+                                            ),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      DateFormat(
+                                        'MMM d, h:mm a',
+                                      ).format(ride.departureTime),
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            color: textSecondary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
                                   ],
                                 ),
-                              ),
-                              const SizedBox(height: 20),
-                              const Divider(height: 1),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Consumer(
-                                    builder: (ctx, ref, _) {
-                                      final driverProfileAsync = ref.watch(userProfileProvider(ride.driverId));
-                                      final name = driverProfileAsync.value?.name ?? 'Driver';
-                                      return Row(
+                                const SizedBox(height: 20),
+                                IntrinsicHeight(
+                                  child: Row(
+                                    children: [
+                                      Column(
                                         children: [
-                                          CircleAvatar(
-                                            radius: 14,
-                                            backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                                            child: Icon(Icons.person, size: 16, color: theme.colorScheme.onSurface),
+                                          Icon(
+                                            Icons.circle,
+                                            size: 10,
+                                            color: textSecondary,
                                           ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            name,
-                                            style: theme.textTheme.bodyMedium?.copyWith(
-                                              color: textPrimary,
-                                              fontWeight: FontWeight.w600,
+                                          Expanded(
+                                            child: Container(
+                                              width: 2,
+                                              color: textSecondary.withValues(
+                                                alpha: 0.3,
+                                              ),
+                                              margin:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 4,
+                                                  ),
                                             ),
                                           ),
+                                          Icon(
+                                            Icons.location_on,
+                                            size: 14,
+                                            color: primaryColor,
+                                          ),
                                         ],
-                                      );
-                                    },
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              ride.boardingLocation,
+                                              style: theme.textTheme.titleMedium
+                                                  ?.copyWith(
+                                                    color: textPrimary,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                            ),
+                                            const SizedBox(height: 16),
+                                            Text(
+                                              ride.destination,
+                                              style: theme.textTheme.titleMedium
+                                                  ?.copyWith(
+                                                    color: textPrimary,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const Spacer(),
-                                  Text(
-                                    '₹${ride.farePerSeat.toInt()}',
-                                    style: theme.textTheme.titleLarge?.copyWith(
-                                      color: textPrimary,
-                                      fontWeight: FontWeight.w800,
+                                ),
+                                const SizedBox(height: 20),
+                                const Divider(height: 1),
+                                const SizedBox(height: 16),
+                                Row(
+                                  children: [
+                                    Consumer(
+                                      builder: (ctx, ref, _) {
+                                        final driverProfileAsync = ref.watch(
+                                          userProfileProvider(ride.driverId),
+                                        );
+                                        final name =
+                                            driverProfileAsync.value?.name ??
+                                            'Driver';
+                                        return Row(
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 14,
+                                              backgroundColor: theme
+                                                  .colorScheme
+                                                  .surfaceContainerHighest,
+                                              child: Icon(
+                                                Icons.person,
+                                                size: 16,
+                                                color:
+                                                    theme.colorScheme.onSurface,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              name,
+                                              style: theme.textTheme.bodyMedium
+                                                  ?.copyWith(
+                                                    color: textPrimary,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                            ),
+                                          ],
+                                        );
+                                      },
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                                    const Spacer(),
+                                    Text(
+                                      '₹${ride.farePerSeat.toInt()}',
+                                      style: theme.textTheme.titleLarge
+                                          ?.copyWith(
+                                            color: textPrimary,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (err, _) => Center(child: Text('Error: $err')),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
+                      );
+                    },
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (err, _) => Center(child: Text('Error: $err')),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -672,7 +787,8 @@ class HomeTab extends ConsumerWidget {
     final notifier = ref.read(createRideProvider.notifier);
     if (boarding.isNotEmpty) {
       notifier.updateBoardingLocation(boarding);
-      if (searchState.boardingPlaceId != null && searchState.boardingAddress != null) {
+      if (searchState.boardingPlaceId != null &&
+          searchState.boardingAddress != null) {
         notifier.updateBoardingDetails(
           placeId: searchState.boardingPlaceId!,
           address: searchState.boardingAddress!,
@@ -683,7 +799,8 @@ class HomeTab extends ConsumerWidget {
     }
     if (destination.isNotEmpty) {
       notifier.updateDestinationLocation(destination);
-      if (searchState.destinationPlaceId != null && searchState.destinationAddress != null) {
+      if (searchState.destinationPlaceId != null &&
+          searchState.destinationAddress != null) {
         notifier.updateDestinationDetails(
           placeId: searchState.destinationPlaceId!,
           address: searchState.destinationAddress!,
@@ -721,11 +838,7 @@ class HomeTab extends ConsumerWidget {
     );
   }
 
-  void _showLocationPicker(
-    BuildContext context,
-    WidgetRef ref,
-    String field,
-  ) {
+  void _showLocationPicker(BuildContext context, WidgetRef ref, String field) {
     final isBoarding = field == 'boarding';
     showModalBottomSheet(
       context: context,
@@ -736,21 +849,25 @@ class HomeTab extends ConsumerWidget {
         isBoarding: isBoarding,
         onSelected: (label, details) {
           if (isBoarding) {
-            ref.read(homeSearchProvider.notifier).updateBoarding(
-              label,
-              placeId: details?.placeId,
-              address: details?.address,
-              lat: details?.latitude,
-              lng: details?.longitude,
-            );
+            ref
+                .read(homeSearchProvider.notifier)
+                .updateBoarding(
+                  label,
+                  placeId: details?.placeId,
+                  address: details?.address,
+                  lat: details?.latitude,
+                  lng: details?.longitude,
+                );
           } else {
-            ref.read(homeSearchProvider.notifier).updateDestination(
-              label,
-              placeId: details?.placeId,
-              address: details?.address,
-              lat: details?.latitude,
-              lng: details?.longitude,
-            );
+            ref
+                .read(homeSearchProvider.notifier)
+                .updateDestination(
+                  label,
+                  placeId: details?.placeId,
+                  address: details?.address,
+                  lat: details?.latitude,
+                  lng: details?.longitude,
+                );
           }
         },
       ),
@@ -809,7 +926,7 @@ class HomeTab extends ConsumerWidget {
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -850,42 +967,54 @@ class _ActionCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF181818) : Colors.white;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(20),
-          border: isDark ? Border.all(color: const Color(0xFF2A2A2A), width: 1.1) : null,
-          boxShadow: isDark
-              ? []
-              : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: 28,
-              color: isDark ? const Color(0xFFFFC400) : theme.colorScheme.primary,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: theme.colorScheme.onSurface,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 4),
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(20),
+            border: isDark
+                ? Border.all(color: const Color(0xFF2A2A2A), width: 1.1)
+                : null,
+            boxShadow: isDark
+                ? []
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 12,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 28,
+                color: isDark
+                    ? const Color(0xFFFFC400)
+                    : theme.colorScheme.primary,
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  letterSpacing: -0.2,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -930,7 +1059,8 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
     } catch (e) {
       debugPrint('Technical failure in getCurrentLocation: $e');
       setState(() {
-        _errorMessage = 'Unable to get your current location. Please try again or search manually.';
+        _errorMessage =
+            'Unable to get your current location. Please try again or search manually.';
       });
     } finally {
       if (mounted) {
@@ -946,7 +1076,9 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final backgroundColor = isDark ? const Color(0xFF181818) : Colors.white;
-    final primaryColor = isDark ? const Color(0xFFFFC400) : theme.colorScheme.primary;
+    final primaryColor = isDark
+        ? const Color(0xFFFFC400)
+        : theme.colorScheme.primary;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.9,
@@ -971,7 +1103,9 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
           const SizedBox(height: 20),
           Text(
             widget.title,
-            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 20),
           if (widget.isBoarding) ...[
@@ -981,15 +1115,14 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF202020) : const Color(0xFFF3F3F3),
+                  color: isDark
+                      ? const Color(0xFF202020)
+                      : const Color(0xFFF3F3F3),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.my_location_rounded,
-                      color: primaryColor,
-                    ),
+                    Icon(Icons.my_location_rounded, color: primaryColor),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Text(
@@ -1023,7 +1156,11 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: Divider(color: isDark ? Colors.white12 : Colors.black12)),
+                Expanded(
+                  child: Divider(
+                    color: isDark ? Colors.white12 : Colors.black12,
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
@@ -1033,17 +1170,27 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                     ),
                   ),
                 ),
-                Expanded(child: Divider(color: isDark ? Colors.white12 : Colors.black12)),
+                Expanded(
+                  child: Divider(
+                    color: isDark ? Colors.white12 : Colors.black12,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
           ],
           Expanded(
             child: LocationAutocompleteField(
-              fieldKey: widget.isBoarding ? 'home_boarding' : 'home_destination',
+              fieldKey: widget.isBoarding
+                  ? 'home_boarding'
+                  : 'home_destination',
               hint: 'Search location...',
-              icon: widget.isBoarding ? Icons.circle_outlined : Icons.location_on,
-              iconColor: widget.isBoarding ? (isDark ? Colors.white : Colors.black) : primaryColor,
+              icon: widget.isBoarding
+                  ? Icons.circle_outlined
+                  : Icons.location_on,
+              iconColor: widget.isBoarding
+                  ? (isDark ? Colors.white : Colors.black)
+                  : primaryColor,
               onPlaceSelected: (prediction, details) async {
                 widget.onSelected(prediction.description, details);
                 Navigator.pop(context);

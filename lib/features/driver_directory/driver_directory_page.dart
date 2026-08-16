@@ -81,15 +81,7 @@ class DriverDirectoryPage extends ConsumerWidget {
                 color: blackColor,
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              'Trusted local auto drivers.',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w400,
-                color: mutedText,
-              ),
-            ),
+
           ],
         ),
       ),

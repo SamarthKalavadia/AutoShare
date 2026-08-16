@@ -2,7 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../services/location_service.dart' show LocationService, PlacePrediction, HttpException;
+import '../../services/location_service.dart'
+    show LocationService, PlacePrediction, HttpException;
 
 export '../../services/location_service.dart' show PlacePrediction;
 
@@ -31,7 +32,12 @@ class LocationAutocompleteField extends StatefulWidget {
   final bool showCurrentLocationButton;
   final ValueChanged<String>? onChanged;
   final ValueChanged<bool>? onSuggestionsVisibilityChanged;
-  final Future<void> Function(PlacePrediction prediction, LocationDetails details) onPlaceSelected;
+  final Future<void> Function(
+    PlacePrediction prediction,
+    LocationDetails details,
+  )
+  onPlaceSelected;
+  final bool transparentBackground;
 
   const LocationAutocompleteField({
     super.key,
@@ -44,6 +50,7 @@ class LocationAutocompleteField extends StatefulWidget {
     this.onChanged,
     this.onSuggestionsVisibilityChanged,
     required this.onPlaceSelected,
+    this.transparentBackground = false,
   });
 
   @override
@@ -80,8 +87,10 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
       vsync: this,
       duration: const Duration(milliseconds: 200),
     );
-    _fadeAnimation =
-        CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeOut,
+    );
 
     _focusNode.addListener(() {
       if (!_focusNode.hasFocus) {
@@ -141,7 +150,7 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
 
     _debounce = Timer(const Duration(milliseconds: 400), () async {
       if (_isSelecting) return;
-      
+
       setState(() {
         _activeQuery = trimmed;
         _isLoading = true;
@@ -171,12 +180,15 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
       } on HttpException catch (e) {
         if (!mounted || _activeQuery != trimmed) return;
         widget.onSuggestionsVisibilityChanged?.call(false);
-        final isQuota = e.message.contains('OVER_QUERY_LIMIT') ||
+        final isQuota =
+            e.message.contains('OVER_QUERY_LIMIT') ||
             e.message.contains('REQUEST_DENIED');
         setState(() {
           _predictions = [];
           _isLoading = false;
-          _errorType = isQuota ? LocationErrorType.quota : LocationErrorType.network;
+          _errorType = isQuota
+              ? LocationErrorType.quota
+              : LocationErrorType.network;
         });
       } catch (_) {
         if (!mounted || _activeQuery != trimmed) return;
@@ -233,7 +245,9 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
 
     // Fetch coordinates in background if not already present.
     try {
-      final details = await LocationService.fetchPlaceDetails(prediction.placeId);
+      final details = await LocationService.fetchPlaceDetails(
+        prediction.placeId,
+      );
       if (!mounted) return;
 
       await widget.onPlaceSelected(
@@ -280,7 +294,9 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
           SnackBar(
             content: Text('Current Location: ${prediction.description}'),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -293,7 +309,9 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
           content: Text(msg),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
     } finally {
@@ -342,7 +360,9 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF28282A) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF38383A) : const Color(0xFFEAE5DD);
+    final borderColor = isDark
+        ? const Color(0xFF38383A)
+        : const Color(0xFFEAE5DD);
     final textColor = theme.colorScheme.onSurface;
 
     return TextFormField(
@@ -354,55 +374,66 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
         fontWeight: FontWeight.w600,
         color: textColor,
       ),
-        decoration: InputDecoration(
-          hintText: widget.hint,
-          hintStyle: GoogleFonts.inter(
-            fontSize: 15,
-            color: Colors.grey[400],
-          ),
-          prefixIcon: Padding(
-            padding: const EdgeInsets.only(left: 16, right: 12),
-            child: Icon(widget.icon, color: widget.iconColor, size: 20),
-          ),
-          prefixIconConstraints: const BoxConstraints(minWidth: 48),
-          suffixIcon: _isLoading || _isFetchingLocation
-              ? Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: widget.iconColor,
-                    ),
-                  ),
-                )
-              : (widget.showCurrentLocationButton
-                  ? IconButton(
-                      icon: const Icon(Icons.my_location_rounded, size: 20),
-                      color: const Color(0xFFF6C000), // Primary Yellow GPS Icon
-                      tooltip: 'Use Current Location',
-                      onPressed: _fetchAndSetCurrentLocation,
-                    )
-                  : null),
-          filled: true,
-          fillColor: cardBg,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: borderColor),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: borderColor),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFFF6C000), width: 2),
-          ),
+      decoration: InputDecoration(
+        hintText: widget.hint,
+        hintStyle: GoogleFonts.inter(fontSize: 15, color: Colors.grey[400]),
+        prefixIcon: Padding(
+          padding: const EdgeInsets.only(left: 16, right: 12),
+          child: Icon(widget.icon, color: widget.iconColor, size: 20),
         ),
-      );
+        prefixIconConstraints: const BoxConstraints(minWidth: 48),
+        suffixIcon: _isLoading || _isFetchingLocation
+            ? Padding(
+                padding: const EdgeInsets.only(right: 10, top: 14, bottom: 14),
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: widget.iconColor,
+                  ),
+                ),
+              )
+            : (widget.showCurrentLocationButton
+                  ? Padding(
+                      padding: const EdgeInsets.only(right: 10),
+                      child: IconButton(
+                        icon: const Icon(Icons.my_location_rounded, size: 20),
+                        color: const Color(0xFFF6C000), // Primary Yellow GPS Icon
+                        tooltip: 'Use Current Location',
+                        onPressed: _fetchAndSetCurrentLocation,
+                      ),
+                    )
+                  : const SizedBox(width: 58)),
+        filled: !widget.transparentBackground,
+        fillColor: widget.transparentBackground ? Colors.transparent : cardBg,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        border: widget.transparentBackground
+            ? InputBorder.none
+            : OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: borderColor),
+              ),
+        enabledBorder: widget.transparentBackground
+            ? InputBorder.none
+            : OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: borderColor),
+              ),
+        focusedBorder: widget.transparentBackground
+            ? InputBorder.none
+            : OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(
+                  color: Color(0xFFF6C000),
+                  width: 2,
+                ),
+              ),
+      ),
+    );
   }
 }
 
@@ -410,18 +441,21 @@ class _SuggestionList extends StatelessWidget {
   final List<PlacePrediction> predictions;
   final Future<void> Function(PlacePrediction) onSelect;
 
-  const _SuggestionList({
-    required this.predictions,
-    required this.onSelect,
-  });
+  const _SuggestionList({required this.predictions, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
-    final dividerColor = isDark ? const Color(0xFF333333) : const Color(0xFFF0EDE8);
+    final cardBg =
+        theme.cardTheme.color ??
+        (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    final borderColor = isDark
+        ? const Color(0xFF333333)
+        : const Color(0xFFEAE5DD);
+    final dividerColor = isDark
+        ? const Color(0xFF333333)
+        : const Color(0xFFF0EDE8);
 
     return Container(
       constraints: const BoxConstraints(maxHeight: 260),
@@ -443,12 +477,8 @@ class _SuggestionList extends StatelessWidget {
           shrinkWrap: true,
           padding: EdgeInsets.zero,
           itemCount: predictions.length,
-          separatorBuilder: (_, _) => Divider(
-            height: 1,
-            thickness: 1,
-            color: dividerColor,
-            indent: 52,
-          ),
+          separatorBuilder: (_, _) =>
+              Divider(height: 1, thickness: 1, color: dividerColor, indent: 52),
           itemBuilder: (context, index) {
             final pred = predictions[index];
             return _SuggestionTile(
@@ -466,16 +496,15 @@ class _SuggestionTile extends StatelessWidget {
   final PlacePrediction prediction;
   final VoidCallback onTap;
 
-  const _SuggestionTile({
-    required this.prediction,
-    required this.onTap,
-  });
+  const _SuggestionTile({required this.prediction, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    final cardBg =
+        theme.cardTheme.color ??
+        (isDark ? const Color(0xFF1E1E1E) : Colors.white);
     final iconBg = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF6F5F3);
     final textColor = theme.colorScheme.onSurface;
 
@@ -553,15 +582,18 @@ class _ErrorTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, message) = switch (errorType) {
-      LocationErrorType.empty => (Icons.search_off_rounded, 'No locations found'),
+      LocationErrorType.empty => (
+        Icons.search_off_rounded,
+        'No locations found',
+      ),
       LocationErrorType.quota => (
-          Icons.cloud_off_rounded,
-          'Location service temporarily unavailable'
-        ),
+        Icons.cloud_off_rounded,
+        'Location service temporarily unavailable',
+      ),
       LocationErrorType.network => (
-          Icons.wifi_off_rounded,
-          'Unable to fetch locations'
-        ),
+        Icons.wifi_off_rounded,
+        'Unable to fetch locations',
+      ),
       LocationErrorType.none => (Icons.search_off_rounded, ''),
     };
 

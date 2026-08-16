@@ -20,13 +20,25 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
 
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFFF6C000);
-    const blackColor = Color(0xFF121212);
-    const mutedText = Color(0xFF6F6F72);
-    const borderColor = Color(0xFFEAE5DD);
-    const successColor = Color(0xFF2E7D32);
-    const dangerColor = Color(0xFFD32F2F);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final primaryColor = isDark
+        ? const Color(0xFFFFC400)
+        : theme.colorScheme.primary;
+    final blackColor = isDark
+        ? const Color(0xFFFFFFFF)
+        : theme.colorScheme.onSurface;
+    final cardColor = isDark
+        ? const Color(0xFF181818)
+        : Colors.white;
+    final mutedText = isDark
+        ? const Color(0xFFA1A1A1)
+        : const Color(0xFF6F6F72);
+    final borderColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEAE5DD);
+    final secondaryBg = isDark
+        ? const Color(0xFF2A2A2A)
+        : const Color(0xFFF6F5F3);
 
     final state = ref.watch(createRideProvider);
     final notifier = ref.read(createRideProvider.notifier);
@@ -36,101 +48,131 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _MainSectionTitle(title: 'ROUTE'),
         // Boarding Location & Destination with Centered Swap Button
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                LocationAutocompleteField(
-                  fieldKey: 'create_ride_boarding',
-                  hint: 'Pickup location',
-                  icon: Icons.trip_origin,
-                  iconColor: successColor,
-                  initialValue: state.boardingLocation,
-                  showCurrentLocationButton: true,
-                  onChanged: notifier.updateBoardingLocation,
-                  onSuggestionsVisibilityChanged: (visible) {
-                    if (_isSearchingBoarding != visible) {
-                      setState(() => _isSearchingBoarding = visible);
-                    }
-                  },
-                  onPlaceSelected: (prediction, details) async {
-                    notifier.updateBoardingLocation(prediction.description);
-                    notifier.updateBoardingDetails(
-                      placeId: details.placeId,
-                      address: details.address,
-                      lat: details.latitude,
-                      lng: details.longitude,
-                    );
-                  },
+        Container(
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(5),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              Positioned(
+                left: 25,
+                top: 40,
+                bottom: 40,
+                child: Container(
+                  width: 1.5,
+                  color: isDark
+                      ? const Color(0xFF333333)
+                      : const Color(0xFFE0E0E0),
                 ),
-                const SizedBox(height: 16),
-                LocationAutocompleteField(
-                  fieldKey: 'create_ride_destination',
-                  hint: 'Dropoff location',
-                  icon: Icons.location_on,
-                  iconColor: dangerColor,
-                  initialValue: state.destination,
-                  showCurrentLocationButton: false,
-                  onChanged: notifier.updateDestinationLocation,
-                  onSuggestionsVisibilityChanged: (visible) {
-                    if (_isSearchingDestination != visible) {
-                      setState(() => _isSearchingDestination = visible);
-                    }
-                  },
-                  onPlaceSelected: (prediction, details) async {
-                    notifier.updateDestinationLocation(prediction.description);
-                    notifier.updateDestinationDetails(
-                      placeId: details.placeId,
-                      address: details.address,
-                      lat: details.latitude,
-                      lng: details.longitude,
-                    );
-                  },
-                ),
-              ],
-            ),
-            // Center-aligned Swap Button - Automatically hidden when searching suggestions to prevent overlap
-            if (!isSearching)
-              Align(
-                alignment: Alignment.center,
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => notifier.swapLocations(),
-                    borderRadius: BorderRadius.circular(24),
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: primaryColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                          width: 3,
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  LocationAutocompleteField(
+                    fieldKey: 'create_ride_boarding',
+                    hint: 'Pickup location',
+                    icon: Icons.radio_button_checked,
+                    iconColor: primaryColor,
+                    initialValue: state.boardingLocation,
+                    showCurrentLocationButton: true,
+                    transparentBackground: true,
+                    onChanged: notifier.updateBoardingLocation,
+                    onSuggestionsVisibilityChanged: (visible) {
+                      if (_isSearchingBoarding != visible) {
+                        setState(() => _isSearchingBoarding = visible);
+                      }
+                    },
+                    onPlaceSelected: (prediction, details) async {
+                      notifier.updateBoardingLocation(prediction.description);
+                      notifier.updateBoardingDetails(
+                        placeId: details.placeId,
+                        address: details.address,
+                        lat: details.latitude,
+                        lng: details.longitude,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Divider(
+                    height: 1,
+                    indent: 52,
+                    endIndent: 68,
+                    color: isDark
+                        ? const Color(0xFF333333)
+                        : const Color(0xFFE0E0E0),
+                  ),
+                  const SizedBox(height: 16),
+                  LocationAutocompleteField(
+                    fieldKey: 'create_ride_destination',
+                    hint: 'Dropoff location',
+                    icon: Icons.location_on,
+                    iconColor: isDark ? Colors.white : Colors.black87,
+                    initialValue: state.destination,
+                    showCurrentLocationButton: false,
+                    transparentBackground: true,
+                    onChanged: notifier.updateDestinationLocation,
+                    onSuggestionsVisibilityChanged: (visible) {
+                      if (_isSearchingDestination != visible) {
+                        setState(() => _isSearchingDestination = visible);
+                      }
+                    },
+                    onPlaceSelected: (prediction, details) async {
+                      notifier.updateDestinationLocation(
+                        prediction.description,
+                      );
+                      notifier.updateDestinationDetails(
+                        placeId: details.placeId,
+                        address: details.address,
+                        lat: details.latitude,
+                        lng: details.longitude,
+                      );
+                    },
+                  ),
+                ],
+              ),
+              // Right-aligned Swap Button
+              if (!isSearching)
+                Positioned(
+                  right: 16,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => notifier.swapLocations(),
+                      borderRadius: BorderRadius.circular(24),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: secondaryBg,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: borderColor),
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha(35),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.swap_vert_rounded,
-                        color: Color(0xFF121212),
-                        size: 22,
+                        child: Icon(
+                          Icons.swap_vert_rounded,
+                          color: blackColor,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 28),
 
+        _MainSectionTitle(title: 'TRIP DETAILS'),
         // Date & Time
         Row(
           children: [
@@ -138,18 +180,18 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SectionTitle(title: 'Departure Date'),
+                  const _SectionTitle(title: 'Departure Date'),
                   const SizedBox(height: 8),
                   _DatePickerField(),
                 ],
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SectionTitle(title: 'Departure Time'),
+                  const _SectionTitle(title: 'Departure Time'),
                   const SizedBox(height: 8),
                   _TimePickerField(),
                 ],
@@ -157,7 +199,7 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
 
         // Seats & Fare
         Row(
@@ -166,18 +208,18 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SectionTitle(title: 'Available Seats'),
+                  const _SectionTitle(title: 'Available Seats'),
                   const SizedBox(height: 8),
                   _SeatsStepper(),
                 ],
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SectionTitle(title: 'Fare Per Seat'),
+                  const _SectionTitle(title: 'Fare Per Seat'),
                   const SizedBox(height: 8),
                   _RideTextField(
                     hint: '0',
@@ -194,14 +236,14 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 28),
 
         // Girls Only Ride (Conditional)
         if (isFemale) ...[
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF6F5F3),
+              color: secondaryBg,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: borderColor),
             ),
@@ -210,17 +252,21 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: cardColor,
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withAlpha(10),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
-                      )
+                      ),
                     ],
                   ),
-                  child: const Icon(Icons.female_outlined, color: blackColor, size: 20),
+                  child: Icon(
+                    Icons.female_outlined,
+                    color: blackColor,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -257,34 +303,58 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 28),
         ],
 
-        // Vehicle & Driver Optional
-        _SectionTitle(title: 'Vehicle Number (Optional)'),
+        _MainSectionTitle(title: 'ADDITIONAL DETAILS'),
+        const _SectionTitle(title: 'Vehicle Number'),
         const SizedBox(height: 8),
         _RideTextField(
-          hint: 'e.g. KA01AB1234',
-          icon: Icons.directions_car_rounded,
+          hint: 'Enter vehicle number',
+          icon: Icons.directions_car_outlined,
           iconColor: blackColor,
           textCapitalization: TextCapitalization.characters,
           onChanged: notifier.updateVehicleNumber,
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
 
-        _SectionTitle(title: 'Ride Description (Optional)'),
+        const _SectionTitle(title: 'Ride Description'),
         const SizedBox(height: 8),
         _RideTextField(
-          hint: 'e.g. No luggage, precise pickup point',
+          hint: 'Add notes for passengers (optional)',
           icon: Icons.description_outlined,
           iconColor: blackColor,
           maxLines: 3,
           maxLength: 150,
           onChanged: notifier.updateRideDescription,
         ),
-        
+
         const SizedBox(height: 32),
       ],
+    );
+  }
+}
+
+class _MainSectionTitle extends StatelessWidget {
+  final String title;
+
+  const _MainSectionTitle({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, left: 4),
+      child: Text(
+        title,
+        style: GoogleFonts.inter(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFFA1A1A1)
+              : const Color(0xFF6F6F72),
+        ),
+      ),
     );
   }
 }
@@ -296,18 +366,23 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: GoogleFonts.inter(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: const Color(0xFF121212),
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title,
+        style: GoogleFonts.inter(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFFFFFFFF)
+              : const Color(0xFF121212),
+        ),
       ),
     );
   }
 }
 
-class _RideTextField extends StatelessWidget {
+class _RideTextField extends StatefulWidget {
   final String hint;
   final IconData icon;
   final Color iconColor;
@@ -331,45 +406,97 @@ class _RideTextField extends StatelessWidget {
   });
 
   @override
+  State<_RideTextField> createState() => _RideTextFieldState();
+}
+
+class _RideTextFieldState extends State<_RideTextField> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() {
+      setState(() {
+        _isFocused = _focusNode.hasFocus;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      onChanged: onChanged,
-      keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
-      maxLines: maxLines,
-      maxLength: maxLength,
-      textCapitalization: textCapitalization,
-      style: GoogleFonts.inter(
-        fontSize: 15,
-        fontWeight: FontWeight.w500,
-        color: const Color(0xFF121212),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark
+        ? const Color(0xFF181818)
+        : Colors.white;
+    final textColor = isDark
+        ? const Color(0xFFFFFFFF)
+        : const Color(0xFF121212);
+    final hintColor = isDark
+        ? const Color(0xFF6F6F72)
+        : const Color(0xFF9E9E9E);
+    final borderColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEAE5DD);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: _isFocused ? const Color(0xFFF6C000) : borderColor,
+          width: _isFocused ? 2 : 1,
+        ),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withAlpha(5),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: GoogleFonts.inter(
-          fontSize: 15,
-          color: const Color(0xFF9E9E9E),
-        ),
-        prefixIcon: Padding(
-          padding: const EdgeInsets.only(left: 16, right: 12),
-          child: Icon(icon, color: iconColor, size: 20),
-        ),
-        prefixIconConstraints: const BoxConstraints(minWidth: 48),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFEAE5DD)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFEAE5DD)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFF6C000), width: 2),
-        ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 16, right: 12, top: 16),
+            child: Icon(widget.icon, color: widget.iconColor, size: 20),
+          ),
+          Expanded(
+            child: TextFormField(
+              focusNode: _focusNode,
+              onChanged: widget.onChanged,
+              keyboardType: widget.keyboardType,
+              inputFormatters: widget.inputFormatters,
+              maxLines: widget.maxLines,
+              maxLength: widget.maxLength,
+              textCapitalization: widget.textCapitalization,
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: textColor,
+              ),
+              decoration: InputDecoration(
+                hintText: widget.hint,
+                hintStyle: GoogleFonts.inter(fontSize: 15, color: hintColor),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.only(
+                  right: 16,
+                  top: 16,
+                  bottom: 16,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -380,6 +507,18 @@ class _DatePickerField extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(createRideProvider);
     final notifier = ref.read(createRideProvider.notifier);
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark
+        ? const Color(0xFF181818)
+        : Colors.white;
+    final textColor = isDark
+        ? const Color(0xFFFFFFFF)
+        : const Color(0xFF121212);
+    final hintColor = isDark
+        ? const Color(0xFF6F6F72)
+        : const Color(0xFF9E9E9E);
+    final borderColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEAE5DD);
 
     final dateText = state.departureDate != null
         ? DateFormat('MMM dd, yyyy').format(state.departureDate!)
@@ -397,17 +536,26 @@ class _DatePickerField extends ConsumerWidget {
           notifier.updateDepartureDate(date);
         }
       },
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEAE5DD)),
+          color: cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: borderColor),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(5),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_month_rounded, color: Color(0xFF121212), size: 20),
+            Icon(Icons.calendar_month_rounded, color: textColor, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -415,9 +563,7 @@ class _DatePickerField extends ConsumerWidget {
                 style: GoogleFonts.inter(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
-                  color: state.departureDate != null
-                      ? const Color(0xFF121212)
-                      : const Color(0xFF9E9E9E),
+                  color: state.departureDate != null ? textColor : hintColor,
                 ),
               ),
             ),
@@ -434,6 +580,18 @@ class _TimePickerField extends ConsumerWidget {
     final state = ref.watch(createRideProvider);
     final notifier = ref.read(createRideProvider.notifier);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark
+        ? const Color(0xFF181818)
+        : Colors.white;
+    final textColor = isDark
+        ? const Color(0xFFFFFFFF)
+        : const Color(0xFF121212);
+    final hintColor = isDark
+        ? const Color(0xFF6F6F72)
+        : const Color(0xFF9E9E9E);
+    final borderColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEAE5DD);
+
     final timeText = state.departureTime != null
         ? DateFormat('hh:mm a').format(state.departureTime!)
         : 'Select Time';
@@ -448,21 +606,36 @@ class _TimePickerField extends ConsumerWidget {
         );
         if (time != null) {
           final now = DateTime.now();
-          final selectedDateTime = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+          final selectedDateTime = DateTime(
+            now.year,
+            now.month,
+            now.day,
+            time.hour,
+            time.minute,
+          );
           notifier.updateDepartureTime(selectedDateTime);
         }
       },
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEAE5DD)),
+          color: cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: borderColor),
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(5),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: Row(
           children: [
-            const Icon(Icons.access_time_rounded, color: Color(0xFF121212), size: 20),
+            Icon(Icons.access_time_rounded, color: textColor, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -470,9 +643,7 @@ class _TimePickerField extends ConsumerWidget {
                 style: GoogleFonts.inter(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
-                  color: state.departureTime != null
-                      ? const Color(0xFF121212)
-                      : const Color(0xFF9E9E9E),
+                  color: state.departureTime != null ? textColor : hintColor,
                 ),
               ),
             ),
@@ -489,12 +660,30 @@ class _SeatsStepper extends ConsumerWidget {
     final state = ref.watch(createRideProvider);
     final notifier = ref.read(createRideProvider.notifier);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark
+        ? const Color(0xFF181818)
+        : Colors.white;
+    final textColor = isDark
+        ? const Color(0xFFFFFFFF)
+        : const Color(0xFF121212);
+    final borderColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEAE5DD);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEAE5DD)),
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withAlpha(5),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -513,7 +702,7 @@ class _SeatsStepper extends ConsumerWidget {
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF121212),
+                color: textColor,
               ),
             ),
           ),
@@ -537,19 +726,28 @@ class _StepperButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final btnBg = isDark ? const Color(0xFF333333) : const Color(0xFFE8E8E8);
+    final iconColorActive = isDark
+        ? const Color(0xFFFFFFFF)
+        : const Color(0xFF121212);
+    final iconColorInactive = isDark
+        ? const Color(0xFF444444)
+        : const Color(0xFFD0D0D0);
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: onTap != null ? const Color(0xFFF6F5F3) : Colors.transparent,
+          color: onTap != null ? btnBg : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
           icon,
           size: 20,
-          color: onTap != null ? const Color(0xFF121212) : const Color(0xFFD0D0D0),
+          color: onTap != null ? iconColorActive : iconColorInactive,
         ),
       ),
     );

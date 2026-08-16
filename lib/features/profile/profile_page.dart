@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 
@@ -130,7 +129,7 @@ class _ProfileBody extends ConsumerWidget {
             slivers: [
               // ── Header SliverAppBar ──
               SliverAppBar(
-                expandedHeight: isOwnProfile ? 320 : 260,
+                expandedHeight: isOwnProfile ? 220 : 260,
                 pinned: true,
                 backgroundColor: backgroundColor,
                 elevation: 0,
@@ -152,26 +151,32 @@ class _ProfileBody extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (isOwnProfile) ...[
-                        // ── Statistics Grid ──
+                        // ── Ride Activity ──
                         Consumer(
                           builder: (ctx, ref, _) {
                             final statsAsync = ref.watch(profileStatsProvider);
                             final stats = statsAsync.value ?? const ProfileStats();
                             return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                GridView.count(
-                                  crossAxisCount: 2,
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: 2.2,
-                                  children: [
-                                    _StatCard(title: 'Created Rides', value: stats.createdRides.toString(), icon: Icons.local_taxi_rounded),
-                                    _StatCard(title: 'Joined Rides', value: stats.joinedRides.toString(), icon: Icons.hail_rounded),
-                                    _StatCard(title: 'Completed Rides', value: stats.completedRides.toString(), icon: Icons.check_circle_rounded, isSuccess: true),
-                                    _StatCard(title: 'Cancelled Rides', value: stats.cancelledRides.toString(), icon: Icons.cancel_outlined),
-                                  ],
+                                _buildSectionTitle(context, 'Ride Activity'),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  decoration: BoxDecoration(
+                                    color: cardColor,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: borderColor),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      _buildActivityStat(context, 'Created', stats.createdRides.toString()),
+                                      Container(height: 32, width: 1, color: borderColor),
+                                      _buildActivityStat(context, 'Joined', stats.joinedRides.toString()),
+                                      Container(height: 32, width: 1, color: borderColor),
+                                      _buildActivityStat(context, 'Completed', stats.completedRides.toString()),
+                                    ],
+                                  ),
                                 ),
                               ],
                             );
@@ -181,34 +186,33 @@ class _ProfileBody extends ConsumerWidget {
                         
                         _buildSectionTitle(context, 'Account'),
                         _buildProfileTile(context, icon: Icons.person_outline, title: 'Edit Profile', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfilePage()))),
-                        _buildProfileTile(context, icon: Icons.camera_alt_outlined, title: 'Change Profile Picture', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfilePage()))),
-                        _buildProfileTile(context, icon: Icons.lock_outline, title: 'Change Password', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SecuritySettingsPage()))),
-                        _buildProfileTile(context, icon: Icons.password_rounded, title: 'Forgot Password', onTap: () => context.push('/forgot-password')),
+                        _buildProfileTile(context, icon: Icons.shield_outlined, title: 'Password & Security', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SecuritySettingsPage()))),
                         _buildProfileTile(
                           context,
                           icon: Icons.mark_email_read_outlined, 
-                          title: 'Email Verification Status', 
+                          title: 'Email & Verification', 
                           trailingText: user.emailVerified ? 'Verified' : 'Unverified',
                           onTap: () {
                             if (!user.emailVerified) context.push('/email-verification');
                           }
                         ),
                         
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 32),
                         _buildSectionTitle(context, 'Settings'),
                         _buildSwitchTile(context, icon: Icons.notifications_none, title: 'Notifications', value: settings.pushNotifications, onChanged: settingsNotifier.togglePushNotifications),
                         _buildSwitchTile(context, icon: Icons.dark_mode_outlined, title: 'Dark Mode', value: settings.isDarkMode, onChanged: settingsNotifier.toggleDarkMode),
                         _buildProfileTile(context, icon: Icons.privacy_tip_outlined, title: 'Privacy', onTap: () {}),
                         _buildProfileTile(context, icon: Icons.language, title: 'Language', trailingText: settings.language, onTap: () {}),
                         
-                        const SizedBox(height: 24),
-                        _buildSectionTitle(context, 'About'),
+                        const SizedBox(height: 32),
+                        _buildSectionTitle(context, 'About & Support'),
                         _buildProfileTile(context, icon: Icons.info_outline, title: 'About AutoShare', onTap: () {}),
                         _buildProfileTile(context, icon: Icons.help_outline, title: 'Help & Support', onTap: () {}),
                         _buildProfileTile(context, icon: Icons.description_outlined, title: 'Terms & Conditions', onTap: () {}),
-                        _buildProfileTile(context, icon: Icons.shield_outlined, title: 'Privacy Policy', onTap: () {}),
+                        _buildProfileTile(context, icon: Icons.gavel_outlined, title: 'Privacy Policy', onTap: () {}),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 40),
+                        _buildSectionTitle(context, 'Account Actions'),
                         _buildProfileTile(
                           context,
                           icon: Icons.delete_outline, 
@@ -220,7 +224,6 @@ class _ProfileBody extends ConsumerWidget {
                           context,
                           icon: Icons.logout_rounded, 
                           title: 'Logout', 
-                          color: const Color(0xFFD32F2F), 
                           onTap: () async {
                             showDialog(
                               context: context,
@@ -388,6 +391,32 @@ class _ProfileBody extends ConsumerWidget {
     );
   }
 
+  Widget _buildActivityStat(BuildContext context, String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final blackColor = Theme.of(context).colorScheme.onSurface;
+    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
+    
+    return Column(
+      children: [
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: blackColor,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: mutedText,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildProfileTile(
     BuildContext context, {
     required IconData icon,
@@ -465,19 +494,28 @@ class _ProfileHeader extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          CircleAvatar(
-            radius: 44,
-            backgroundColor: avatarBgColor,
-            backgroundImage: getAvatarImageProvider(user.profileImage),
-            child: getAvatarImageProvider(user.profileImage) == null
-                ? Text(
-                    user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: blackColor,
-                    ),
+          Container(
+            width: 88,
+            height: 88,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: avatarBgColor,
+            ),
+            child: user.profileImage.isNotEmpty
+                ? Image(
+                    image: getAvatarImageProvider(user.profileImage)!,
+                    fit: BoxFit.cover,
                   )
-                : null,
+                : Center(
+                    child: Text(
+                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: blackColor,
+                      ),
+                    ),
+                  ),
           ),
           const SizedBox(height: 12),
           Row(
@@ -504,27 +542,7 @@ class _ProfileHeader extends ConsumerWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          if (isOwnProfile) ...[
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _Chip(
-                  icon: Icons.star_rounded,
-                  label: user.averageRating > 0 ? user.averageRating.toStringAsFixed(1) : 'No Ratings',
-                  color: const Color(0xFF7C5700),
-                  bgColor: const Color(0xFFFFF2CC),
-                ),
-                const SizedBox(width: 8),
-                _Chip(
-                  icon: Icons.calendar_today_rounded,
-                  label: 'Joined ${DateFormat('MMM yyyy').format(user.createdAt)}',
-                  color: blackColor,
-                  bgColor: chipBgColor,
-                ),
-              ],
-            ),
-          ] else ...[
+          if (!isOwnProfile) ...[
             const SizedBox(height: 16),
             // ── Verified / Gender Badge Row for Public Profile ──
             Row(
@@ -811,214 +829,3 @@ class _Chip extends StatelessWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final bool isSuccess;
-
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    this.isSuccess = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isSuccess
-        ? (isDark ? const Color(0xFF1B382B) : const Color(0xFFEAF5ED))
-        : (isDark ? const Color(0xFF242424) : const Color(0xFFF0EDE9));
-    final contentColor = isSuccess
-        ? (isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32))
-        : (isDark ? Colors.white : const Color(0xFF121212));
-    final subtextColor = isDark ? Colors.white60 : const Color(0xFF6F6F72);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: contentColor),
-              const SizedBox(width: 6),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: contentColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: subtextColor,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SustainabilityCard extends StatelessWidget {
-  final double co2SavedKg;
-  final int treesPlanted;
-  final double greenMiles;
-
-  const _SustainabilityCard({
-    required this.co2SavedKg,
-    required this.treesPlanted,
-    required this.greenMiles,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    
-    final bgGradient = isDark
-        ? const LinearGradient(colors: [Color(0xFF1A3824), Color(0xFF102818)])
-        : const LinearGradient(colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)]);
-        
-    final accentColor = isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32);
-    final textColor = isDark ? Colors.white : const Color(0xFF1B5E20);
-    final subtextColor = isDark ? Colors.white70 : const Color(0xFF388E3C);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: bgGradient,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: isDark ? [] : [
-          BoxShadow(
-            color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.eco_rounded, color: accentColor, size: 24),
-              const SizedBox(width: 8),
-              Text(
-                'Impact',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: textColor,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'AutoShare Green',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: accentColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _ImpactMetric(
-                  icon: Icons.cloud_outlined,
-                  value: '${co2SavedKg.toStringAsFixed(1)} kg',
-                  label: 'CO₂ Saved',
-                  color: textColor,
-                  subColor: subtextColor,
-                ),
-              ),
-              Container(width: 1, height: 40, color: accentColor.withValues(alpha: 0.3)),
-              Expanded(
-                child: _ImpactMetric(
-                  icon: Icons.forest_outlined,
-                  value: '$treesPlanted',
-                  label: 'Trees',
-                  color: textColor,
-                  subColor: subtextColor,
-                ),
-              ),
-              Container(width: 1, height: 40, color: accentColor.withValues(alpha: 0.3)),
-              Expanded(
-                child: _ImpactMetric(
-                  icon: Icons.directions_bike_outlined,
-                  value: '${greenMiles.toStringAsFixed(0)} mi',
-                  label: 'Green Miles',
-                  color: textColor,
-                  subColor: subtextColor,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ImpactMetric extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final String label;
-  final Color color;
-  final Color subColor;
-
-  const _ImpactMetric({
-    required this.icon,
-    required this.value,
-    required this.label,
-    required this.color,
-    required this.subColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Icon(icon, size: 20, color: subColor),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: color,
-          ),
-        ),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w500,
-            color: subColor,
-          ),
-        ),
-      ],
-    );
-  }
-}

@@ -11,7 +11,9 @@ import 'widgets/empty_search.dart';
 import 'widgets/ride_sort_bottom_sheet.dart';
 
 class SearchPage extends ConsumerStatefulWidget {
-  const SearchPage({super.key});
+  final bool showBackButton;
+  
+  const SearchPage({super.key, this.showBackButton = false});
 
   @override
   ConsumerState<SearchPage> createState() => _SearchPageState();
@@ -60,10 +62,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             pinned: true,
             elevation: 0,
             scrolledUnderElevation: 4,
-            leading: IconButton(
-              icon: Icon(Icons.arrow_back_rounded, color: blackColor),
-              onPressed: () => context.pop(),
-            ),
+            leading: widget.showBackButton 
+                ? IconButton(
+                    icon: Icon(Icons.arrow_back_rounded, color: blackColor),
+                    onPressed: () => context.pop(),
+                  )
+                : null,
             title: Text(
               'Find Ride',
               style: GoogleFonts.inter(
@@ -75,20 +79,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             centerTitle: true,
           ),
           
-          // Subtitle
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: Text(
-                'Discover rides travelling your way.',
-                style: GoogleFonts.inter(
-                  fontSize: 15,
-                  color: mutedText,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ),
+
 
           // Filter Card
           const SliverToBoxAdapter(

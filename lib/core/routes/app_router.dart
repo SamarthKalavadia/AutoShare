@@ -69,7 +69,7 @@ class AppRouter {
           transitionDuration: const Duration(milliseconds: 600),
         ),
       ),
-      GoRoute(path: '/search-ride', builder: (context, state) => const SearchPage()),
+      GoRoute(path: '/search-ride', builder: (context, state) => const SearchPage(showBackButton: true)),
       GoRoute(path: '/create-ride', builder: (context, state) => const CreateRidePage()),
       GoRoute(
         path: '/ride-details',
