@@ -67,14 +67,14 @@ class RideCard extends ConsumerWidget {
                             children: [
                               const SizedBox(height: 4),
                               Text(
-                                DateFormat('HH:mm').format(ride.departureTime),
+                                DateFormat('h:mm a').format(ride.departureTime),
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
                               const SizedBox(height: 24),
                               Text(
-                                DateFormat('HH:mm').format(
+                                DateFormat('h:mm a').format(
                                   ride.departureTime.add(_parseDuration(ride.estimatedDuration)),
                                 ),
                                 style: theme.textTheme.titleMedium?.copyWith(

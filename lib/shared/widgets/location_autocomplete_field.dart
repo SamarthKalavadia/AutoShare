@@ -27,6 +27,7 @@ class LocationAutocompleteField extends StatefulWidget {
   final String hint;
   final IconData icon;
   final Color iconColor;
+  final String? initialValue;
   final ValueChanged<String>? onChanged;
   final Future<void> Function(PlacePrediction prediction, LocationDetails details) onPlaceSelected;
 
@@ -36,6 +37,7 @@ class LocationAutocompleteField extends StatefulWidget {
     required this.hint,
     required this.icon,
     required this.iconColor,
+    this.initialValue,
     this.onChanged,
     required this.onPlaceSelected,
   });
@@ -66,12 +68,27 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
   @override
   void initState() {
     super.initState();
+    if (widget.initialValue != null) {
+      _controller.text = widget.initialValue!;
+      _lastSentQuery = widget.initialValue!;
+    }
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),
     );
     _fadeAnimation =
         CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
+  }
+
+  @override
+  void didUpdateWidget(LocationAutocompleteField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialValue != oldWidget.initialValue &&
+        widget.initialValue != null &&
+        widget.initialValue != _controller.text) {
+      _controller.text = widget.initialValue!;
+      _lastSentQuery = widget.initialValue!;
+    }
   }
 
   @override

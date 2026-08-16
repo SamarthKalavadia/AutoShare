@@ -171,6 +171,27 @@ class CreateRideNotifier extends Notifier<CreateRideState> {
     state = state.copyWith(destination: value);
   }
 
+  void swapLocations() {
+    final oldBoardingLoc = state.boardingLocation;
+    final oldBoardingPlaceId = state.boardingPlaceId;
+    final oldBoardingLat = state.boardingLat;
+    final oldBoardingLng = state.boardingLng;
+    final oldBoardingAddress = state.boardingAddress;
+
+    state = state.copyWith(
+      boardingLocation: state.destination,
+      boardingPlaceId: state.destinationPlaceId,
+      boardingLat: state.destinationLat,
+      boardingLng: state.destinationLng,
+      boardingAddress: state.destinationAddress,
+      destination: oldBoardingLoc,
+      destinationPlaceId: oldBoardingPlaceId,
+      destinationLat: oldBoardingLat,
+      destinationLng: oldBoardingLng,
+      destinationAddress: oldBoardingAddress,
+    );
+  }
+
   void updateDepartureDate(DateTime date) {
     state = state.copyWith(departureDate: date);
   }

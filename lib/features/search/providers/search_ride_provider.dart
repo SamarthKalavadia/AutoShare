@@ -92,6 +92,13 @@ class SearchRideNotifier extends Notifier<SearchRideFilterState> {
     state = state.copyWith(destination: value);
   }
 
+  void swapLocations() {
+    state = state.copyWith(
+      boardingLocation: state.destination,
+      destination: state.boardingLocation,
+    );
+  }
+
   void updateDepartureDate(DateTime date) {
     state = state.copyWith(departureDate: date);
   }

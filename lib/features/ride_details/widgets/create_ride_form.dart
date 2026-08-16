@@ -18,6 +18,7 @@ class CreateRideForm extends ConsumerWidget {
     const borderColor = Color(0xFFEAE5DD);
     const successColor = Color(0xFF2E7D32);
     const dangerColor = Color(0xFFD32F2F);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final state = ref.watch(createRideProvider);
     final notifier = ref.read(createRideProvider.notifier);
@@ -26,41 +27,84 @@ class CreateRideForm extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Boarding Location
-        LocationAutocompleteField(
-          fieldKey: 'create_ride_boarding',
-          hint: 'Boarding location',
-          icon: Icons.trip_origin,
-          iconColor: successColor,
-          onChanged: notifier.updateBoardingLocation,
-          onPlaceSelected: (prediction, details) async {
-            notifier.updateBoardingLocation(prediction.description);
-            notifier.updateBoardingDetails(
-              placeId: details.placeId,
-              address: details.address,
-              lat: details.latitude,
-              lng: details.longitude,
-            );
-          },
-        ),
-        const SizedBox(height: 20),
-
-        // Destination
-        LocationAutocompleteField(
-          fieldKey: 'create_ride_destination',
-          hint: 'Destination',
-          icon: Icons.location_on,
-          iconColor: dangerColor,
-          onChanged: notifier.updateDestinationLocation,
-          onPlaceSelected: (prediction, details) async {
-            notifier.updateDestinationLocation(prediction.description);
-            notifier.updateDestinationDetails(
-              placeId: details.placeId,
-              address: details.address,
-              lat: details.latitude,
-              lng: details.longitude,
-            );
-          },
+        // Boarding Location & Destination with Swap Button
+        Stack(
+          alignment: Alignment.centerRight,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LocationAutocompleteField(
+                  fieldKey: 'create_ride_boarding',
+                  hint: 'Boarding location',
+                  icon: Icons.trip_origin,
+                  iconColor: successColor,
+                  initialValue: state.boardingLocation,
+                  onChanged: notifier.updateBoardingLocation,
+                  onPlaceSelected: (prediction, details) async {
+                    notifier.updateBoardingLocation(prediction.description);
+                    notifier.updateBoardingDetails(
+                      placeId: details.placeId,
+                      address: details.address,
+                      lat: details.latitude,
+                      lng: details.longitude,
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                LocationAutocompleteField(
+                  fieldKey: 'create_ride_destination',
+                  hint: 'Destination',
+                  icon: Icons.location_on,
+                  iconColor: dangerColor,
+                  initialValue: state.destination,
+                  onChanged: notifier.updateDestinationLocation,
+                  onPlaceSelected: (prediction, details) async {
+                    notifier.updateDestinationLocation(prediction.description);
+                    notifier.updateDestinationDetails(
+                      placeId: details.placeId,
+                      address: details.address,
+                      lat: details.latitude,
+                      lng: details.longitude,
+                    );
+                  },
+                ),
+              ],
+            ),
+            Positioned(
+              right: 12,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => notifier.swapLocations(),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: primaryColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.swap_vert_rounded,
+                      color: Color(0xFF121212),
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 20),
 

@@ -50,33 +50,77 @@ class SearchFilterCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Boarding Location
-          LocationAutocompleteField(
-            fieldKey: 'search_boarding',
-            hint: 'Where from?',
-            icon: Icons.circle_outlined,
-            iconColor: blackColor,
-            onPlaceSelected: (prediction, details) async {
-              notifier.updateBoardingLocation(prediction.description);
-            },
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 18),
-            child: Container(
-              height: 12,
-              width: 2,
-              color: isDark ? Colors.white24 : Colors.black12,
-            ),
-          ),
-          // Destination
-          LocationAutocompleteField(
-            fieldKey: 'search_destination',
-            hint: 'Where to?',
-            icon: Icons.location_on,
-            iconColor: primaryColor,
-            onPlaceSelected: (prediction, details) async {
-              notifier.updateDestination(prediction.description);
-            },
+          // Boarding Location & Destination with Swap Button
+          Stack(
+            alignment: Alignment.centerRight,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  LocationAutocompleteField(
+                    fieldKey: 'search_boarding',
+                    hint: 'Where from?',
+                    icon: Icons.circle_outlined,
+                    iconColor: blackColor,
+                    initialValue: state.boardingLocation,
+                    onPlaceSelected: (prediction, details) async {
+                      notifier.updateBoardingLocation(prediction.description);
+                    },
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 18),
+                    child: Container(
+                      height: 12,
+                      width: 2,
+                      color: isDark ? Colors.white24 : Colors.black12,
+                    ),
+                  ),
+                  LocationAutocompleteField(
+                    fieldKey: 'search_destination',
+                    hint: 'Where to?',
+                    icon: Icons.location_on,
+                    iconColor: primaryColor,
+                    initialValue: state.destination,
+                    onPlaceSelected: (prediction, details) async {
+                      notifier.updateDestination(prediction.description);
+                    },
+                  ),
+                ],
+              ),
+              Positioned(
+                right: 12,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => notifier.swapLocations(),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: primaryColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(25),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.swap_vert_rounded,
+                        color: Color(0xFF121212),
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
 
