@@ -4,15 +4,13 @@ import 'package:flutter/material.dart';
 class ValidationText extends StatelessWidget {
   final String password;
 
-  const ValidationText({
-    super.key,
-    required this.password,
-  });
+  const ValidationText({super.key, required this.password});
 
   bool get _hasMinLength => password.length >= 8;
   bool get _hasUppercase => password.contains(RegExp(r'[A-Z]'));
   bool get _hasDigits => password.contains(RegExp(r'[0-9]'));
-  bool get _hasSpecialChar => password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+  bool get _hasSpecialChar =>
+      password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
 
   int get _score {
     if (password.isEmpty) return 0;
@@ -109,21 +107,22 @@ class _RequirementItem extends StatelessWidget {
   final String label;
   final bool isMet;
 
-  const _RequirementItem({
-    required this.label,
-    required this.isMet,
-  });
+  const _RequirementItem({required this.label, required this.isMet});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = isMet ? Colors.green : theme.colorScheme.onSurface.withValues(alpha: 0.4);
+    final color = isMet
+        ? Colors.green
+        : theme.colorScheme.onSurface.withValues(alpha: 0.4);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
-          isMet ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+          isMet
+              ? Icons.check_circle_rounded
+              : Icons.radio_button_unchecked_rounded,
           size: 14,
           color: color,
         ),

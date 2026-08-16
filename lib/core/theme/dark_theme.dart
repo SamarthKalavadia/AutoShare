@@ -21,16 +21,39 @@ final ThemeData darkTheme = ThemeData(
   ),
   scaffoldBackgroundColor: const Color(0xFF0F0F0F),
   brightness: Brightness.dark,
-  textTheme: GoogleFonts.interTextTheme(
-    ThemeData(brightness: Brightness.dark).textTheme,
-  ).copyWith(
-    headlineLarge: GoogleFonts.inter(fontWeight: FontWeight.w800, letterSpacing: -0.5, color: Colors.white),
-    headlineMedium: GoogleFonts.inter(fontWeight: FontWeight.w700, letterSpacing: -0.5, color: Colors.white),
-    titleLarge: GoogleFonts.inter(fontWeight: FontWeight.w700, letterSpacing: -0.3, color: Colors.white),
-    titleMedium: GoogleFonts.inter(fontWeight: FontWeight.w600, letterSpacing: -0.2, color: Colors.white),
-    bodyLarge: GoogleFonts.inter(fontWeight: FontWeight.w500, color: Colors.white),
-    bodyMedium: GoogleFonts.inter(fontWeight: FontWeight.w400, color: Colors.white),
-  ),
+  textTheme:
+      GoogleFonts.interTextTheme(
+        ThemeData(brightness: Brightness.dark).textTheme,
+      ).copyWith(
+        headlineLarge: GoogleFonts.inter(
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.5,
+          color: Colors.white,
+        ),
+        headlineMedium: GoogleFonts.inter(
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.5,
+          color: Colors.white,
+        ),
+        titleLarge: GoogleFonts.inter(
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.3,
+          color: Colors.white,
+        ),
+        titleMedium: GoogleFonts.inter(
+          fontWeight: FontWeight.w600,
+          letterSpacing: -0.2,
+          color: Colors.white,
+        ),
+        bodyLarge: GoogleFonts.inter(
+          fontWeight: FontWeight.w500,
+          color: Colors.white,
+        ),
+        bodyMedium: GoogleFonts.inter(
+          fontWeight: FontWeight.w400,
+          color: Colors.white,
+        ),
+      ),
   appBarTheme: const AppBarTheme(
     backgroundColor: Color(0xFF0F0F0F),
     foregroundColor: Colors.white,

@@ -28,12 +28,12 @@ class GroupedNotifications {
 
 final rawNotificationsStreamProvider =
     StreamProvider.autoDispose<List<NotificationModel>>((ref) {
-  final user = ref.watch(authControllerProvider).value;
-  if (user == null) return const Stream.empty();
-  return ref
-      .watch(notificationRepositoryProvider)
-      .streamNotifications(user.uid);
-});
+      final user = ref.watch(authControllerProvider).value;
+      if (user == null) return const Stream.empty();
+      return ref
+          .watch(notificationRepositoryProvider)
+          .streamNotifications(user.uid);
+    });
 
 // ─── Unread Count ─────────────────────────────────────────────────────────────
 
@@ -46,29 +46,33 @@ final unreadNotificationCountProvider = Provider.autoDispose<int>((ref) {
 
 final groupedNotificationsProvider =
     Provider.autoDispose<AsyncValue<GroupedNotifications>>((ref) {
-  return ref.watch(rawNotificationsStreamProvider).whenData((notifs) {
-    final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day);
-    final yesterdayStart = todayStart.subtract(const Duration(days: 1));
+      return ref.watch(rawNotificationsStreamProvider).whenData((notifs) {
+        final now = DateTime.now();
+        final todayStart = DateTime(now.year, now.month, now.day);
+        final yesterdayStart = todayStart.subtract(const Duration(days: 1));
 
-    final today = <NotificationModel>[];
-    final yesterday = <NotificationModel>[];
-    final older = <NotificationModel>[];
+        final today = <NotificationModel>[];
+        final yesterday = <NotificationModel>[];
+        final older = <NotificationModel>[];
 
-    for (final n in notifs) {
-      final d = n.createdAt;
-      if (!d.isBefore(todayStart)) {
-        today.add(n);
-      } else if (!d.isBefore(yesterdayStart)) {
-        yesterday.add(n);
-      } else {
-        older.add(n);
-      }
-    }
+        for (final n in notifs) {
+          final d = n.createdAt;
+          if (!d.isBefore(todayStart)) {
+            today.add(n);
+          } else if (!d.isBefore(yesterdayStart)) {
+            yesterday.add(n);
+          } else {
+            older.add(n);
+          }
+        }
 
-    return GroupedNotifications(today: today, yesterday: yesterday, older: older);
-  });
-});
+        return GroupedNotifications(
+          today: today,
+          yesterday: yesterday,
+          older: older,
+        );
+      });
+    });
 
 // ─── Notification Actions Notifier ───────────────────────────────────────────
 
@@ -97,8 +101,8 @@ class NotificationActionsNotifier extends Notifier<bool> {
 
 final notificationActionsProvider =
     NotifierProvider<NotificationActionsNotifier, bool>(
-  NotificationActionsNotifier.new,
-);
+      NotificationActionsNotifier.new,
+    );
 
 // ─── Helper: Notification Factory ────────────────────────────────────────────
 

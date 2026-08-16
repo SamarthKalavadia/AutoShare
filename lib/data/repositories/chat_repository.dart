@@ -11,9 +11,11 @@ class ChatRepository {
   final FirestoreService _fs;
   final NotificationRepository _notificationRepo;
 
-  ChatRepository({FirestoreService? firestoreService, NotificationRepository? notificationRepo})
-      : _fs = firestoreService ?? FirestoreService(),
-        _notificationRepo = notificationRepo ?? NotificationRepository();
+  ChatRepository({
+    FirestoreService? firestoreService,
+    NotificationRepository? notificationRepo,
+  }) : _fs = firestoreService ?? FirestoreService(),
+       _notificationRepo = notificationRepo ?? NotificationRepository();
 
   // ── Chat Room ─────────────────────────────────────────────────────────────
 
@@ -35,7 +37,10 @@ class ChatRepository {
       }, SetOptions(merge: true));
       return const Success(null);
     } on FirebaseException catch (e) {
-      return Failure(e.message ?? 'Could not create chat room.', FirestoreException(e.code));
+      return Failure(
+        e.message ?? 'Could not create chat room.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       return Failure('Unexpected error.', Exception(e.toString()));
     }
@@ -59,7 +64,9 @@ class ChatRepository {
     return _messagesRef(rideId)
         .orderBy('sentAt', descending: false)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => ChatMessage.fromDocument(d)).toList());
+        .map(
+          (snap) => snap.docs.map((d) => ChatMessage.fromDocument(d)).toList(),
+        );
   }
 
   /// Sends a new message to the chat room.
@@ -83,23 +90,30 @@ class ChatRepository {
 
       // Notify the other participant about the new message (fire-and-forget).
       if (message.receiverUid.isNotEmpty) {
-        unawaited(_notificationRepo.createNotification(NotificationModel(
-          id: '',
-          userId: message.receiverUid,
-          title: 'New Message',
-          body: message.text.length > 60
-              ? '${message.text.substring(0, 60)}...'
-              : message.text,
-          type: 'chat',
-          isRead: false,
-          createdAt: DateTime.now(),
-          relatedId: message.rideId,
-        )));
+        unawaited(
+          _notificationRepo.createNotification(
+            NotificationModel(
+              id: '',
+              userId: message.receiverUid,
+              title: 'New Message',
+              body: message.text.length > 60
+                  ? '${message.text.substring(0, 60)}...'
+                  : message.text,
+              type: 'chat',
+              isRead: false,
+              createdAt: DateTime.now(),
+              relatedId: message.rideId,
+            ),
+          ),
+        );
       }
 
       return const Success(null);
     } on FirebaseException catch (e) {
-      return Failure(e.message ?? 'Failed to send message.', FirestoreException(e.code));
+      return Failure(
+        e.message ?? 'Failed to send message.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       return Failure('Unexpected error.', Exception(e.toString()));
     }
@@ -108,24 +122,28 @@ class ChatRepository {
   /// Soft-deletes a message by overwriting `isDeleted = true` and clearing text.
   Future<Result<void>> deleteMessage(String rideId, String messageId) async {
     try {
-      await _messagesRef(rideId).doc(messageId).update({
-        'isDeleted': true,
-        'text': '',
-      });
+      await _messagesRef(
+        rideId,
+      ).doc(messageId).update({'isDeleted': true, 'text': ''});
       return const Success(null);
     } on FirebaseException catch (e) {
-      return Failure(e.message ?? 'Failed to delete message.', FirestoreException(e.code));
+      return Failure(
+        e.message ?? 'Failed to delete message.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       return Failure('Unexpected error.', Exception(e.toString()));
     }
   }
 
   /// Marks a message as read by [uid].
-  Future<void> markMessageRead(String rideId, String messageId, String uid) async {
+  Future<void> markMessageRead(
+    String rideId,
+    String messageId,
+    String uid,
+  ) async {
     try {
-      await _messagesRef(rideId).doc(messageId).update({
-        'readBy.$uid': true,
-      });
+      await _messagesRef(rideId).doc(messageId).update({'readBy.$uid': true});
     } catch (_) {}
   }
 
@@ -134,9 +152,7 @@ class ChatRepository {
   /// Updates the typing status of the current user in the chat room.
   Future<void> setTyping(String rideId, String uid, bool isTyping) async {
     try {
-      await _fs.chatsCollection.doc(rideId).update({
-        'typing.$uid': isTyping,
-      });
+      await _fs.chatsCollection.doc(rideId).update({'typing.$uid': isTyping});
     } catch (_) {}
   }
 }

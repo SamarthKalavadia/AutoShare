@@ -12,11 +12,7 @@ class MyRideData {
   final RideRequestModel? request;
   final String role; // 'driver' or 'passenger'
 
-  const MyRideData({
-    required this.ride,
-    this.request,
-    required this.role,
-  });
+  const MyRideData({required this.ride, this.request, required this.role});
 
   /// Computed status based on role and underlying entities.
   String get displayStatus {
@@ -73,16 +69,19 @@ final myRidesProvider = StreamProvider.autoDispose<List<MyRideData>>((ref) {
       final result = await requestRepo.getRide(req.rideId);
       final rideModel = result is Success<RideModel>
           ? result.data
-          : RideModel.empty().copyWith(id: req.rideId, boardingLocation: 'Requested Ride');
-          
-      allRides.add(MyRideData(
-        ride: rideModel,
-        request: req,
-        role: 'passenger',
-      ));
+          : RideModel.empty().copyWith(
+              id: req.rideId,
+              boardingLocation: 'Requested Ride',
+            );
+
+      allRides.add(
+        MyRideData(ride: rideModel, request: req, role: 'passenger'),
+      );
     }
 
-    allRides.sort((a, b) => b.ride.departureTime.compareTo(a.ride.departureTime));
+    allRides.sort(
+      (a, b) => b.ride.departureTime.compareTo(a.ride.departureTime),
+    );
     if (!controller.isClosed) {
       controller.add(allRides);
     }
@@ -127,11 +126,14 @@ class RideActionNotifier extends Notifier<bool> {
 
   Future<Result<void>> cancelMyRequest(RideRequestModel request) async {
     state = true;
-    final res = await ref.read(rideRequestRepositoryProvider).cancelRequest(request);
+    final res = await ref
+        .read(rideRequestRepositoryProvider)
+        .cancelRequest(request);
     state = false;
     return res;
   }
 }
 
-final rideActionProvider = NotifierProvider<RideActionNotifier, bool>(RideActionNotifier.new);
-
+final rideActionProvider = NotifierProvider<RideActionNotifier, bool>(
+  RideActionNotifier.new,
+);

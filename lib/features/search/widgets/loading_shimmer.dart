@@ -7,7 +7,8 @@ class LoadingShimmer extends StatefulWidget {
   State<LoadingShimmer> createState() => _LoadingShimmerState();
 }
 
-class _LoadingShimmerState extends State<LoadingShimmer> with SingleTickerProviderStateMixin {
+class _LoadingShimmerState extends State<LoadingShimmer>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -18,10 +19,11 @@ class _LoadingShimmerState extends State<LoadingShimmer> with SingleTickerProvid
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
-    
-    _animation = Tween<double>(begin: 0.3, end: 0.7).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+
+    _animation = Tween<double>(
+      begin: 0.3,
+      end: 0.7,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -65,17 +67,33 @@ class _LoadingShimmerState extends State<LoadingShimmer> with SingleTickerProvid
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(width: 120, height: 16, color: const Color(0xFFEAE5DD)),
+                        Container(
+                          width: 120,
+                          height: 16,
+                          color: const Color(0xFFEAE5DD),
+                        ),
                         const SizedBox(height: 8),
-                        Container(width: 80, height: 12, color: const Color(0xFFEAE5DD)),
+                        Container(
+                          width: 80,
+                          height: 12,
+                          color: const Color(0xFFEAE5DD),
+                        ),
                       ],
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
-                Container(width: double.infinity, height: 14, color: const Color(0xFFEAE5DD)),
+                Container(
+                  width: double.infinity,
+                  height: 14,
+                  color: const Color(0xFFEAE5DD),
+                ),
                 const SizedBox(height: 12),
-                Container(width: 200, height: 14, color: const Color(0xFFEAE5DD)),
+                Container(
+                  width: 200,
+                  height: 14,
+                  color: const Color(0xFFEAE5DD),
+                ),
                 const SizedBox(height: 24),
                 Container(
                   width: double.infinity,

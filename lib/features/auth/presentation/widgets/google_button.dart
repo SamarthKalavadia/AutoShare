@@ -60,11 +60,7 @@ class GoogleButton extends StatelessWidget {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SvgPicture.string(
-                    _googleSvg,
-                    width: 22,
-                    height: 22,
-                  ),
+                  SvgPicture.string(_googleSvg, width: 22, height: 22),
                   const SizedBox(width: 12),
                   Text(
                     text,

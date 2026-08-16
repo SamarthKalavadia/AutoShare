@@ -64,7 +64,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
     setState(() => _authAction = AuthAction.email);
 
-    final result = await ref.read(authControllerProvider.notifier).register(
+    final result = await ref
+        .read(authControllerProvider.notifier)
+        .register(
           name: _nameController.text.trim(),
           email: _emailController.text.trim(),
           password: _passwordController.text,
@@ -89,7 +91,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     setState(() => _authAction = AuthAction.google);
 
     try {
-      final result = await ref.read(authControllerProvider.notifier).signInWithGoogle();
+      final result = await ref
+          .read(authControllerProvider.notifier)
+          .signInWithGoogle();
 
       if (!mounted) return;
 
@@ -180,8 +184,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter your email';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                        .hasMatch(value.trim())) {
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value.trim())) {
                       return 'Enter a valid email address';
                     }
                     return null;
@@ -209,7 +214,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                       return 'Please enter a valid 10-digit phone number';
                     }
                     final firstChar = cleanValue[0];
-                    if (firstChar != '6' && firstChar != '7' && firstChar != '8' && firstChar != '9') {
+                    if (firstChar != '6' &&
+                        firstChar != '7' &&
+                        firstChar != '8' &&
+                        firstChar != '9') {
                       return 'Please enter a valid 10-digit mobile number';
                     }
                     return null;
@@ -302,8 +310,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         TextSpan(
                           text: 'I agree to the ',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.7),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.7,
+                            ),
                           ),
                           children: [
                             TextSpan(
@@ -333,7 +342,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 LoadingButton(
                   text: 'Register Account',
                   isLoading: _authAction == AuthAction.email,
-                  onPressed: _authAction == AuthAction.idle ? _submitRegister : null,
+                  onPressed: _authAction == AuthAction.idle
+                      ? _submitRegister
+                      : null,
                 ),
                 const SizedBox(height: 24),
 
@@ -343,7 +354,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 // Google Sign Up
                 GoogleButton(
                   text: 'Continue with Google',
-                  onPressed: _authAction == AuthAction.idle ? _handleGoogleSignUp : null,
+                  onPressed: _authAction == AuthAction.idle
+                      ? _handleGoogleSignUp
+                      : null,
                   isLoading: _authAction == AuthAction.google,
                 ),
                 const SizedBox(height: 32),

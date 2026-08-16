@@ -13,13 +13,21 @@ class RouteInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+
+    final borderColor = isDark
+        ? const Color(0xFF333333)
+        : const Color(0xFFEAE5DD);
     final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
-    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
-    
-    final successColor = isDark ? const Color(0xFF4CAF50) : const Color(0xFF2E7D32);
-    final dangerColor = isDark ? const Color(0xFFEF5350) : const Color(0xFFD32F2F);
+    final cardBg =
+        theme.cardTheme.color ??
+        (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+
+    final successColor = isDark
+        ? const Color(0xFF4CAF50)
+        : const Color(0xFF2E7D32);
+    final dangerColor = isDark
+        ? const Color(0xFFEF5350)
+        : const Color(0xFFD32F2F);
 
     final dateStr = DateFormat('EEE, d MMM yyyy').format(ride.departureTime);
     final timeStr = DateFormat('h:mm a').format(ride.departureTime);
@@ -30,9 +38,15 @@ class RouteInfoCard extends StatelessWidget {
         color: cardBg,
         borderRadius: BorderRadius.circular(24),
         border: isDark ? Border.all(color: borderColor, width: 1.1) : null,
-        boxShadow: isDark ? [] : const [
-          BoxShadow(color: Color(0x0A121212), blurRadius: 16, offset: Offset(0, 4)),
-        ],
+        boxShadow: isDark
+            ? []
+            : const [
+                BoxShadow(
+                  color: Color(0x0A121212),
+                  blurRadius: 16,
+                  offset: Offset(0, 4),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,7 +78,10 @@ class RouteInfoCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: cardBg,
                           shape: BoxShape.circle,
-                          border: Border.all(color: theme.colorScheme.onSurface, width: 2),
+                          border: Border.all(
+                            color: theme.colorScheme.onSurface,
+                            width: 2,
+                          ),
                         ),
                       ),
                       Expanded(
@@ -113,7 +130,12 @@ class RouteInfoCard extends StatelessWidget {
           ),
 
           const SizedBox(height: 20),
-          Divider(height: 1, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+          Divider(
+            height: 1,
+            color: isDark
+                ? Colors.white10
+                : Colors.black.withValues(alpha: 0.05),
+          ),
           const SizedBox(height: 16),
 
           // Date / Time / Duration row
@@ -137,7 +159,8 @@ class RouteInfoCard extends StatelessWidget {
             ],
           ),
 
-          if (ride.distance.isNotEmpty || ride.estimatedDuration.isNotEmpty) ...[
+          if (ride.distance.isNotEmpty ||
+              ride.estimatedDuration.isNotEmpty) ...[
             const SizedBox(height: 12),
             Row(
               children: [
@@ -149,7 +172,8 @@ class RouteInfoCard extends StatelessWidget {
                       value: ride.distance,
                     ),
                   ),
-                if (ride.distance.isNotEmpty && ride.estimatedDuration.isNotEmpty)
+                if (ride.distance.isNotEmpty &&
+                    ride.estimatedDuration.isNotEmpty)
                   const SizedBox(width: 12),
                 if (ride.estimatedDuration.isNotEmpty)
                   Expanded(
@@ -183,7 +207,7 @@ class _LocationLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final blackColor = theme.colorScheme.onSurface;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -225,7 +249,7 @@ class _MetaChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -234,7 +258,11 @@ class _MetaChip extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: isDark ? Colors.white60 : const Color(0xFF6F6F72)),
+          Icon(
+            icon,
+            size: 16,
+            color: isDark ? Colors.white60 : const Color(0xFF6F6F72),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(

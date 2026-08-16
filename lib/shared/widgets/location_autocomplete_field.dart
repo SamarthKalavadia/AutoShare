@@ -399,7 +399,9 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
                       padding: const EdgeInsets.only(right: 10),
                       child: IconButton(
                         icon: const Icon(Icons.my_location_rounded, size: 20),
-                        color: const Color(0xFFF6C000), // Primary Yellow GPS Icon
+                        color: const Color(
+                          0xFFF6C000,
+                        ), // Primary Yellow GPS Icon
                         tooltip: 'Use Current Location',
                         onPressed: _fetchAndSetCurrentLocation,
                       ),

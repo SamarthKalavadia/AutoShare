@@ -195,7 +195,7 @@ class AuthController extends Notifier<AsyncValue<UserModel?>> {
     if (user != null) {
       await user.reload();
       final updatedUser = FirebaseAuth.instance.currentUser;
-      
+
       if (updatedUser != null && updatedUser.emailVerified) {
         final fetchUserResult = await _userRepository.getUser(updatedUser.uid);
         if (fetchUserResult is Success<UserModel>) {
@@ -213,7 +213,7 @@ class AuthController extends Notifier<AsyncValue<UserModel?>> {
           }
         }
       }
-      
+
       return updatedUser;
     }
     return null;
@@ -266,7 +266,10 @@ class AuthController extends Notifier<AsyncValue<UserModel?>> {
       return const Success(null);
     } catch (e) {
       state = const AsyncValue.data(null);
-      return Failure('Failed to update profile details.', Exception(e.toString()));
+      return Failure(
+        'Failed to update profile details.',
+        Exception(e.toString()),
+      );
     }
   }
 
@@ -280,4 +283,6 @@ class AuthController extends Notifier<AsyncValue<UserModel?>> {
 }
 
 final authControllerProvider =
-    NotifierProvider<AuthController, AsyncValue<UserModel?>>(AuthController.new);
+    NotifierProvider<AuthController, AsyncValue<UserModel?>>(
+      AuthController.new,
+    );

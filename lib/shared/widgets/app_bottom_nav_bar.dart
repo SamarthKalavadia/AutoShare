@@ -40,9 +40,15 @@ class AppBottomNavBar extends StatelessWidget {
       unselectedItemColor: Colors.grey,
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.directions_car), label: 'My Rides'),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.directions_car),
+          label: 'My Rides',
+        ),
         BottomNavigationBarItem(icon: Icon(Icons.chat), label: 'Chats'),
-        BottomNavigationBarItem(icon: Icon(Icons.notifications), label: 'Notifications'),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.notifications),
+          label: 'Notifications',
+        ),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
       ],
     );

@@ -71,7 +71,8 @@ class ProfileAvatarPicker extends StatelessWidget {
                       label: 'Gallery',
                       onTap: () => _pickImage(context, ImageSource.gallery),
                     ),
-                    if (imageFile != null || (imageUrl != null && imageUrl!.isNotEmpty))
+                    if (imageFile != null ||
+                        (imageUrl != null && imageUrl!.isNotEmpty))
                       _SourceOption(
                         icon: Icons.delete_outline_rounded,
                         label: 'Remove',

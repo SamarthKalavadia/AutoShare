@@ -18,12 +18,12 @@ class ReportModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        reportId,
-        reporterUid,
-        reportedUid,
-        reason,
-        createdAt,
-      ];
+    reportId,
+    reporterUid,
+    reportedUid,
+    reason,
+    createdAt,
+  ];
 
   ReportModel copyWith({
     String? reportId,

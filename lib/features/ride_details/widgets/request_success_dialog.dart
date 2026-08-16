@@ -28,7 +28,10 @@ class _SuccessSheetState extends State<_SuccessSheet>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
     _scale = CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
     _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
     _ctrl.forward();
@@ -44,7 +47,7 @@ class _SuccessSheetState extends State<_SuccessSheet>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     final primaryColor = theme.colorScheme.primary;
     final blackColor = theme.colorScheme.onSurface;
     final bgSheetColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
@@ -122,14 +125,20 @@ class _SuccessSheetState extends State<_SuccessSheet>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isDark ? primaryColor.withValues(alpha: 0.1) : const Color(0xFFFFFBE6),
+              color: isDark
+                  ? primaryColor.withValues(alpha: 0.1)
+                  : const Color(0xFFFFFBE6),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.hourglass_top_rounded, size: 16, color: primaryColor),
+                Icon(
+                  Icons.hourglass_top_rounded,
+                  size: 16,
+                  color: primaryColor,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Status: Pending Owner Approval',

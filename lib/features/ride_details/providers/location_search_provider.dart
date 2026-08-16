@@ -47,19 +47,29 @@ class LocationSearchNotifier extends Notifier<LocationSearchState> {
   Future<void> _loadRecent() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getStringList(_recentKey) ?? [];
-    final recent = raw.map((e) => PlaceSuggestion.fromJson(Map<String, dynamic>.from(jsonDecode(e)))).toList();
+    final recent = raw
+        .map(
+          (e) => PlaceSuggestion.fromJson(
+            Map<String, dynamic>.from(jsonDecode(e)),
+          ),
+        )
+        .toList();
     state = state.copyWith(recent: recent);
   }
 
   Future<void> _saveRecent(List<PlaceSuggestion> recent) async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = recent.map((e) => jsonEncode({
-          'place_id': e.placeId,
-          'structured_formatting': {
-            'main_text': e.mainText,
-            'secondary_text': e.secondaryText,
-          },
-        })).toList();
+    final raw = recent
+        .map(
+          (e) => jsonEncode({
+            'place_id': e.placeId,
+            'structured_formatting': {
+              'main_text': e.mainText,
+              'secondary_text': e.secondaryText,
+            },
+          }),
+        )
+        .toList();
     await prefs.setStringList(_recentKey, raw);
   }
 
@@ -73,7 +83,10 @@ class LocationSearchNotifier extends Notifier<LocationSearchState> {
     _debounce = Timer(const Duration(milliseconds: 300), () async {
       state = state.copyWith(isLoading: true);
       try {
-        final results = await _service.autocomplete(query, sessionToken: _sessionToken);
+        final results = await _service.autocomplete(
+          query,
+          sessionToken: _sessionToken,
+        );
         state = state.copyWith(suggestions: results, isLoading: false);
       } catch (_) {
         state = state.copyWith(suggestions: [], isLoading: false);
@@ -83,9 +96,15 @@ class LocationSearchNotifier extends Notifier<LocationSearchState> {
 
   Future<PlaceDetails?> selectSuggestion(PlaceSuggestion suggestion) async {
     try {
-      final details = await _service.getPlaceDetails(suggestion.placeId, sessionToken: _sessionToken);
+      final details = await _service.getPlaceDetails(
+        suggestion.placeId,
+        sessionToken: _sessionToken,
+      );
       // Update recent list (max 5)
-      final List<PlaceSuggestion> updatedRecent = [suggestion, ...state.recent.where((e) => e.placeId != suggestion.placeId)].take(5).toList();
+      final List<PlaceSuggestion> updatedRecent = [
+        suggestion,
+        ...state.recent.where((e) => e.placeId != suggestion.placeId),
+      ].take(5).toList();
       state = state.copyWith(recent: updatedRecent);
       await _saveRecent(updatedRecent);
       // Reset query and suggestions
@@ -97,4 +116,7 @@ class LocationSearchNotifier extends Notifier<LocationSearchState> {
   }
 }
 
-final locationSearchProvider = NotifierProvider<LocationSearchNotifier, LocationSearchState>(LocationSearchNotifier.new);
+final locationSearchProvider =
+    NotifierProvider<LocationSearchNotifier, LocationSearchState>(
+      LocationSearchNotifier.new,
+    );

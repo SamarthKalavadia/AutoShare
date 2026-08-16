@@ -93,7 +93,9 @@ class RideRequestModel extends Equatable {
       ownerUid: map['ownerUid'] as String? ?? '',
       requesterUid: map['requesterUid'] as String? ?? '',
       requestedSeats: (map['requestedSeats'] as num?)?.toInt() ?? 1,
-      status: RideRequestStatus.fromString(map['status'] as String? ?? 'pending'),
+      status: RideRequestStatus.fromString(
+        map['status'] as String? ?? 'pending',
+      ),
       requestedAt: map['requestedAt'] is Timestamp
           ? (map['requestedAt'] as Timestamp).toDate()
           : DateTime.now(),
@@ -107,12 +109,12 @@ class RideRequestModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        requestId,
-        rideId,
-        ownerUid,
-        requesterUid,
-        requestedSeats,
-        status,
-        requestedAt,
-      ];
+    requestId,
+    rideId,
+    ownerUid,
+    requesterUid,
+    requestedSeats,
+    status,
+    requestedAt,
+  ];
 }

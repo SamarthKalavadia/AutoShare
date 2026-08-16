@@ -21,8 +21,7 @@ class ProfileCompletionPage extends ConsumerStatefulWidget {
       _ProfileCompletionPageState();
 }
 
-class _ProfileCompletionPageState
-    extends ConsumerState<ProfileCompletionPage> {
+class _ProfileCompletionPageState extends ConsumerState<ProfileCompletionPage> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _dobController = TextEditingController();
@@ -38,7 +37,7 @@ class _ProfileCompletionPageState
     'Male',
     'Female',
     'Non-binary',
-    'Prefer not to say'
+    'Prefer not to say',
   ];
 
   @override
@@ -172,7 +171,10 @@ class _ProfileCompletionPageState
                 DropdownButtonFormField<String>(
                   initialValue: _selectedGender,
                   decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.person_outline_rounded, size: 22),
+                    prefixIcon: const Icon(
+                      Icons.person_outline_rounded,
+                      size: 22,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),

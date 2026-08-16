@@ -6,7 +6,9 @@ import 'package:autoshare/features/auth/presentation/widgets/validation_text.dar
 
 void main() {
   group('Auth UI Reusable Widgets Tests', () {
-    testWidgets('PrimaryButton displays text and handles tap', (WidgetTester tester) async {
+    testWidgets('PrimaryButton displays text and handles tap', (
+      WidgetTester tester,
+    ) async {
       bool pressed = false;
       await tester.pumpWidget(
         MaterialApp(
@@ -26,12 +28,12 @@ void main() {
       expect(pressed, isTrue);
     });
 
-    testWidgets('PasswordField toggles obscureText when icon is tapped', (WidgetTester tester) async {
+    testWidgets('PasswordField toggles obscureText when icon is tapped', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: PasswordField(labelText: 'Password'),
-          ),
+          home: Scaffold(body: PasswordField(labelText: 'Password')),
         ),
       );
 
@@ -46,17 +48,18 @@ void main() {
       expect(editableText.obscureText, isFalse);
     });
 
-    testWidgets('ValidationText updates strength indicators based on password input', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: ValidationText(password: 'StrongP@ss1'),
+    testWidgets(
+      'ValidationText updates strength indicators based on password input',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(body: ValidationText(password: 'StrongP@ss1')),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Strong'), findsOneWidget);
-      expect(find.text('8+ chars'), findsOneWidget);
-    });
+        expect(find.text('Strong'), findsOneWidget);
+        expect(find.text('8+ chars'), findsOneWidget);
+      },
+    );
   });
 }

@@ -43,7 +43,8 @@ class AppLogo extends StatelessWidget {
           SizedBox(width: size * 0.3),
           Text(
             'AutoShare',
-            style: textStyle ??
+            style:
+                textStyle ??
                 GoogleFonts.inter(
                   fontSize: size * 0.65,
                   fontWeight: FontWeight.w800,

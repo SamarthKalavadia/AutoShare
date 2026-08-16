@@ -26,18 +26,22 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
 
     const primaryColor = Color(0xFFF6C000);
     final blackColor = theme.colorScheme.onSurface;
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final borderColor = isDark
+        ? const Color(0xFF333333)
+        : const Color(0xFFEAE5DD);
     final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
 
     final state = ref.watch(searchRideProvider);
     final notifier = ref.read(searchRideProvider.notifier);
-    
+
     final authState = ref.watch(authControllerProvider);
     final isFemale = authState.value?.gender.toLowerCase() == 'female';
     final isSearching = _isSearchingBoarding || _isSearchingDestination;
 
     final cardColor = isDark ? const Color(0xFF181818) : Colors.white;
-    final secondaryBg = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF6F5F3);
+    final secondaryBg = isDark
+        ? const Color(0xFF2A2A2A)
+        : const Color(0xFFF6F5F3);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -69,7 +73,9 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                   bottom: 40,
                   child: Container(
                     width: 1.5,
-                    color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
+                    color: isDark
+                        ? const Color(0xFF333333)
+                        : const Color(0xFFE0E0E0),
                   ),
                 ),
                 Column(
@@ -97,7 +103,9 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                       height: 1,
                       indent: 52,
                       endIndent: 68,
-                      color: isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0),
+                      color: isDark
+                          ? const Color(0xFF333333)
+                          : const Color(0xFFE0E0E0),
                     ),
                     const SizedBox(height: 16),
                     LocationAutocompleteField(
@@ -155,9 +163,9 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
               Expanded(
                 child: _DateTimeSelector(
                   icon: Icons.calendar_month_rounded,
-                  text: state.departureDate != null 
-                    ? DateFormat('MMM dd').format(state.departureDate!) 
-                    : 'Date',
+                  text: state.departureDate != null
+                      ? DateFormat('MMM dd').format(state.departureDate!)
+                      : 'Date',
                   onTap: () async {
                     final date = await showDatePicker(
                       context: context,
@@ -173,9 +181,9 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
               Expanded(
                 child: _DateTimeSelector(
                   icon: Icons.access_time_rounded,
-                  text: state.departureTime != null 
-                    ? DateFormat('hh:mm a').format(state.departureTime!) 
-                    : 'Time',
+                  text: state.departureTime != null
+                      ? DateFormat('hh:mm a').format(state.departureTime!)
+                      : 'Time',
                   onTap: () async {
                     final time = await showTimePicker(
                       context: context,
@@ -185,7 +193,15 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                     );
                     if (time != null) {
                       final now = DateTime.now();
-                      notifier.updateDepartureTime(DateTime(now.year, now.month, now.day, time.hour, time.minute));
+                      notifier.updateDepartureTime(
+                        DateTime(
+                          now.year,
+                          now.month,
+                          now.day,
+                          time.hour,
+                          time.minute,
+                        ),
+                      );
                     }
                   },
                 ),
@@ -193,7 +209,7 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
             ],
           ),
           const SizedBox(height: 20),
-          
+
           // Required Seats and Max Fare
           Row(
             children: [
@@ -203,11 +219,17 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                   children: [
                     Text(
                       'Required Seats',
-                      style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600, color: mutedText),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: mutedText,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: cardColor,
                         borderRadius: BorderRadius.circular(20),
@@ -228,7 +250,9 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                           _StepperButton(
                             icon: Icons.remove,
                             onTap: state.requiredSeats > 1
-                                ? () => notifier.updateRequiredSeats(state.requiredSeats - 1)
+                                ? () => notifier.updateRequiredSeats(
+                                    state.requiredSeats - 1,
+                                  )
                                 : null,
                           ),
                           AnimatedSwitcher(
@@ -245,7 +269,9 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                           _StepperButton(
                             icon: Icons.add,
                             onTap: state.requiredSeats < 4
-                                ? () => notifier.updateRequiredSeats(state.requiredSeats + 1)
+                                ? () => notifier.updateRequiredSeats(
+                                    state.requiredSeats + 1,
+                                  )
                                 : null,
                           ),
                         ],
@@ -261,10 +287,16 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                   children: [
                     Text(
                       'Max Fare (₹${state.maxFare.toInt()})',
-                      style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600, color: mutedText),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: mutedText,
+                      ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: cardColor,
                         borderRadius: BorderRadius.circular(20),
@@ -282,7 +314,9 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                       child: SliderTheme(
                         data: SliderTheme.of(context).copyWith(
                           activeTrackColor: primaryColor,
-                          inactiveTrackColor: isDark ? const Color(0xFF38383A) : const Color(0xFFEAE5DD),
+                          inactiveTrackColor: isDark
+                              ? const Color(0xFF38383A)
+                              : const Color(0xFFEAE5DD),
                           thumbColor: primaryColor,
                           overlayColor: primaryColor.withValues(alpha: 0.2),
                           trackHeight: 4,
@@ -302,7 +336,7 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Girls Only Toggle
           if (isFemale)
             Container(
@@ -329,7 +363,11 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                       color: primaryColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(Icons.female_rounded, size: 18, color: primaryColor),
+                    child: Icon(
+                      Icons.female_rounded,
+                      size: 18,
+                      color: primaryColor,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -348,25 +386,26 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                 ],
               ),
             ),
-          if (isFemale)
-            const SizedBox(height: 24),
-          
+          if (isFemale) const SizedBox(height: 24),
+
           // Search Button
           SizedBox(
             width: double.infinity,
             height: 56,
             child: FilledButton(
-              onPressed: state.isValid && !state.isLoading ? () => notifier.searchRides() : null,
+              onPressed: state.isValid && !state.isLoading
+                  ? () => notifier.searchRides()
+                  : null,
               style: FilledButton.styleFrom(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: state.isValid ? 4 : 0,
               ),
-              child: state.isLoading 
+              child: state.isLoading
                   ? SizedBox(
-                      width: 24, 
-                      height: 24, 
+                      width: 24,
+                      height: 24,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
                         valueColor: AlwaysStoppedAnimation<Color>(
@@ -389,8 +428,6 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
   }
 }
 
-
-
 class _DateTimeSelector extends StatelessWidget {
   final IconData icon;
   final String text;
@@ -407,7 +444,9 @@ class _DateTimeSelector extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF181818) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEAE5DD);
+    final borderColor = isDark
+        ? const Color(0xFF2A2A2A)
+        : const Color(0xFFEAE5DD);
     final textColor = theme.colorScheme.onSurface;
 
     return InkWell(
@@ -469,8 +508,16 @@ class _StepperButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: onTap != null ? activeBg : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
-          boxShadow: onTap != null 
-              ? [BoxShadow(color: isDark ? const Color(0x33000000) : const Color(0x0F000000), blurRadius: 4, offset: const Offset(0, 2))]
+          boxShadow: onTap != null
+              ? [
+                  BoxShadow(
+                    color: isDark
+                        ? const Color(0x33000000)
+                        : const Color(0x0F000000),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
               : [],
         ),
         child: Icon(

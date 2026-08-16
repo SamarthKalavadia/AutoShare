@@ -6,9 +6,13 @@ import '../utils/result.dart';
 class StorageService {
   final FirebaseStorage _storage;
 
-  StorageService({FirebaseStorage? storage}) : _storage = storage ?? FirebaseStorage.instance;
+  StorageService({FirebaseStorage? storage})
+    : _storage = storage ?? FirebaseStorage.instance;
 
-  Future<Result<String>> uploadProfilePicture(String uid, XFile imageFile) async {
+  Future<Result<String>> uploadProfilePicture(
+    String uid,
+    XFile imageFile,
+  ) async {
     try {
       final bytes = await imageFile.readAsBytes();
 
@@ -16,15 +20,19 @@ class StorageService {
       try {
         final ref = _storage.ref().child('profile_pictures').child('$uid.jpg');
         final uploadTask = ref.putData(
-          bytes, 
-          SettableMetadata(contentType: 'image/jpeg')
+          bytes,
+          SettableMetadata(contentType: 'image/jpeg'),
         );
         final snapshot = await uploadTask.timeout(const Duration(seconds: 2));
-        final downloadUrl = await snapshot.ref.getDownloadURL().timeout(const Duration(seconds: 1));
+        final downloadUrl = await snapshot.ref.getDownloadURL().timeout(
+          const Duration(seconds: 1),
+        );
         return Success(downloadUrl);
       } catch (e) {
         // ignore: avoid_print
-        print('Firebase Storage quick-attempt timed out/failed: $e. Using instant Base64 Firestore storage.');
+        print(
+          'Firebase Storage quick-attempt timed out/failed: $e. Using instant Base64 Firestore storage.',
+        );
       }
 
       // 2. Instant Base64 Fallback directly into Firebase Firestore (< 10ms)
@@ -32,7 +40,10 @@ class StorageService {
       final dataUri = 'data:image/jpeg;base64,$base64String';
       return Success(dataUri);
     } catch (err) {
-      return Failure('Failed to process profile image.', Exception(err.toString()));
+      return Failure(
+        'Failed to process profile image.',
+        Exception(err.toString()),
+      );
     }
   }
 

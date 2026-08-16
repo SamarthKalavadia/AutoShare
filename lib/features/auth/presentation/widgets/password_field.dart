@@ -70,8 +70,10 @@ class _PasswordFieldState extends State<PasswordField> {
                 });
               },
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide(color: theme.colorScheme.outline),
@@ -94,8 +96,9 @@ class _PasswordFieldState extends State<PasswordField> {
               borderSide: BorderSide(color: theme.colorScheme.error),
             ),
             filled: true,
-            fillColor: theme.colorScheme.surfaceContainerHighest
-                .withValues(alpha: 0.3),
+            fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.3,
+            ),
           ),
         ),
       ],

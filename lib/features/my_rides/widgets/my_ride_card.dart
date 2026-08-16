@@ -31,14 +31,18 @@ class MyRideCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final surfaceColor = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    final surfaceColor =
+        theme.cardTheme.color ??
+        (isDark ? const Color(0xFF1E1E1E) : Colors.white);
     final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
     final blackColor = theme.colorScheme.onSurface;
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final borderColor = isDark
+        ? const Color(0xFF333333)
+        : const Color(0xFFEAE5DD);
 
     final ride = data.ride;
     final status = data.displayStatus;
-    
+
     // Status color mapping
     Color badgeColor;
     Color badgeTextColor = Colors.white;
@@ -102,7 +106,10 @@ class MyRideCard extends ConsumerWidget {
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: badgeColor,
                   borderRadius: BorderRadius.circular(12),
@@ -148,11 +155,10 @@ class MyRideCard extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      DateFormat('MMM d, yyyy • h:mm a').format(ride.departureTime),
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: mutedText,
-                      ),
+                      DateFormat(
+                        'MMM d, yyyy • h:mm a',
+                      ).format(ride.departureTime),
+                      style: GoogleFonts.inter(fontSize: 13, color: mutedText),
                     ),
                   ],
                 ),
@@ -304,7 +310,9 @@ class MyRideCard extends ConsumerWidget {
             const SizedBox(height: 12),
             Consumer(
               builder: (context, ref, _) {
-                final driverAsync = ref.watch(userProfileProvider(ride.driverId));
+                final driverAsync = ref.watch(
+                  userProfileProvider(ride.driverId),
+                );
                 return driverAsync.when(
                   data: (driver) {
                     return Row(
@@ -312,23 +320,32 @@ class MyRideCard extends ConsumerWidget {
                         Expanded(
                           child: InkWell(
                             onTap: () {
-                              context.push('/chat', extra: ChatPageArgs(
-                                ride: ride,
-                                otherParticipantUid: driver.uid,
-                                otherParticipantName: driver.name,
-                              ));
+                              context.push(
+                                '/chat',
+                                extra: ChatPageArgs(
+                                  ride: ride,
+                                  otherParticipantUid: driver.uid,
+                                  otherParticipantName: driver.name,
+                                ),
+                              );
                             },
                             borderRadius: BorderRadius.circular(14),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF6C000), // Primary Yellow
+                                color: const Color(
+                                  0xFFF6C000,
+                                ), // Primary Yellow
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.chat_bubble_outline, size: 16, color: blackColor),
+                                  Icon(
+                                    Icons.chat_bubble_outline,
+                                    size: 16,
+                                    color: blackColor,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Chat',
@@ -349,20 +366,29 @@ class MyRideCard extends ConsumerWidget {
                             onTap: () async {
                               final url = Uri.parse('tel:${driver.phone}');
                               if (await canLaunchUrl(url)) {
-                                await launchUrl(url, mode: LaunchMode.externalApplication);
+                                await launchUrl(
+                                  url,
+                                  mode: LaunchMode.externalApplication,
+                                );
                               }
                             },
                             borderRadius: BorderRadius.circular(14),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+                                color: isDark
+                                    ? const Color(0xFF2C2C2E)
+                                    : const Color(0xFFF2F2F7),
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.phone_outlined, size: 16, color: blackColor),
+                                  Icon(
+                                    Icons.phone_outlined,
+                                    size: 16,
+                                    color: blackColor,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Call',
@@ -381,23 +407,37 @@ class MyRideCard extends ConsumerWidget {
                         Expanded(
                           child: InkWell(
                             onTap: () async {
-                              final cleanPhone = driver.phone.replaceAll(RegExp(r'[^\d+]'), '');
-                              final url = Uri.parse('https://wa.me/$cleanPhone');
+                              final cleanPhone = driver.phone.replaceAll(
+                                RegExp(r'[^\d+]'),
+                                '',
+                              );
+                              final url = Uri.parse(
+                                'https://wa.me/$cleanPhone',
+                              );
                               if (await canLaunchUrl(url)) {
-                                await launchUrl(url, mode: LaunchMode.externalApplication);
+                                await launchUrl(
+                                  url,
+                                  mode: LaunchMode.externalApplication,
+                                );
                               }
                             },
                             borderRadius: BorderRadius.circular(14),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF25D366), // WhatsApp Green
+                                color: const Color(
+                                  0xFF25D366,
+                                ), // WhatsApp Green
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.message_outlined, size: 16, color: Colors.white),
+                                  const Icon(
+                                    Icons.message_outlined,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     'WhatsApp',

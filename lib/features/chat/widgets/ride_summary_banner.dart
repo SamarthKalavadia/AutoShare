@@ -14,11 +14,13 @@ class RideSummaryBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     final primaryColor = theme.colorScheme.primary;
     final blackColor = theme.colorScheme.onSurface;
     final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
-    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    final cardBg =
+        theme.cardTheme.color ??
+        (isDark ? const Color(0xFF1E1E1E) : Colors.white);
     final iconBg = primaryColor.withValues(alpha: isDark ? 0.2 : 0.3);
 
     return Container(
@@ -28,14 +30,21 @@ class RideSummaryBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(20),
-        border: isDark ? Border.all(color: const Color(0xFF333333), width: 1.1) : Border.all(color: primaryColor.withValues(alpha: 0.1), width: 1.5),
-        boxShadow: isDark ? [] : [
-          BoxShadow(
-            color: const Color(0xFF121212).withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: isDark
+            ? Border.all(color: const Color(0xFF333333), width: 1.1)
+            : Border.all(
+                color: primaryColor.withValues(alpha: 0.1),
+                width: 1.5,
+              ),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: const Color(0xFF121212).withValues(alpha: 0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Row(
         children: [
@@ -64,9 +73,7 @@ class RideSummaryBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   DateFormat('MMM d • h:mm a').format(ride.departureTime),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: mutedText,
-                  ),
+                  style: theme.textTheme.labelSmall?.copyWith(color: mutedText),
                 ),
               ],
             ),
@@ -83,7 +90,10 @@ class RideSummaryBanner extends StatelessWidget {
               ),
               Text(
                 'per seat',
-                style: theme.textTheme.labelSmall?.copyWith(fontSize: 10, color: mutedText),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontSize: 10,
+                  color: mutedText,
+                ),
               ),
             ],
           ),

@@ -14,10 +14,8 @@ import 'features/settings/providers/settings_provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   await NotificationService().init();
 
   // Enable Offline Persistence
@@ -35,11 +33,7 @@ Future<void> main() async {
     return true;
   };
 
-  runApp(
-    const ProviderScope(
-      child: AutoShareApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: AutoShareApp()));
 }
 
 class AutoShareApp extends ConsumerWidget {

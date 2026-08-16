@@ -30,7 +30,9 @@ class _SplashPageState extends ConsumerState<SplashPage>
     super.initState();
     _animCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2200), // Adjusted for smooth, unhurried feel
+      duration: const Duration(
+        milliseconds: 2200,
+      ), // Adjusted for smooth, unhurried feel
     );
 
     // App icon begins slightly scaled down and transparent (0.10s to 0.70s equivalent out of 2.2s -> 4.5% to 32%)
@@ -48,12 +50,13 @@ class _SplashPageState extends ConsumerState<SplashPage>
     );
 
     // Brand name appears (e.g. 0.70s to 1.3s -> 32% to 59%)
-    _titleSlideAnim = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-      CurvedAnimation(
-        parent: _animCtrl,
-        curve: const Interval(0.32, 0.59, curve: Curves.easeOutCubic),
-      ),
-    );
+    _titleSlideAnim =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animCtrl,
+            curve: const Interval(0.32, 0.59, curve: Curves.easeOutCubic),
+          ),
+        );
     _titleFadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animCtrl,
@@ -94,31 +97,21 @@ class _SplashPageState extends ConsumerState<SplashPage>
     final onboardingAsync = ref.read(onboardingCompletedProvider);
     final authControllerAsync = ref.read(authControllerProvider);
 
-    if (authAsync.isLoading || onboardingAsync.isLoading || authControllerAsync.isLoading) {
-      ref.listenManual(
-        authStateProvider,
-        (_, next) {
-          if (!next.isLoading) _navigateIfReady();
-        },
-        fireImmediately: false,
-      );
-      ref.listenManual(
-        onboardingCompletedProvider,
-        (_, next) {
-          if (!next.isLoading) _navigateIfReady();
-        },
-        fireImmediately: false,
-      );
-      ref.listenManual(
-        authControllerProvider,
-        (_, next) {
-          if (!next.isLoading) _navigateIfReady();
-        },
-        fireImmediately: false,
-      );
+    if (authAsync.isLoading ||
+        onboardingAsync.isLoading ||
+        authControllerAsync.isLoading) {
+      ref.listenManual(authStateProvider, (_, next) {
+        if (!next.isLoading) _navigateIfReady();
+      }, fireImmediately: false);
+      ref.listenManual(onboardingCompletedProvider, (_, next) {
+        if (!next.isLoading) _navigateIfReady();
+      }, fireImmediately: false);
+      ref.listenManual(authControllerProvider, (_, next) {
+        if (!next.isLoading) _navigateIfReady();
+      }, fireImmediately: false);
       return;
     }
-    
+
     _navigateIfReady();
   }
 
@@ -129,7 +122,10 @@ class _SplashPageState extends ConsumerState<SplashPage>
     final onboardingAsync = ref.read(onboardingCompletedProvider);
     final authControllerAsync = ref.read(authControllerProvider);
 
-    if (authAsync.isLoading || onboardingAsync.isLoading || authControllerAsync.isLoading) return;
+    if (authAsync.isLoading ||
+        onboardingAsync.isLoading ||
+        authControllerAsync.isLoading)
+      return;
 
     _hasNavigated = true;
 
@@ -157,16 +153,21 @@ class _SplashPageState extends ConsumerState<SplashPage>
     final onboardingAsync = ref.watch(onboardingCompletedProvider);
     final authControllerAsync = ref.watch(authControllerProvider);
 
-    final allResolved = !authAsync.isLoading && !onboardingAsync.isLoading && !authControllerAsync.isLoading;
+    final allResolved =
+        !authAsync.isLoading &&
+        !onboardingAsync.isLoading &&
+        !authControllerAsync.isLoading;
     if (allResolved && !_hasNavigated && _isAnimationComplete) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _navigateIfReady());
     }
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     // Using deep dark for dark mode, and existing surface for light mode
-    final backgroundColor = isDark ? const Color(0xFF121212) : theme.colorScheme.surface;
+    final backgroundColor = isDark
+        ? const Color(0xFF121212)
+        : theme.colorScheme.surface;
     final textColor = isDark ? Colors.white : const Color(0xFF121212);
     final subtitleColor = isDark ? Colors.white70 : const Color(0xFF6F6F72);
 

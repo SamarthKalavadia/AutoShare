@@ -8,20 +8,26 @@ class UserRepository {
   final FirestoreService _firestoreService;
 
   UserRepository({FirestoreService? firestoreService})
-      : _firestoreService = firestoreService ?? FirestoreService();
+    : _firestoreService = firestoreService ?? FirestoreService();
 
   /// Retrieves a user by their [uid].
   Future<Result<UserModel>> getUser(String uid) async {
     try {
       final doc = await _firestoreService.usersCollection.doc(uid).get();
       if (!doc.exists) {
-        return Failure('User not found.', const FirestoreException('User document does not exist.'));
+        return Failure(
+          'User not found.',
+          const FirestoreException('User document does not exist.'),
+        );
       }
       return Success(UserModel.fromDocument(doc));
     } on FirebaseException catch (e) {
       // ignore: avoid_print
       print('UserRepository.getUser Error: \$e');
-      return Failure(e.message ?? 'Failed to fetch user.', FirestoreException(e.code));
+      return Failure(
+        e.message ?? 'Failed to fetch user.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       // ignore: avoid_print
       print('UserRepository.getUser Unknown Error: \$e');
@@ -37,7 +43,10 @@ class UserRepository {
     } on FirebaseException catch (e) {
       // ignore: avoid_print
       print('UserRepository.createUser Error: \$e');
-      return Failure(e.message ?? 'Failed to create user.', FirestoreException(e.code));
+      return Failure(
+        e.message ?? 'Failed to create user.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       // ignore: avoid_print
       print('UserRepository.createUser Unknown Error: \$e');
@@ -54,7 +63,10 @@ class UserRepository {
     } on FirebaseException catch (e) {
       // ignore: avoid_print
       print('UserRepository.updateUser Error: \$e');
-      return Failure(e.message ?? 'Failed to update user.', FirestoreException(e.code));
+      return Failure(
+        e.message ?? 'Failed to update user.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       // ignore: avoid_print
       print('UserRepository.updateUser Unknown Error: \$e');
@@ -69,15 +81,18 @@ class UserRepository {
   }) async {
     try {
       if (updates.isEmpty) return const Success(null);
-      
+
       updates['updatedAt'] = FieldValue.serverTimestamp();
       await _firestoreService.usersCollection.doc(uid).update(updates);
-      
+
       return const Success(null);
     } on FirebaseException catch (e) {
       // ignore: avoid_print
       print('UserRepository.updateProfile Error: \$e');
-      return Failure(e.message ?? 'Failed to update profile.', FirestoreException(e.code));
+      return Failure(
+        e.message ?? 'Failed to update profile.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       // ignore: avoid_print
       print('UserRepository.updateProfile Unknown Error: \$e');
@@ -96,7 +111,10 @@ class UserRepository {
     } on FirebaseException catch (e) {
       // ignore: avoid_print
       print('UserRepository.updateProfileImage Error: \$e');
-      return Failure(e.message ?? 'Failed to update profile image.', FirestoreException(e.code));
+      return Failure(
+        e.message ?? 'Failed to update profile image.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       // ignore: avoid_print
       print('UserRepository.updateProfileImage Unknown Error: $e');
@@ -107,9 +125,13 @@ class UserRepository {
   /// Streams real-time updates for a user.
   Stream<Result<UserModel>> streamUser(String uid) async* {
     try {
-      await for (final doc in _firestoreService.usersCollection.doc(uid).snapshots()) {
+      await for (final doc
+          in _firestoreService.usersCollection.doc(uid).snapshots()) {
         if (!doc.exists) {
-          yield Failure('User not found.', const FirestoreException('User document does not exist.'));
+          yield Failure(
+            'User not found.',
+            const FirestoreException('User document does not exist.'),
+          );
         } else {
           yield Success(UserModel.fromDocument(doc));
         }
@@ -129,7 +151,10 @@ class UserRepository {
     } on FirebaseException catch (e) {
       // ignore: avoid_print
       print('UserRepository.deleteUser Error: \$e');
-      return Failure(e.message ?? 'Failed to delete user.', FirestoreException(e.code));
+      return Failure(
+        e.message ?? 'Failed to delete user.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       // ignore: avoid_print
       print('UserRepository.deleteUser Unknown Error: \$e');
@@ -141,19 +166,24 @@ class UserRepository {
   Future<Result<List<UserModel>>> searchUser(String query) async {
     try {
       if (query.isEmpty) return const Success([]);
-      
+
       // Basic prefix search — Firestore range query ending with Unicode high surrogate.
       final snapshot = await _firestoreService.usersCollection
           .where('name', isGreaterThanOrEqualTo: query)
           .where('name', isLessThanOrEqualTo: '$query\uf8ff')
           .get();
 
-      final users = snapshot.docs.map((doc) => UserModel.fromDocument(doc)).toList();
+      final users = snapshot.docs
+          .map((doc) => UserModel.fromDocument(doc))
+          .toList();
       return Success(users);
     } on FirebaseException catch (e) {
       // ignore: avoid_print
       print('UserRepository.searchUser Error: \$e');
-      return Failure(e.message ?? 'Failed to search users.', FirestoreException(e.code));
+      return Failure(
+        e.message ?? 'Failed to search users.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       // ignore: avoid_print
       print('UserRepository.searchUser Unknown Error: \$e');
@@ -169,7 +199,10 @@ class UserRepository {
     } on FirebaseException catch (e) {
       // ignore: avoid_print
       print('UserRepository.checkUserExists Error: \$e');
-      return Failure(e.message ?? 'Failed to check user existence.', FirestoreException(e.code));
+      return Failure(
+        e.message ?? 'Failed to check user existence.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       // ignore: avoid_print
       print('UserRepository.checkUserExists Unknown Error: \$e');

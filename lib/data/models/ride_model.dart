@@ -135,21 +135,21 @@ class RideModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        driverId,
-        boardingLocation,
-        destination,
-        departureTime,
-        availableSeats,
-        farePerSeat,
-        vehicleNumber,
-        description,
-        isGirlsOnly,
-        status,
-        createdAt,
-        driverName,
-        driverRating,
-        estimatedDuration,
-        distance,
-      ];
+    id,
+    driverId,
+    boardingLocation,
+    destination,
+    departureTime,
+    availableSeats,
+    farePerSeat,
+    vehicleNumber,
+    description,
+    isGirlsOnly,
+    status,
+    createdAt,
+    driverName,
+    driverRating,
+    estimatedDuration,
+    distance,
+  ];
 }

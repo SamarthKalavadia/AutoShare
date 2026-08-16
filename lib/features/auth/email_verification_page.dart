@@ -16,8 +16,7 @@ class EmailVerificationPage extends ConsumerStatefulWidget {
       _EmailVerificationPageState();
 }
 
-class _EmailVerificationPageState
-    extends ConsumerState<EmailVerificationPage> {
+class _EmailVerificationPageState extends ConsumerState<EmailVerificationPage> {
   Timer? _pollingTimer;
   bool _isResending = false;
   bool _isChecking = false;

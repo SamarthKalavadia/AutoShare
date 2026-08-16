@@ -6,7 +6,10 @@ import '../../../data/models/rating_model.dart';
 import '../../../data/repositories/rating_repository.dart';
 import '../../../core/utils/result.dart';
 
-final userProfileProvider = FutureProvider.family<UserModel, String>((ref, userId) async {
+final userProfileProvider = FutureProvider.family<UserModel, String>((
+  ref,
+  userId,
+) async {
   final userRepo = ref.watch(userRepositoryProvider);
   final result = await userRepo.getUser(userId);
   if (result is Success<UserModel>) {
@@ -17,7 +20,10 @@ final userProfileProvider = FutureProvider.family<UserModel, String>((ref, userI
   throw Exception('Unknown error fetching user');
 });
 
-final userRatingsProvider = StreamProvider.family<List<RatingModel>, String>((ref, userId) {
+final userRatingsProvider = StreamProvider.family<List<RatingModel>, String>((
+  ref,
+  userId,
+) {
   final ratingRepo = ref.watch(ratingRepositoryProvider);
   return ratingRepo.streamRatingsForUser(userId);
 });

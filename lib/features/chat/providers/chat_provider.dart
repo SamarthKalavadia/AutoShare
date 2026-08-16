@@ -11,27 +11,28 @@ import 'package:autoshare/features/auth/presentation/controllers/auth_controller
 // ── Chat Room Init ────────────────────────────────────────────────────────────
 
 final chatRoomInitProvider = FutureProvider.autoDispose
-    .family<void, ({String rideId, List<String> participants})>(
-  (ref, args) async {
-    final repo = ref.watch(chatRepositoryProvider);
-    await repo.ensureChatRoom(
-        rideId: args.rideId, participants: args.participants);
-  },
-);
+    .family<void, ({String rideId, List<String> participants})>((
+      ref,
+      args,
+    ) async {
+      final repo = ref.watch(chatRepositoryProvider);
+      await repo.ensureChatRoom(
+        rideId: args.rideId,
+        participants: args.participants,
+      );
+    });
 
 // ── Messages Stream ───────────────────────────────────────────────────────────
 
-final chatMessagesProvider =
-    StreamProvider.autoDispose.family<List<ChatMessage>, String>(
-  (ref, rideId) => ref.watch(chatRepositoryProvider).streamMessages(rideId),
-);
+final chatMessagesProvider = StreamProvider.autoDispose
+    .family<List<ChatMessage>, String>(
+      (ref, rideId) => ref.watch(chatRepositoryProvider).streamMessages(rideId),
+    );
 
 // ── Chat Room Stream ──────────────────────────────────────────────────────────
 
-final chatRoomProvider =
-    StreamProvider.autoDispose.family<ChatRoom?, String>(
-  (ref, rideId) =>
-      ref.watch(chatRepositoryProvider).streamChatRoom(rideId),
+final chatRoomProvider = StreamProvider.autoDispose.family<ChatRoom?, String>(
+  (ref, rideId) => ref.watch(chatRepositoryProvider).streamChatRoom(rideId),
 );
 
 // ── Chat Input State ─────────────────────────────────────────────────────────
@@ -41,7 +42,9 @@ class ChatInputState {
   final bool isSending;
   const ChatInputState({this.text = '', this.isSending = false});
   ChatInputState copyWith({String? text, bool? isSending}) => ChatInputState(
-      text: text ?? this.text, isSending: isSending ?? this.isSending);
+    text: text ?? this.text,
+    isSending: isSending ?? this.isSending,
+  );
 }
 
 class ChatNotifier extends Notifier<ChatInputState> {
@@ -75,8 +78,7 @@ class ChatNotifier extends Notifier<ChatInputState> {
     state = state.copyWith(text: text);
     _setTyping(true);
     _typingTimer?.cancel();
-    _typingTimer =
-        Timer(const Duration(seconds: 3), () => _setTyping(false));
+    _typingTimer = Timer(const Duration(seconds: 3), () => _setTyping(false));
   }
 
   Future<bool> sendMessage() async {
@@ -96,17 +98,14 @@ class ChatNotifier extends Notifier<ChatInputState> {
       text: text,
     );
 
-    final result =
-        await ref.read(chatRepositoryProvider).sendMessage(message);
+    final result = await ref.read(chatRepositoryProvider).sendMessage(message);
     state = state.copyWith(isSending: false);
     return result is Success;
   }
 
   Future<void> deleteMessage(String messageId) async {
     if (_rideId == null) return;
-    await ref
-        .read(chatRepositoryProvider)
-        .deleteMessage(_rideId!, messageId);
+    await ref.read(chatRepositoryProvider).deleteMessage(_rideId!, messageId);
   }
 
   Future<void> markRead(String messageId) async {
@@ -117,7 +116,9 @@ class ChatNotifier extends Notifier<ChatInputState> {
   }
 }
 
-final chatProvider = NotifierProvider<ChatNotifier, ChatInputState>(ChatNotifier.new);
+final chatProvider = NotifierProvider<ChatNotifier, ChatInputState>(
+  ChatNotifier.new,
+);
 
 // ── Chat Page Args ────────────────────────────────────────────────────────────
 

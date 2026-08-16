@@ -27,7 +27,10 @@ class AppButton extends StatelessWidget {
         elevation: 2,
       ),
       onPressed: onPressed,
-      child: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      ),
     );
   }
 }

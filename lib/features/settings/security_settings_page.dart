@@ -9,7 +9,8 @@ class SecuritySettingsPage extends ConsumerStatefulWidget {
   const SecuritySettingsPage({super.key});
 
   @override
-  ConsumerState<SecuritySettingsPage> createState() => _SecuritySettingsPageState();
+  ConsumerState<SecuritySettingsPage> createState() =>
+      _SecuritySettingsPageState();
 }
 
 class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
@@ -38,7 +39,9 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
               Navigator.pop(ctx);
               _sendResetLink(email);
             },
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF121212)),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF121212),
+            ),
             child: const Text('Send Reset Link'),
           ),
         ],
@@ -48,7 +51,9 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
 
   Future<void> _sendResetLink(String email) async {
     setState(() => _isResetting = true);
-    final result = await ref.read(authControllerProvider.notifier).resetPassword(email);
+    final result = await ref
+        .read(authControllerProvider.notifier)
+        .resetPassword(email);
     setState(() => _isResetting = false);
 
     if (mounted) {
@@ -65,8 +70,15 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        icon: const Icon(Icons.mark_email_read_rounded, size: 48, color: Color(0xFF2E7D32)),
-        title: Text('Email Sent', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        icon: const Icon(
+          Icons.mark_email_read_rounded,
+          size: 48,
+          color: Color(0xFF2E7D32),
+        ),
+        title: Text(
+          'Email Sent',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+        ),
         content: Text(
           'Password reset email sent successfully.\n\nPlease check your inbox and follow the instructions to create a new password.',
           textAlign: TextAlign.center,
@@ -92,8 +104,14 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Error', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-        content: Text(message, style: GoogleFonts.inter(color: const Color(0xFFD32F2F))),
+        title: Text(
+          'Error',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          message,
+          style: GoogleFonts.inter(color: const Color(0xFFD32F2F)),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -118,7 +136,11 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
         backgroundColor: backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: blackColor, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: blackColor,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -141,9 +163,19 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
                   title: 'Change Password',
                   subtitle: 'Send a reset link to your email',
                   onTap: () => _showResetConfirmation(user.email),
-                  trailing: _isResetting 
-                      ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: primaryColor))
-                      : const Icon(Icons.chevron_right_rounded, color: Color(0xFF8E8E93)),
+                  trailing: _isResetting
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: primaryColor,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.chevron_right_rounded,
+                          color: Color(0xFF8E8E93),
+                        ),
                 ),
                 const Divider(height: 1, color: Color(0xFFEAE5DD)),
                 _buildListTile(
@@ -151,11 +183,15 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
                   title: 'Email Verification Status',
                   subtitle: user.emailVerified ? 'Verified' : 'Unverified',
                   trailing: Icon(
-                    user.emailVerified ? Icons.check_circle_rounded : Icons.error_rounded,
-                    color: user.emailVerified ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F),
+                    user.emailVerified
+                        ? Icons.check_circle_rounded
+                        : Icons.error_rounded,
+                    color: user.emailVerified
+                        ? const Color(0xFF2E7D32)
+                        : const Color(0xFFD32F2F),
                   ),
                 ),
-                
+
                 const SizedBox(height: 32),
                 _buildSectionTitle('Session'),
                 _buildListTile(
@@ -202,10 +238,20 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
       ),
       title: Text(
         title,
-        style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF121212)),
+        style: GoogleFonts.inter(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF121212),
+        ),
       ),
       subtitle: subtitle != null
-          ? Text(subtitle, style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF6F6F72)))
+          ? Text(
+              subtitle,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: const Color(0xFF6F6F72),
+              ),
+            )
           : null,
       trailing: trailing,
       onTap: onTap,

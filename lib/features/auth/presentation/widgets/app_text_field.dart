@@ -73,8 +73,10 @@ class AppTextField extends StatelessWidget {
             ),
             prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: 22) : null,
             suffixIcon: suffixIcon,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide(color: theme.colorScheme.outline),
@@ -97,8 +99,9 @@ class AppTextField extends StatelessWidget {
               borderSide: BorderSide(color: theme.colorScheme.error),
             ),
             filled: true,
-            fillColor: theme.colorScheme.surfaceContainerHighest
-                .withValues(alpha: 0.3),
+            fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.3,
+            ),
           ),
         ),
       ],

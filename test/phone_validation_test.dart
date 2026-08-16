@@ -11,32 +11,35 @@ import 'package:autoshare/data/models/user_model.dart';
 class MockAuthController extends AuthController {
   @override
   AsyncValue<UserModel?> build() {
-    return AsyncValue.data(UserModel.empty().copyWith(
-      uid: 'test_uid',
-      name: 'John Doe',
-      phone: '9876543210',
-      gender: 'Male',
-    ));
+    return AsyncValue.data(
+      UserModel.empty().copyWith(
+        uid: 'test_uid',
+        name: 'John Doe',
+        phone: '9876543210',
+        gender: 'Male',
+      ),
+    );
   }
 }
 
 void main() {
   group('Phone Number Formatters & Validation Tests - Register Page', () {
-    testWidgets('Verify formatters and validation messages', (WidgetTester tester) async {
+    testWidgets('Verify formatters and validation messages', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             authControllerProvider.overrideWith(() => MockAuthController()),
           ],
-          child: const MaterialApp(
-            home: RegisterPage(),
-          ),
+          child: const MaterialApp(home: RegisterPage()),
         ),
       );
 
       // Find by AppTextField since we know RegisterPage uses it
       final appTextFieldFinder = find.byWidgetPredicate(
-        (widget) => widget is AppTextField && widget.labelText == 'Phone number'
+        (widget) =>
+            widget is AppTextField && widget.labelText == 'Phone number',
       );
       expect(appTextFieldFinder, findsOneWidget);
 
@@ -49,7 +52,7 @@ void main() {
 
       // Verify formatters exist and block non-digits and length > 10
       expect(formatters!.any((f) => f is FilteringTextInputFormatter), isTrue);
-      
+
       // Test formatters behavior manually
       TextEditingValue val = const TextEditingValue(text: '98765abc10');
       for (final formatter in formatters) {
@@ -62,7 +65,10 @@ void main() {
       for (final formatter in formatters) {
         val = formatter.formatEditUpdate(TextEditingValue.empty, val);
       }
-      expect(val.text, '9198765432'); // + and space and - are removed, limited to 10 digits
+      expect(
+        val.text,
+        '9198765432',
+      ); // + and space and - are removed, limited to 10 digits
 
       // Pasting more than 10 digits
       val = const TextEditingValue(text: '98765432101');
@@ -79,7 +85,10 @@ void main() {
       // 2. 1-9 digits
       expect(validator!('1'), 'Please enter a valid 10-digit phone number');
       expect(validator!('9876'), 'Please enter a valid 10-digit phone number');
-      expect(validator!('987654321'), 'Please enter a valid 10-digit phone number');
+      expect(
+        validator!('987654321'),
+        'Please enter a valid 10-digit phone number',
+      );
 
       // 3. Exactly 10 digits starting with 6
       expect(validator!('6876543210'), isNull);
@@ -94,21 +103,27 @@ void main() {
       expect(validator!('9876543210'), isNull);
 
       // 7. First digit validation
-      expect(validator!('1234567890'), 'Please enter a valid 10-digit mobile number');
-      expect(validator!('5123456789'), 'Please enter a valid 10-digit mobile number');
+      expect(
+        validator!('1234567890'),
+        'Please enter a valid 10-digit mobile number',
+      );
+      expect(
+        validator!('5123456789'),
+        'Please enter a valid 10-digit mobile number',
+      );
     });
   });
 
   group('Phone Number Formatters & Validation Tests - Edit Profile Page', () {
-    testWidgets('Verify formatters and validation messages', (WidgetTester tester) async {
+    testWidgets('Verify formatters and validation messages', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             authControllerProvider.overrideWith(() => MockAuthController()),
           ],
-          child: const MaterialApp(
-            home: EditProfilePage(),
-          ),
+          child: const MaterialApp(home: EditProfilePage()),
         ),
       );
 
@@ -117,7 +132,9 @@ void main() {
 
       // Find the TextField by its hint text
       final textFieldFinder = find.byWidgetPredicate(
-        (widget) => widget is TextField && widget.decoration?.hintText == 'Enter your phone number'
+        (widget) =>
+            widget is TextField &&
+            widget.decoration?.hintText == 'Enter your phone number',
       );
       expect(textFieldFinder, findsOneWidget);
 
@@ -138,7 +155,7 @@ void main() {
 
       // Verify formatters exist and block non-digits and length > 10
       expect(formatters!.any((f) => f is FilteringTextInputFormatter), isTrue);
-      
+
       // Test formatters behavior manually
       TextEditingValue val = const TextEditingValue(text: '98765abc10');
       for (final formatter in formatters) {
@@ -151,7 +168,10 @@ void main() {
       for (final formatter in formatters) {
         val = formatter.formatEditUpdate(TextEditingValue.empty, val);
       }
-      expect(val.text, '9198765432'); // + and space and - are removed, limited to 10 digits
+      expect(
+        val.text,
+        '9198765432',
+      ); // + and space and - are removed, limited to 10 digits
 
       // Pasting more than 10 digits
       val = const TextEditingValue(text: '98765432101');
@@ -168,7 +188,10 @@ void main() {
       // 2. 1-9 digits
       expect(validator!('1'), 'Please enter a valid 10-digit phone number');
       expect(validator!('9876'), 'Please enter a valid 10-digit phone number');
-      expect(validator!('987654321'), 'Please enter a valid 10-digit phone number');
+      expect(
+        validator!('987654321'),
+        'Please enter a valid 10-digit phone number',
+      );
 
       // 3. Exactly 10 digits starting with 6
       expect(validator!('6876543210'), isNull);
@@ -183,8 +206,14 @@ void main() {
       expect(validator!('9876543210'), isNull);
 
       // 7. First digit validation
-      expect(validator!('1234567890'), 'Please enter a valid 10-digit mobile number');
-      expect(validator!('5123456789'), 'Please enter a valid 10-digit mobile number');
+      expect(
+        validator!('1234567890'),
+        'Please enter a valid 10-digit mobile number',
+      );
+      expect(
+        validator!('5123456789'),
+        'Please enter a valid 10-digit mobile number',
+      );
     });
   });
 }

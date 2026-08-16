@@ -74,29 +74,43 @@ class HomeSearchNotifier extends Notifier<HomeSearchState> {
     return const HomeSearchState();
   }
 
-  void updateBoarding(String value, {String? placeId, String? address, double? lat, double? lng}) => state = state.copyWith(
+  void updateBoarding(
+    String value, {
+    String? placeId,
+    String? address,
+    double? lat,
+    double? lng,
+  }) => state = state.copyWith(
     boarding: value,
     boardingPlaceId: placeId,
     boardingAddress: address,
     boardingLat: lat,
     boardingLng: lng,
   );
-  void updateDestination(String value, {String? placeId, String? address, double? lat, double? lng}) => state = state.copyWith(
+  void updateDestination(
+    String value, {
+    String? placeId,
+    String? address,
+    double? lat,
+    double? lng,
+  }) => state = state.copyWith(
     destination: value,
     destinationPlaceId: placeId,
     destinationAddress: address,
     destinationLat: lat,
     destinationLng: lng,
   );
-  void updateDate(DateTime value) => state = state.copyWith(departureDate: value);
+  void updateDate(DateTime value) =>
+      state = state.copyWith(departureDate: value);
   void updateTime(String value) => state = state.copyWith(departureTime: value);
   void updatePassengers(int value) => state = state.copyWith(passengers: value);
   void toggleGirlsOnly(bool value) => state = state.copyWith(girlsOnly: value);
-  
+
   void clear() => state = const HomeSearchState();
 }
 
 /// A global provider to persist search card data across the dashboard
-final homeSearchProvider = NotifierProvider<HomeSearchNotifier, HomeSearchState>(
-  HomeSearchNotifier.new,
-);
+final homeSearchProvider =
+    NotifierProvider<HomeSearchNotifier, HomeSearchState>(
+      HomeSearchNotifier.new,
+    );

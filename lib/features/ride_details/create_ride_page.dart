@@ -61,8 +61,6 @@ class CreateRidePage extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
-
                     // The Form
                     const CreateRideForm(),
                     const SizedBox(height: 16),

@@ -16,8 +16,12 @@ class RideSortBottomSheet extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final blackColor = theme.colorScheme.onSurface;
-    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
-    final selectedBg = isDark ? const Color(0xFF28282A) : const Color(0xFFF6F5F3);
+    final cardBg =
+        theme.cardTheme.color ??
+        (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    final selectedBg = isDark
+        ? const Color(0xFF28282A)
+        : const Color(0xFFF6F5F3);
 
     final sortOptions = [
       'Nearest',
@@ -76,7 +80,10 @@ class RideSortBottomSheet extends StatelessWidget {
                 Navigator.pop(context);
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 color: isSelected ? selectedBg : cardBg,
                 child: Row(
                   children: [
@@ -85,7 +92,9 @@ class RideSortBottomSheet extends StatelessWidget {
                         option,
                         style: GoogleFonts.inter(
                           fontSize: 16,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                           color: blackColor,
                         ),
                       ),

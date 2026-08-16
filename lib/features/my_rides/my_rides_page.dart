@@ -31,10 +31,12 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage> {
 
     final ridesAsync = ref.watch(myRidesProvider);
     final requestsAsync = ref.watch(incomingRequestsProvider);
-    final isActionLoading = ref.watch(rideActionProvider) || ref.watch(requestActionProvider);
+    final isActionLoading =
+        ref.watch(rideActionProvider) || ref.watch(requestActionProvider);
 
     final pendingCount = requestsAsync.maybeWhen(
-      data: (reqs) => reqs.where((r) => r.request.status.name == 'pending').length,
+      data: (reqs) =>
+          reqs.where((r) => r.request.status.name == 'pending').length,
       orElse: () => 0,
     );
 
@@ -69,13 +71,18 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage> {
             child: Column(
               children: [
                 const SizedBox(height: 8),
-                _buildSegmentedControl(context, primaryColor, blackColor, pendingCount),
+                _buildSegmentedControl(
+                  context,
+                  primaryColor,
+                  blackColor,
+                  pendingCount,
+                ),
                 const SizedBox(height: 12),
                 if (_selectedSegment == 0) _buildFilterDropdown(context),
                 Expanded(
-                  child: _selectedSegment == 0 
-                    ? _buildMyActivity(ridesAsync) 
-                    : _buildRequests(requestsAsync, primaryColor),
+                  child: _selectedSegment == 0
+                      ? _buildMyActivity(ridesAsync)
+                      : _buildRequests(requestsAsync, primaryColor),
                 ),
               ],
             ),
@@ -92,7 +99,12 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage> {
     );
   }
 
-  Widget _buildSegmentedControl(BuildContext context, Color primaryColor, Color blackColor, int pendingCount) {
+  Widget _buildSegmentedControl(
+    BuildContext context,
+    Color primaryColor,
+    Color blackColor,
+    int pendingCount,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFEAE5DD);
 
@@ -131,7 +143,7 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage> {
 
   Widget _buildFilterDropdown(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Align(
@@ -142,7 +154,11 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              border: Border.all(color: isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD)),
+              border: Border.all(
+                color: isDark
+                    ? const Color(0xFF333333)
+                    : const Color(0xFFEAE5DD),
+              ),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -167,7 +183,7 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage> {
 
   void _showFilterSheet(BuildContext context) {
     final filters = ['All', 'Created', 'Joined', 'Completed', 'Cancelled'];
-    
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -197,19 +213,28 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                ...filters.map((f) => ListTile(
-                  title: Text(
-                    f,
-                    style: GoogleFonts.inter(
-                      fontWeight: _activityFilter == f ? FontWeight.w600 : FontWeight.w400,
+                ...filters.map(
+                  (f) => ListTile(
+                    title: Text(
+                      f,
+                      style: GoogleFonts.inter(
+                        fontWeight: _activityFilter == f
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                      ),
                     ),
+                    trailing: _activityFilter == f
+                        ? Icon(
+                            Icons.check,
+                            color: Theme.of(context).colorScheme.primary,
+                          )
+                        : null,
+                    onTap: () {
+                      setState(() => _activityFilter = f);
+                      Navigator.pop(context);
+                    },
                   ),
-                  trailing: _activityFilter == f ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary) : null,
-                  onTap: () {
-                    setState(() => _activityFilter = f);
-                    Navigator.pop(context);
-                  },
-                )),
+                ),
               ],
             ),
           ),
@@ -222,19 +247,45 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage> {
     return ridesAsync.when(
       data: (allRides) {
         List<MyRideData> filtered = [];
-        
+
         switch (_activityFilter) {
           case 'Created':
-            filtered = allRides.where((r) => r.role == 'driver' && r.displayStatus == 'active' && !r.isPast).toList();
+            filtered = allRides
+                .where(
+                  (r) =>
+                      r.role == 'driver' &&
+                      r.displayStatus == 'active' &&
+                      !r.isPast,
+                )
+                .toList();
             break;
           case 'Joined':
-            filtered = allRides.where((r) => r.role == 'passenger' && (r.displayStatus == 'joined' || r.displayStatus == 'pending') && !r.isPast).toList();
+            filtered = allRides
+                .where(
+                  (r) =>
+                      r.role == 'passenger' &&
+                      (r.displayStatus == 'joined' ||
+                          r.displayStatus == 'pending') &&
+                      !r.isPast,
+                )
+                .toList();
             break;
           case 'Completed':
-            filtered = allRides.where((r) => r.displayStatus == 'completed' || (r.isPast && !['cancelled', 'rejected'].contains(r.displayStatus))).toList();
+            filtered = allRides
+                .where(
+                  (r) =>
+                      r.displayStatus == 'completed' ||
+                      (r.isPast &&
+                          !['cancelled', 'rejected'].contains(r.displayStatus)),
+                )
+                .toList();
             break;
           case 'Cancelled':
-            filtered = allRides.where((r) => ['cancelled', 'rejected'].contains(r.displayStatus)).toList();
+            filtered = allRides
+                .where(
+                  (r) => ['cancelled', 'rejected'].contains(r.displayStatus),
+                )
+                .toList();
             break;
           case 'All':
           default:
@@ -242,29 +293,48 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage> {
             break;
         }
 
-        return _RideListView(rides: filtered, type: _activityFilter.toLowerCase());
+        return _RideListView(
+          rides: filtered,
+          type: _activityFilter.toLowerCase(),
+        );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, stack) => Center(
-        child: Text('Failed to load rides\n$err', textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.red)),
+        child: Text(
+          'Failed to load rides\n$err',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(color: Colors.red),
+        ),
       ),
     );
   }
 
-  Widget _buildRequests(AsyncValue<List<IncomingRequestData>> requestsAsync, Color primaryColor) {
+  Widget _buildRequests(
+    AsyncValue<List<IncomingRequestData>> requestsAsync,
+    Color primaryColor,
+  ) {
     return requestsAsync.when(
       data: (requests) {
         final sorted = List<IncomingRequestData>.from(requests)
           ..sort((a, b) {
-            if (a.request.status.name == 'pending' && b.request.status.name != 'pending') return -1;
-            if (b.request.status.name == 'pending' && a.request.status.name != 'pending') return 1;
+            if (a.request.status.name == 'pending' &&
+                b.request.status.name != 'pending')
+              return -1;
+            if (b.request.status.name == 'pending' &&
+                a.request.status.name != 'pending')
+              return 1;
             return b.request.requestedAt.compareTo(a.request.requestedAt);
           });
         return _IncomingRequestsView(requests: sorted);
       },
-      loading: () => Center(child: CircularProgressIndicator(color: primaryColor)),
+      loading: () =>
+          Center(child: CircularProgressIndicator(color: primaryColor)),
       error: (err, stack) => Center(
-        child: Text('Failed to load requests\n$err', textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.red)),
+        child: Text(
+          'Failed to load requests\n$err',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(color: Colors.red),
+        ),
       ),
     );
   }
@@ -291,14 +361,16 @@ class _SegmentButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
         margin: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: isSelected ? (isDark ? const Color(0xFF333333) : Colors.white) : Colors.transparent,
+          color: isSelected
+              ? (isDark ? const Color(0xFF333333) : Colors.white)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           boxShadow: isSelected && !isDark
               ? [
@@ -306,7 +378,7 @@ class _SegmentButton extends StatelessWidget {
                     color: Colors.black.withAlpha(10), // ~0.04 alpha
                     blurRadius: 4,
                     offset: const Offset(0, 2),
-                  )
+                  ),
                 ]
               : null,
         ),
@@ -319,7 +391,9 @@ class _SegmentButton extends StatelessWidget {
               style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? blackColor : (isDark ? Colors.white60 : const Color(0xFF6F6F72)),
+                color: isSelected
+                    ? blackColor
+                    : (isDark ? Colors.white60 : const Color(0xFF6F6F72)),
               ),
             ),
             if (badgeCount > 0) ...[
@@ -394,15 +468,21 @@ class _RideListView extends ConsumerWidget {
           VoidCallback? onCancel;
           VoidCallback? onDelete;
 
-          if (data.role == 'driver' && data.displayStatus == 'active' && !data.isPast) {
+          if (data.role == 'driver' &&
+              data.displayStatus == 'active' &&
+              !data.isPast) {
             onCancel = () => _handleCancelRide(context, ref, data);
-          } else if (data.role == 'passenger' && (data.displayStatus == 'pending' || data.displayStatus == 'joined') && !data.isPast) {
+          } else if (data.role == 'passenger' &&
+              (data.displayStatus == 'pending' ||
+                  data.displayStatus == 'joined') &&
+              !data.isPast) {
             onCancel = () => _handleCancelRequest(context, ref, data);
           }
 
           // Allow drivers to permanently delete their completed or cancelled rides
           if (data.role == 'driver' &&
-              (data.displayStatus == 'completed' || data.displayStatus == 'cancelled')) {
+              (data.displayStatus == 'completed' ||
+                  data.displayStatus == 'cancelled')) {
             onDelete = () => _handleDeleteRide(context, ref, data);
           }
 
@@ -416,7 +496,11 @@ class _RideListView extends ConsumerWidget {
             onTrack: data.role == 'passenger' && data.displayStatus == 'pending'
                 ? () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Your request is still pending approval.')),
+                      const SnackBar(
+                        content: Text(
+                          'Your request is still pending approval.',
+                        ),
+                      ),
                     );
                   }
                 : null,
@@ -442,11 +526,18 @@ class _RideListView extends ConsumerWidget {
     }
   }
 
-  void _handleDeleteRide(BuildContext context, WidgetRef ref, MyRideData data) async {
+  void _handleDeleteRide(
+    BuildContext context,
+    WidgetRef ref,
+    MyRideData data,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete Ride', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+        title: Text(
+          'Delete Ride',
+          style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+        ),
         content: Text(
           'This will permanently delete this ride and all associated requests. This action cannot be undone.',
           style: GoogleFonts.inter(),
@@ -467,7 +558,9 @@ class _RideListView extends ConsumerWidget {
 
     if (confirmed != true) return;
 
-    final result = await ref.read(rideActionProvider.notifier).deleteMyRide(data.ride.id);
+    final result = await ref
+        .read(rideActionProvider.notifier)
+        .deleteMyRide(data.ride.id);
     if (!context.mounted) return;
 
     if (result is Success<void>) {
@@ -478,20 +571,27 @@ class _RideListView extends ConsumerWidget {
     } else if (result is Failure<void>) {
       // Surface the real error message — do NOT pretend deletion succeeded
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.message),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text(result.message), backgroundColor: Colors.red),
       );
     }
   }
 
-  void _handleCancelRide(BuildContext context, WidgetRef ref, MyRideData data) async {
+  void _handleCancelRide(
+    BuildContext context,
+    WidgetRef ref,
+    MyRideData data,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Cancel Ride', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-        content: Text('Are you sure you want to cancel this ride?', style: GoogleFonts.inter()),
+        title: Text(
+          'Cancel Ride',
+          style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Are you sure you want to cancel this ride?',
+          style: GoogleFonts.inter(),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -508,7 +608,9 @@ class _RideListView extends ConsumerWidget {
 
     if (confirmed != true) return;
 
-    final result = await ref.read(rideActionProvider.notifier).cancelMyRide(data.ride.id);
+    final result = await ref
+        .read(rideActionProvider.notifier)
+        .cancelMyRide(data.ride.id);
     if (!context.mounted) return;
 
     if (result is Success<void>) {
@@ -526,14 +628,24 @@ class _RideListView extends ConsumerWidget {
     }
   }
 
-  void _handleCancelRequest(BuildContext context, WidgetRef ref, MyRideData data) async {
+  void _handleCancelRequest(
+    BuildContext context,
+    WidgetRef ref,
+    MyRideData data,
+  ) async {
     if (data.request == null) return;
-    
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Cancel Request', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-        content: Text('Are you sure you want to cancel your ride request?', style: GoogleFonts.inter()),
+        title: Text(
+          'Cancel Request',
+          style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Are you sure you want to cancel your ride request?',
+          style: GoogleFonts.inter(),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -550,7 +662,9 @@ class _RideListView extends ConsumerWidget {
 
     if (confirmed != true) return;
 
-    final result = await ref.read(rideActionProvider.notifier).cancelMyRequest(data.request!);
+    final result = await ref
+        .read(rideActionProvider.notifier)
+        .cancelMyRequest(data.request!);
     if (!context.mounted) return;
 
     if (result is Success<void>) {
@@ -620,7 +734,11 @@ class _IncomingRequestsView extends ConsumerWidget {
     );
   }
 
-  void _handleAccept(BuildContext context, WidgetRef ref, IncomingRequestData data) async {
+  void _handleAccept(
+    BuildContext context,
+    WidgetRef ref,
+    IncomingRequestData data,
+  ) async {
     try {
       await ref.read(requestActionProvider.notifier).accept(data.request);
       if (context.mounted) {
@@ -630,26 +748,30 @@ class _IncomingRequestsView extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to accept: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to accept: $e')));
       }
     }
   }
 
-  void _handleReject(BuildContext context, WidgetRef ref, IncomingRequestData data) async {
+  void _handleReject(
+    BuildContext context,
+    WidgetRef ref,
+    IncomingRequestData data,
+  ) async {
     try {
       await ref.read(requestActionProvider.notifier).reject(data.request);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Request rejected')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Request rejected')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to reject: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to reject: $e')));
       }
     }
   }

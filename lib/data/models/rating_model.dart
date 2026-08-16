@@ -22,14 +22,14 @@ class RatingModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        ratingId,
-        rideId,
-        fromUserId,
-        toUserId,
-        rating,
-        review,
-        createdAt,
-      ];
+    ratingId,
+    rideId,
+    fromUserId,
+    toUserId,
+    rating,
+    review,
+    createdAt,
+  ];
 
   RatingModel copyWith({
     String? ratingId,

@@ -4,10 +4,7 @@ import 'package:flutter/material.dart';
 class DividerWithText extends StatelessWidget {
   final String text;
 
-  const DividerWithText({
-    super.key,
-    this.text = 'OR',
-  });
+  const DividerWithText({super.key, this.text = 'OR'});
 
   @override
   Widget build(BuildContext context) {

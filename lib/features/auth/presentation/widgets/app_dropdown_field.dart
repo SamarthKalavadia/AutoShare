@@ -56,7 +56,10 @@ class AppDropdownField<T> extends StatelessWidget {
               color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             ),
             prefixIcon: prefixIcon != null ? Icon(prefixIcon, size: 22) : null,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide(color: theme.colorScheme.outline),
@@ -79,8 +82,9 @@ class AppDropdownField<T> extends StatelessWidget {
               borderSide: BorderSide(color: theme.colorScheme.error),
             ),
             filled: true,
-            fillColor: theme.colorScheme.surfaceContainerHighest
-                .withValues(alpha: 0.3),
+            fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.3,
+            ),
           ),
         ),
       ],

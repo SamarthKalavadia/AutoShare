@@ -14,8 +14,8 @@ class ProfileRepository {
   ProfileRepository({
     UserRepository? userRepository,
     StorageService? storageService,
-  })  : _userRepository = userRepository ?? UserRepository(),
-        _storageService = storageService ?? StorageService();
+  }) : _userRepository = userRepository ?? UserRepository(),
+       _storageService = storageService ?? StorageService();
 
   /// Fetches a user's profile from Firestore.
   Future<Result<UserModel>> getProfile(String uid) {
@@ -52,7 +52,10 @@ class ProfileRepository {
   }) async {
     try {
       // 1. Upload via Firebase StorageService (Firebase Storage + Firebase Firestore Base64 fallback)
-      final fbResult = await _storageService.uploadProfilePicture(uid, imageFile);
+      final fbResult = await _storageService.uploadProfilePicture(
+        uid,
+        imageFile,
+      );
       if (fbResult is Failure<String>) {
         return Failure(fbResult.message, fbResult.exception);
       }
@@ -60,8 +63,11 @@ class ProfileRepository {
       final imageUrl = (fbResult as Success<String>).data;
 
       // 2. Update Firebase Firestore document with the new profileImage (URL or Base64 Data URI)
-      final updateResult = await _userRepository.updateProfileImage(uid, imageUrl);
-      
+      final updateResult = await _userRepository.updateProfileImage(
+        uid,
+        imageUrl,
+      );
+
       if (updateResult is Failure<void>) {
         return Failure(updateResult.message, updateResult.exception);
       }
@@ -78,7 +84,10 @@ class ProfileRepository {
     } catch (e) {
       // ignore: avoid_print
       print('ProfileRepository.uploadProfileImage Unknown Error: $e');
-      return Failure('An unexpected error occurred during image upload.', Exception(e.toString()));
+      return Failure(
+        'An unexpected error occurred during image upload.',
+        Exception(e.toString()),
+      );
     }
   }
 
@@ -87,7 +96,7 @@ class ProfileRepository {
     try {
       // 1. Clear profile image in Firebase Firestore
       final updateResult = await _userRepository.updateProfileImage(uid, '');
-      
+
       if (updateResult is Failure<void>) {
         return Failure(updateResult.message, updateResult.exception);
       }

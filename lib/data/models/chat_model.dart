@@ -110,12 +110,19 @@ class ChatMessage extends Equatable {
   }
 
   @override
-  List<Object?> get props => [messageId, senderId, text, sentAt, isDeleted, readBy];
+  List<Object?> get props => [
+    messageId,
+    senderId,
+    text,
+    sentAt,
+    isDeleted,
+    readBy,
+  ];
 }
 
 /// Represents the top-level chat room document (per ride).
 class ChatRoom extends Equatable {
-  final String chatId;       // == rideId
+  final String chatId; // == rideId
   final String rideId;
   final List<String> participants;
   final Map<String, bool> typing; // uid → isTyping
@@ -160,11 +167,19 @@ class ChatRoom extends Equatable {
       'rideId': rideId,
       'participants': participants,
       'typing': typing,
-      'lastMessageAt': lastMessageAt != null ? Timestamp.fromDate(lastMessageAt!) : null,
+      'lastMessageAt': lastMessageAt != null
+          ? Timestamp.fromDate(lastMessageAt!)
+          : null,
       'lastMessageText': lastMessageText,
     };
   }
 
   @override
-  List<Object?> get props => [chatId, rideId, participants, typing, lastMessageAt];
+  List<Object?> get props => [
+    chatId,
+    rideId,
+    participants,
+    typing,
+    lastMessageAt,
+  ];
 }

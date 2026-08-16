@@ -38,7 +38,9 @@ class DriverDirectoryPage extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Could not open WhatsApp. Please check if it is installed.'),
+            content: Text(
+              'Could not open WhatsApp. Please check if it is installed.',
+            ),
             backgroundColor: Color(0xFFD32F2F),
           ),
         );
@@ -51,8 +53,12 @@ class DriverDirectoryPage extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final blackColor = theme.colorScheme.onSurface;
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
-    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    final borderColor = isDark
+        ? const Color(0xFF333333)
+        : const Color(0xFFEAE5DD);
+    final cardBg =
+        theme.cardTheme.color ??
+        (isDark ? const Color(0xFF1E1E1E) : Colors.white);
     final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
     const primaryColor = Color(0xFFF6C000);
 
@@ -64,7 +70,11 @@ class DriverDirectoryPage extends ConsumerWidget {
         backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: blackColor, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: blackColor,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: false,
@@ -81,14 +91,12 @@ class DriverDirectoryPage extends ConsumerWidget {
                 color: blackColor,
               ),
             ),
-
           ],
         ),
       ),
       body: driversAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: primaryColor),
-        ),
+        loading: () =>
+            const Center(child: CircularProgressIndicator(color: primaryColor)),
         error: (error, stack) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -139,9 +147,13 @@ class DriverDirectoryPage extends ConsumerWidget {
                         children: [
                           CircleAvatar(
                             radius: 24,
-                            backgroundColor: primaryColor.withValues(alpha: 0.15),
+                            backgroundColor: primaryColor.withValues(
+                              alpha: 0.15,
+                            ),
                             child: Text(
-                              driver.name.isNotEmpty ? driver.name[0].toUpperCase() : 'D',
+                              driver.name.isNotEmpty
+                                  ? driver.name[0].toUpperCase()
+                                  : 'D',
                               style: GoogleFonts.inter(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
@@ -184,14 +196,22 @@ class DriverDirectoryPage extends ConsumerWidget {
                               child: FilledButton.icon(
                                 onPressed: () => _makePhoneCall(driver.phone),
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: isDark ? const Color(0xFF222222) : Colors.black,
+                                  backgroundColor: isDark
+                                      ? const Color(0xFF222222)
+                                      : Colors.black,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
-                                icon: const Icon(Icons.call, size: 18, color: Colors.white),
+                                icon: const Icon(
+                                  Icons.call,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
                                 label: const Text(
                                   'Call',
                                   style: TextStyle(
@@ -207,16 +227,23 @@ class DriverDirectoryPage extends ConsumerWidget {
                             child: SizedBox(
                               height: 44,
                               child: FilledButton.icon(
-                                onPressed: () => _openWhatsApp(context, driver.phone),
+                                onPressed: () =>
+                                    _openWhatsApp(context, driver.phone),
                                 style: FilledButton.styleFrom(
                                   backgroundColor: const Color(0xFF25D366),
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
-                                icon: const Icon(Icons.message_outlined, size: 18, color: Colors.white),
+                                icon: const Icon(
+                                  Icons.message_outlined,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
                                 label: const Text(
                                   'WhatsApp',
                                   style: TextStyle(

@@ -25,11 +25,8 @@ class _LogEntry {
   final _LogLevel level;
   final DateTime timestamp;
 
-  _LogEntry({
-    required this.message,
-    required this.level,
-    DateTime? timestamp,
-  }) : timestamp = timestamp ?? DateTime.now();
+  _LogEntry({required this.message, required this.level, DateTime? timestamp})
+    : timestamp = timestamp ?? DateTime.now();
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -86,7 +83,8 @@ class _BackendTestPageState extends State<BackendTestPage> {
 
   // ── Test Credentials (edit as needed) ────────────────────────────────────
 
-  final String _testEmail = 'devtest_${DateTime.now().millisecondsSinceEpoch}@autoshare.dev';
+  final String _testEmail =
+      'devtest_${DateTime.now().millisecondsSinceEpoch}@autoshare.dev';
   final String _testPassword = 'DevTest@1234';
   final String _testName = 'Dev Tester';
 
@@ -103,7 +101,10 @@ class _BackendTestPageState extends State<BackendTestPage> {
       _log('✅ Firebase initialized successfully.', level: _LogLevel.success);
     } on FirebaseException catch (e) {
       if (e.code == 'duplicate-app') {
-        _log('✅ Firebase already initialized (duplicate-app is OK).', level: _LogLevel.success);
+        _log(
+          '✅ Firebase already initialized (duplicate-app is OK).',
+          level: _LogLevel.success,
+        );
       } else {
         _log('❌ Firebase init error: ${e.message}', level: _LogLevel.error);
       }
@@ -125,7 +126,10 @@ class _BackendTestPageState extends State<BackendTestPage> {
         password: _testPassword,
       );
       if (result is Success<UserModel>) {
-        _log('✅ Register success → uid: ${result.data.uid}', level: _LogLevel.success);
+        _log(
+          '✅ Register success → uid: ${result.data.uid}',
+          level: _LogLevel.success,
+        );
       } else if (result is Failure<UserModel>) {
         _log('❌ Register failed: ${result.message}', level: _LogLevel.error);
       }
@@ -146,7 +150,10 @@ class _BackendTestPageState extends State<BackendTestPage> {
         password: _testPassword,
       );
       if (result is Success<UserModel>) {
-        _log('✅ Login success → uid: ${result.data.uid}  name: ${result.data.name}', level: _LogLevel.success);
+        _log(
+          '✅ Login success → uid: ${result.data.uid}  name: ${result.data.name}',
+          level: _LogLevel.success,
+        );
       } else if (result is Failure<UserModel>) {
         _log('❌ Login failed: ${result.message}', level: _LogLevel.error);
       }
@@ -164,9 +171,15 @@ class _BackendTestPageState extends State<BackendTestPage> {
     try {
       final result = await _authService.signInWithGoogle();
       if (result is Success<UserModel>) {
-        _log('✅ Google login success → uid: ${result.data.uid}  email: ${result.data.email}', level: _LogLevel.success);
+        _log(
+          '✅ Google login success → uid: ${result.data.uid}  email: ${result.data.email}',
+          level: _LogLevel.success,
+        );
       } else if (result is Failure<UserModel>) {
-        _log('❌ Google login failed: ${result.message}', level: _LogLevel.error);
+        _log(
+          '❌ Google login failed: ${result.message}',
+          level: _LogLevel.error,
+        );
       }
     } catch (e) {
       _log('❌ Google login exception: $e', level: _LogLevel.error);
@@ -184,7 +197,10 @@ class _BackendTestPageState extends State<BackendTestPage> {
       if (result is Success<void>) {
         _log('✅ Verification email sent.', level: _LogLevel.success);
       } else if (result is Failure<void>) {
-        _log('❌ Send verification failed: ${result.message}', level: _LogLevel.error);
+        _log(
+          '❌ Send verification failed: ${result.message}',
+          level: _LogLevel.error,
+        );
       }
     } catch (e) {
       _log('❌ Send verification exception: $e', level: _LogLevel.error);
@@ -219,9 +235,15 @@ class _BackendTestPageState extends State<BackendTestPage> {
       );
       final result = await _userRepository.createUser(userModel);
       if (result is Success<void>) {
-        _log('✅ Firestore user document created → uid: $uid', level: _LogLevel.success);
+        _log(
+          '✅ Firestore user document created → uid: $uid',
+          level: _LogLevel.success,
+        );
       } else if (result is Failure<void>) {
-        _log('❌ Create Firestore user failed: ${result.message}', level: _LogLevel.error);
+        _log(
+          '❌ Create Firestore user failed: ${result.message}',
+          level: _LogLevel.error,
+        );
       }
     } catch (e) {
       _log('❌ Create Firestore user exception: $e', level: _LogLevel.error);
@@ -276,13 +298,13 @@ class _BackendTestPageState extends State<BackendTestPage> {
       }
       final result = await _userRepository.updateProfile(
         uid: uid,
-        updates: {
-          'name': 'Test User Updated',
-          'phone': '9876543210',
-        },
+        updates: {'name': 'Test User Updated', 'phone': '9876543210'},
       );
       if (result is Success<void>) {
-        _log('✅ Firestore user profile updated successfully.', level: _LogLevel.success);
+        _log(
+          '✅ Firestore user profile updated successfully.',
+          level: _LogLevel.success,
+        );
       } else if (result is Failure<void>) {
         _log('❌ Update failed: ${result.message}', level: _LogLevel.error);
       }
@@ -343,7 +365,10 @@ class _BackendTestPageState extends State<BackendTestPage> {
   Future<void> _updateFirestoreProfileImageUrl() async {
     const key = 'updateImageUrl';
     _startLoading(key);
-    _log('⏳ Updating Firestore profileImage URL directly…', level: _LogLevel.loading);
+    _log(
+      '⏳ Updating Firestore profileImage URL directly…',
+      level: _LogLevel.loading,
+    );
     try {
       final uid = _authService.currentUser?.uid;
       if (uid == null) {
@@ -354,9 +379,15 @@ class _BackendTestPageState extends State<BackendTestPage> {
       const testUrl = 'https://res.cloudinary.com/demo/image/upload/sample.jpg';
       final result = await _userRepository.updateProfileImage(uid, testUrl);
       if (result is Success<void>) {
-        _log('✅ profileImage URL updated in Firestore → $testUrl', level: _LogLevel.success);
+        _log(
+          '✅ profileImage URL updated in Firestore → $testUrl',
+          level: _LogLevel.success,
+        );
       } else if (result is Failure<void>) {
-        _log('❌ Update profileImage URL failed: ${result.message}', level: _LogLevel.error);
+        _log(
+          '❌ Update profileImage URL failed: ${result.message}',
+          level: _LogLevel.error,
+        );
       }
     } catch (e) {
       _log('❌ Update profileImage URL exception: $e', level: _LogLevel.error);
@@ -382,31 +413,36 @@ class _BackendTestPageState extends State<BackendTestPage> {
     }
 
     _startLoading(key);
-    _log('📡 Subscribing to Firestore stream for uid: $uid', level: _LogLevel.loading);
-
-    _userStreamSub = _userRepository.streamUser(uid).listen(
-      (result) {
-        if (result is Success<UserModel>) {
-          final u = result.data;
-          _log(
-            '🔄 Stream update → name: ${u.name}  online: ${u.isOnline}  updatedAt: ${u.updatedAt}',
-            level: _LogLevel.success,
-          );
-        } else if (result is Failure<UserModel>) {
-          _log('❌ Stream error: ${result.message}', level: _LogLevel.error);
-        }
-      },
-      onError: (Object e) {
-        _log('❌ Stream exception: $e', level: _LogLevel.error);
-        _userStreamSub = null;
-        setState(() => _loading[key] = false);
-      },
-      onDone: () {
-        _log('⏹  Stream closed.', level: _LogLevel.info);
-        _userStreamSub = null;
-        setState(() => _loading[key] = false);
-      },
+    _log(
+      '📡 Subscribing to Firestore stream for uid: $uid',
+      level: _LogLevel.loading,
     );
+
+    _userStreamSub = _userRepository
+        .streamUser(uid)
+        .listen(
+          (result) {
+            if (result is Success<UserModel>) {
+              final u = result.data;
+              _log(
+                '🔄 Stream update → name: ${u.name}  online: ${u.isOnline}  updatedAt: ${u.updatedAt}',
+                level: _LogLevel.success,
+              );
+            } else if (result is Failure<UserModel>) {
+              _log('❌ Stream error: ${result.message}', level: _LogLevel.error);
+            }
+          },
+          onError: (Object e) {
+            _log('❌ Stream exception: $e', level: _LogLevel.error);
+            _userStreamSub = null;
+            setState(() => _loading[key] = false);
+          },
+          onDone: () {
+            _log('⏹  Stream closed.', level: _LogLevel.info);
+            _userStreamSub = null;
+            setState(() => _loading[key] = false);
+          },
+        );
   }
 
   Future<void> _logout() async {
@@ -450,11 +486,17 @@ class _BackendTestPageState extends State<BackendTestPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white54),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete', style: TextStyle(color: Color(0xFFFF4C6A))),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Color(0xFFFF4C6A)),
+            ),
           ),
         ],
       ),
@@ -474,7 +516,10 @@ class _BackendTestPageState extends State<BackendTestPage> {
     try {
       final result = await _authService.deleteAccount();
       if (result is Success<void>) {
-        _log('✅ Account deleted from Auth & Firestore.', level: _LogLevel.success);
+        _log(
+          '✅ Account deleted from Auth & Firestore.',
+          level: _LogLevel.success,
+        );
       } else if (result is Failure<void>) {
         _log('❌ Delete failed: ${result.message}', level: _LogLevel.error);
       }
@@ -510,9 +555,15 @@ class _BackendTestPageState extends State<BackendTestPage> {
               decoration: BoxDecoration(
                 color: const Color(0xFF00E5A0).withAlpha(26),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF00E5A0).withAlpha(77)),
+                border: Border.all(
+                  color: const Color(0xFF00E5A0).withAlpha(77),
+                ),
               ),
-              child: const Icon(Icons.bug_report_rounded, color: Color(0xFF00E5A0), size: 20),
+              child: const Icon(
+                Icons.bug_report_rounded,
+                color: Color(0xFF00E5A0),
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             Column(
@@ -545,7 +596,10 @@ class _BackendTestPageState extends State<BackendTestPage> {
               builder: (context, snapshot) {
                 final user = snapshot.data;
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: user != null
                         ? const Color(0xFF00E5A0).withAlpha(26)
@@ -565,7 +619,9 @@ class _BackendTestPageState extends State<BackendTestPage> {
                         height: 7,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: user != null ? const Color(0xFF00E5A0) : const Color(0xFFFF4C6A),
+                          color: user != null
+                              ? const Color(0xFF00E5A0)
+                              : const Color(0xFFFF4C6A),
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -573,7 +629,9 @@ class _BackendTestPageState extends State<BackendTestPage> {
                         user != null ? 'Auth: Active' : 'Auth: None',
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 11,
-                          color: user != null ? const Color(0xFF00E5A0) : const Color(0xFFFF4C6A),
+                          color: user != null
+                              ? const Color(0xFF00E5A0)
+                              : const Color(0xFFFF4C6A),
                         ),
                       ),
                     ],
@@ -735,16 +793,17 @@ class _BackendTestPageState extends State<BackendTestPage> {
           ),
 
           // ── Console ────────────────────────────────────────────────────────
-          Container(
-            height: 1,
-            color: const Color(0xFF00E5A0).withAlpha(77),
-          ),
+          Container(height: 1, color: const Color(0xFF00E5A0).withAlpha(77)),
           Container(
             color: const Color(0xFF06060F),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [
-                const Icon(Icons.terminal_rounded, color: Color(0xFF00E5A0), size: 16),
+                const Icon(
+                  Icons.terminal_rounded,
+                  color: Color(0xFF00E5A0),
+                  size: 16,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Console Output',
@@ -766,7 +825,10 @@ class _BackendTestPageState extends State<BackendTestPage> {
                 GestureDetector(
                   onTap: _clearConsole,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E1E3A),
                       borderRadius: BorderRadius.circular(6),
@@ -799,7 +861,10 @@ class _BackendTestPageState extends State<BackendTestPage> {
                   )
                 : ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     itemCount: _logs.length,
                     itemBuilder: (context, index) {
                       final entry = _logs[index];
@@ -834,9 +899,7 @@ class _SectionLabel extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Expanded(
-            child: Container(height: 1, color: Colors.white10),
-          ),
+          Expanded(child: Container(height: 1, color: Colors.white10)),
         ],
       ),
     );
@@ -878,15 +941,13 @@ class _TestButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: isActive
-                ? color.withAlpha(38)
-                : const Color(0xFF13132A),
+            color: isActive ? color.withAlpha(38) : const Color(0xFF13132A),
             border: Border.all(
               color: isActive
                   ? color.withAlpha(179)
                   : isDangerous
-                      ? const Color(0xFFFF4C6A).withAlpha(77)
-                      : color.withAlpha(51),
+                  ? const Color(0xFFFF4C6A).withAlpha(77)
+                  : color.withAlpha(51),
               width: isActive ? 1.5 : 1,
             ),
           ),
@@ -933,7 +994,11 @@ class _TestButton extends StatelessWidget {
                   ),
                 ),
               if (!isLoading && !isActive)
-                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 14),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Colors.white24,
+                  size: 14,
+                ),
             ],
           ),
         ),

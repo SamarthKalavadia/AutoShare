@@ -7,6 +7,7 @@ import '../data/repositories/ride_repository.dart';
 import '../data/repositories/chat_repository.dart';
 import '../data/repositories/user_repository.dart';
 import '../data/repositories/notification_repository.dart';
+
 // ─── Infrastructure ───────────────────────────────────────────────────────────
 
 /// Provides the singleton [FirestoreService] used for all collection references.
@@ -24,9 +25,7 @@ final userRepositoryProvider = Provider<UserRepository>((ref) {
 
 /// Provides the [ProfileRepository] with its dependencies injected.
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
-  return ProfileRepository(
-    userRepository: ref.watch(userRepositoryProvider),
-  );
+  return ProfileRepository(userRepository: ref.watch(userRepositoryProvider));
 });
 
 /// Provides the [RideRequestRepository] with its Firestore dependency injected.
@@ -37,15 +36,11 @@ final rideRequestRepositoryProvider = Provider<RideRequestRepository>((ref) {
 });
 
 final rideRepositoryProvider = Provider<RideRepository>((ref) {
-  return RideRepository(
-    firestoreService: ref.watch(firestoreServiceProvider),
-  );
+  return RideRepository(firestoreService: ref.watch(firestoreServiceProvider));
 });
 
 final chatRepositoryProvider = Provider<ChatRepository>((ref) {
-  return ChatRepository(
-    firestoreService: ref.watch(firestoreServiceProvider),
-  );
+  return ChatRepository(firestoreService: ref.watch(firestoreServiceProvider));
 });
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {

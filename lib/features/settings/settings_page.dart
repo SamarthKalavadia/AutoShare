@@ -15,7 +15,13 @@ class SettingsPage extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Delete Account', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: const Color(0xFFD32F2F))),
+        title: Text(
+          'Delete Account',
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFFD32F2F),
+          ),
+        ),
         content: Text(
           'Are you sure you want to delete your account? This action is permanent and will delete all your data, rides, and settings.',
           style: GoogleFonts.inter(color: const Color(0xFF6F6F72)),
@@ -32,9 +38,11 @@ class SettingsPage extends ConsumerWidget {
               showDialog(
                 context: context,
                 barrierDismissible: false,
-                builder: (_) => const Center(child: CircularProgressIndicator(color: Color(0xFFD32F2F))),
+                builder: (_) => const Center(
+                  child: CircularProgressIndicator(color: Color(0xFFD32F2F)),
+                ),
               );
-              
+
               try {
                 await ref.read(authControllerProvider.notifier).deleteAccount();
               } catch (_) {
@@ -47,7 +55,9 @@ class SettingsPage extends ConsumerWidget {
                 }
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFD32F2F),
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -64,7 +74,9 @@ class SettingsPage extends ConsumerWidget {
     final textColor = theme.colorScheme.onSurface;
     final backgroundColor = theme.scaffoldBackgroundColor;
     final isDark = theme.brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final borderColor = isDark
+        ? const Color(0xFF333333)
+        : const Color(0xFFEAE5DD);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -72,7 +84,11 @@ class SettingsPage extends ConsumerWidget {
         backgroundColor: backgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: textColor,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -119,14 +135,17 @@ class SettingsPage extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 24),
-          
+
           _buildSectionTitle('Security & Privacy', context),
           _buildListTile(
             context: context,
             icon: Icons.security_rounded,
             title: 'Security',
             onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const SecuritySettingsPage()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SecuritySettingsPage()),
+              );
             },
           ),
           _buildListTile(
@@ -138,11 +157,26 @@ class SettingsPage extends ConsumerWidget {
           const SizedBox(height: 24),
 
           _buildSectionTitle('About', context),
-          _buildListTile(context: context, icon: Icons.help_outline_rounded, title: 'Help & Support', onTap: () {}),
-          _buildListTile(context: context, icon: Icons.description_outlined, title: 'Terms & Conditions', onTap: () {}),
-          _buildListTile(context: context, icon: Icons.shield_outlined, title: 'Privacy Policy', onTap: () {}),
+          _buildListTile(
+            context: context,
+            icon: Icons.help_outline_rounded,
+            title: 'Help & Support',
+            onTap: () {},
+          ),
+          _buildListTile(
+            context: context,
+            icon: Icons.description_outlined,
+            title: 'Terms & Conditions',
+            onTap: () {},
+          ),
+          _buildListTile(
+            context: context,
+            icon: Icons.shield_outlined,
+            title: 'Privacy Policy',
+            onTap: () {},
+          ),
           const SizedBox(height: 32),
-          
+
           SizedBox(
             width: double.infinity,
             height: 56,
@@ -152,7 +186,8 @@ class SettingsPage extends ConsumerWidget {
                 showDialog(
                   context: context,
                   barrierDismissible: false,
-                  builder: (_) => const Center(child: CircularProgressIndicator()),
+                  builder: (_) =>
+                      const Center(child: CircularProgressIndicator()),
                 );
                 try {
                   await ref.read(authControllerProvider.notifier).logout();
@@ -169,9 +204,17 @@ class SettingsPage extends ConsumerWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: textColor,
                 side: BorderSide(color: borderColor, width: 1.5),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
-              child: Text('Logout', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700)),
+              child: Text(
+                'Logout',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -180,7 +223,10 @@ class SettingsPage extends ConsumerWidget {
               onPressed: () => _showDeleteAccountDialog(context, ref),
               child: Text(
                 'Delete Account',
-                style: GoogleFonts.inter(color: const Color(0xFFD32F2F), fontWeight: FontWeight.w600),
+                style: GoogleFonts.inter(
+                  color: const Color(0xFFD32F2F),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
@@ -216,7 +262,14 @@ class SettingsPage extends ConsumerWidget {
     return SwitchListTile(
       value: value,
       onChanged: onChanged,
-      title: Text(title, style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: textColor)),
+      title: Text(
+        title,
+        style: GoogleFonts.inter(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
+      ),
       secondary: Icon(icon, color: textColor, size: 22),
       activeTrackColor: const Color(0xFFF6C000),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
@@ -235,15 +288,32 @@ class SettingsPage extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return ListTile(
       onTap: onTap,
-      title: Text(title, style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: textColor)),
+      title: Text(
+        title,
+        style: GoogleFonts.inter(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
+      ),
       leading: Icon(icon, color: textColor, size: 22),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (trailingText != null)
-            Text(trailingText, style: GoogleFonts.inter(color: isDark ? Colors.white60 : const Color(0xFF6F6F72), fontSize: 14)),
+            Text(
+              trailingText,
+              style: GoogleFonts.inter(
+                color: isDark ? Colors.white60 : const Color(0xFF6F6F72),
+                fontSize: 14,
+              ),
+            ),
           if (trailingText != null) const SizedBox(width: 8),
-          Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white38 : const Color(0xFF8E8E93), size: 20),
+          Icon(
+            Icons.chevron_right_rounded,
+            color: isDark ? Colors.white38 : const Color(0xFF8E8E93),
+            size: 20,
+          ),
         ],
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12),

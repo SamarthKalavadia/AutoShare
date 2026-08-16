@@ -27,7 +27,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   final _cityController = TextEditingController();
   final _emergencyController = TextEditingController();
   final _bioController = TextEditingController();
-  
+
   String _gender = '';
   String? _currentImageUrl;
   XFile? _newImageFile;
@@ -47,7 +47,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         _emergencyController.text = user.emergencyContact;
         _bioController.text = user.bio;
         _gender = user.gender;
-        _currentImageUrl = user.profileImage.isNotEmpty ? user.profileImage : null;
+        _currentImageUrl = user.profileImage.isNotEmpty
+            ? user.profileImage
+            : null;
         setState(() {});
       }
     });
@@ -90,7 +92,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
   Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() => _isLoading = true);
 
     final currentUser = ref.read(authControllerProvider).value;
@@ -114,9 +116,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         } else {
           throw Exception((uploadResult as Failure).message);
         }
-      } 
+      }
       // If user removed their image
-      else if (_currentImageUrl == null && currentUser.profileImage.isNotEmpty) {
+      else if (_currentImageUrl == null &&
+          currentUser.profileImage.isNotEmpty) {
         final profileRepo = ref.read(profileRepositoryProvider);
         await profileRepo.removeProfileImage(currentUser.uid);
         finalImageUrl = '';
@@ -143,10 +146,13 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         // Sync local authControllerProvider state
         ref.read(authControllerProvider.notifier).updateUser(updatedUser);
         ref.invalidate(userProfileProvider(currentUser.uid));
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Profile updated successfully'), backgroundColor: Color(0xFF2E7D32)),
+            const SnackBar(
+              content: Text('Profile updated successfully'),
+              backgroundColor: Color(0xFF2E7D32),
+            ),
           );
           Navigator.pop(context);
         }
@@ -156,7 +162,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFD32F2F)),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: const Color(0xFFD32F2F),
+          ),
         );
       }
     } finally {
@@ -176,7 +185,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: blackColor, size: 20),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: blackColor,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -207,8 +220,15 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                             backgroundImage: _newImageBytes != null
                                 ? MemoryImage(_newImageBytes!)
                                 : getAvatarImageProvider(_currentImageUrl),
-                            child: (_newImageBytes == null && getAvatarImageProvider(_currentImageUrl) == null)
-                                ? const Icon(Icons.person, size: 50, color: Color(0xFFCCCCCC))
+                            child:
+                                (_newImageBytes == null &&
+                                    getAvatarImageProvider(_currentImageUrl) ==
+                                        null)
+                                ? const Icon(
+                                    Icons.person,
+                                    size: 50,
+                                    color: Color(0xFFCCCCCC),
+                                  )
                                 : null,
                           ),
                           Positioned(
@@ -222,7 +242,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                                   color: blackColor,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.camera_alt_rounded, size: 16, color: Colors.white),
+                                child: const Icon(
+                                  Icons.camera_alt_rounded,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
@@ -233,10 +257,15 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                       Center(
                         child: TextButton(
                           onPressed: _removeImage,
-                          child: Text('Remove Photo', style: GoogleFonts.inter(color: const Color(0xFFD32F2F))),
+                          child: Text(
+                            'Remove Photo',
+                            style: GoogleFonts.inter(
+                              color: const Color(0xFFD32F2F),
+                            ),
+                          ),
                         ),
                       ),
-                    
+
                     const SizedBox(height: 32),
 
                     // Form Fields
@@ -252,7 +281,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                         return null;
                       },
                     ),
-                    
+
                     const SizedBox(height: 16),
                     AppTextField(
                       controller: _phoneController,
@@ -273,7 +302,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                           return 'Please enter a valid 10-digit phone number';
                         }
                         final firstChar = cleanValue[0];
-                        if (firstChar != '6' && firstChar != '7' && firstChar != '8' && firstChar != '9') {
+                        if (firstChar != '6' &&
+                            firstChar != '7' &&
+                            firstChar != '8' &&
+                            firstChar != '9') {
                           return 'Please enter a valid 10-digit mobile number';
                         }
                         return null;
@@ -288,7 +320,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                       prefixIcon: Icons.person_outline_rounded,
                       items: const [
                         DropdownMenuItem(value: 'Male', child: Text('Male')),
-                        DropdownMenuItem(value: 'Female', child: Text('Female')),
+                        DropdownMenuItem(
+                          value: 'Female',
+                          child: Text('Female'),
+                        ),
                         DropdownMenuItem(value: 'Other', child: Text('Other')),
                       ],
                       onChanged: (val) {
@@ -354,7 +389,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                         ),
                         child: Text(
                           'Save Changes',
-                          style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
@@ -364,6 +402,4 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
             ),
     );
   }
-
-
 }

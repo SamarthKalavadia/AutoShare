@@ -20,14 +20,20 @@ class PendingRatingPrompt {
   });
 }
 
-final ratingsPromptProvider = FutureProvider.autoDispose<PendingRatingPrompt?>((ref) async {
+final ratingsPromptProvider = FutureProvider.autoDispose<PendingRatingPrompt?>((
+  ref,
+) async {
   final user = ref.watch(authControllerProvider).value;
   if (user == null) return null;
 
   final allRides = await ref.watch(myRidesProvider.future);
-  final completedRides = allRides.where((r) =>
-      r.displayStatus == 'completed' ||
-      (r.isPast && !['cancelled', 'rejected'].contains(r.displayStatus))).toList();
+  final completedRides = allRides
+      .where(
+        (r) =>
+            r.displayStatus == 'completed' ||
+            (r.isPast && !['cancelled', 'rejected'].contains(r.displayStatus)),
+      )
+      .toList();
 
   final ratingRepo = ref.watch(ratingRepositoryProvider);
 

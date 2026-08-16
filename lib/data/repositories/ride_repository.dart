@@ -22,8 +22,8 @@ class RideRepository {
   RideRepository({
     FirestoreService? firestoreService,
     NotificationRepository? notificationRepo,
-  })  : _firestoreService = firestoreService ?? FirestoreService(),
-        _notificationRepo = notificationRepo ?? NotificationRepository();
+  }) : _firestoreService = firestoreService ?? FirestoreService(),
+       _notificationRepo = notificationRepo ?? NotificationRepository();
 
   // ---------------------------------------------------------------------------
   // CREATE
@@ -36,7 +36,10 @@ class RideRepository {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        return Failure('User is not authenticated. Please sign in to create a ride.', Exception('Unauthenticated'));
+        return Failure(
+          'User is not authenticated. Please sign in to create a ride.',
+          Exception('Unauthenticated'),
+        );
       }
 
       // Always use the authenticated UID — never a fallback string
@@ -53,23 +56,30 @@ class RideRepository {
       // Write to Firestore and AWAIT the result — the write IS the source of truth
       await docRef.set(newRide.toMap());
 
-      debugPrint('[RideRepository] CREATE success | collection: rides | documentId: ${newRide.id} | driverId: $driverId');
+      debugPrint(
+        '[RideRepository] CREATE success | collection: rides | documentId: ${newRide.id} | driverId: $driverId',
+      );
 
-      unawaited(_analytics.logEvent(
-        name: 'ride_created',
-        parameters: {
-          'driverId': driverId,
-          'destination': ride.destination,
-        },
-      ));
+      unawaited(
+        _analytics.logEvent(
+          name: 'ride_created',
+          parameters: {'driverId': driverId, 'destination': ride.destination},
+        ),
+      );
 
       return Success(newRide.id);
     } on FirebaseException catch (e) {
       debugPrint('[RideRepository] CREATE failed | [${e.code}] ${e.message}');
-      return Failure('Could not save ride (${e.code}). Please try again.', FirestoreException(e.code));
+      return Failure(
+        'Could not save ride (${e.code}). Please try again.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       debugPrint('[RideRepository] CREATE unexpected error: $e');
-      return Failure('Could not create ride. Please try again.', Exception(e.toString()));
+      return Failure(
+        'Could not create ride. Please try again.',
+        Exception(e.toString()),
+      );
     }
   }
 
@@ -80,17 +90,26 @@ class RideRepository {
   /// Streams all rides where [driverId] matches the authenticated creator.
   /// Uses a real Firestore snapshot listener — updates appear automatically.
   Stream<List<RideModel>> streamRidesByDriver(String driverId) {
-    debugPrint('[RideRepository] MY RIDES stream started | driverId: $driverId');
+    debugPrint(
+      '[RideRepository] MY RIDES stream started | driverId: $driverId',
+    );
 
     return _firestoreService.ridesCollection
         .where('driverId', isEqualTo: driverId)
         .snapshots()
         .map((snapshot) {
           final rides = snapshot.docs
-              .map((doc) => RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+              .map(
+                (doc) => RideModel.fromMap(
+                  doc.data() as Map<String, dynamic>,
+                  doc.id,
+                ),
+              )
               .toList();
           rides.sort((a, b) => b.departureTime.compareTo(a.departureTime));
-          debugPrint('[RideRepository] MY RIDES update | driverId: $driverId | resultCount: ${rides.length}');
+          debugPrint(
+            '[RideRepository] MY RIDES update | driverId: $driverId | resultCount: ${rides.length}',
+          );
           return rides;
         })
         .handleError((error) {
@@ -121,10 +140,16 @@ class RideRepository {
       return const Success(null);
     } on FirebaseException catch (e) {
       debugPrint('[RideRepository] CANCEL failed | [${e.code}] ${e.message}');
-      return Failure('Unable to cancel this ride (${e.code}). Please try again.', FirestoreException(e.code));
+      return Failure(
+        'Unable to cancel this ride (${e.code}). Please try again.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       debugPrint('[RideRepository] CANCEL unexpected error: $e');
-      return Failure('An unexpected error occurred. Please try again.', Exception(e.toString()));
+      return Failure(
+        'An unexpected error occurred. Please try again.',
+        Exception(e.toString()),
+      );
     }
   }
 
@@ -140,23 +165,28 @@ class RideRepository {
         final data = doc.data() as Map<String, dynamic>;
         final passengerUid = data['requesterUid'] as String?;
         if (passengerUid != null && passengerUid.isNotEmpty) {
-          unawaited(_notificationRepo.createNotification(NotificationModel(
-            id: '',
-            userId: passengerUid,
-            title: 'Ride Cancelled',
-            body: 'A ride you joined has been cancelled by the driver.',
-            type: 'cancelled',
-            isRead: false,
-            createdAt: DateTime.now(),
-            relatedId: rideId,
-          )));
+          unawaited(
+            _notificationRepo.createNotification(
+              NotificationModel(
+                id: '',
+                userId: passengerUid,
+                title: 'Ride Cancelled',
+                body: 'A ride you joined has been cancelled by the driver.',
+                type: 'cancelled',
+                isRead: false,
+                createdAt: DateTime.now(),
+                relatedId: rideId,
+              ),
+            ),
+          );
         }
       }
     } catch (e) {
-      debugPrint('[RideRepository] Failed to send cancellation notifications: $e');
+      debugPrint(
+        '[RideRepository] Failed to send cancellation notifications: $e',
+      );
     }
   }
-
 
   // ---------------------------------------------------------------------------
   // DELETE (permanent)
@@ -171,7 +201,10 @@ class RideRepository {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        return Failure('You must be signed in to delete a ride.', Exception('Unauthenticated'));
+        return Failure(
+          'You must be signed in to delete a ride.',
+          Exception('Unauthenticated'),
+        );
       }
 
       // 1. Fetch associated ride requests
@@ -189,14 +222,24 @@ class RideRepository {
       // 3. Commit and AWAIT — only report success after Firestore confirms
       await batch.commit();
 
-      debugPrint('[RideRepository] DELETE success | documentId: $rideId | uid: ${currentUser.uid}');
+      debugPrint(
+        '[RideRepository] DELETE success | documentId: $rideId | uid: ${currentUser.uid}',
+      );
       return const Success(null);
     } on FirebaseException catch (e) {
-      debugPrint('[RideRepository] DELETE failed | documentId: $rideId | [${e.code}] ${e.message}');
-      return Failure('Unable to delete this ride (${e.code}). Please try again.', FirestoreException(e.code));
+      debugPrint(
+        '[RideRepository] DELETE failed | documentId: $rideId | [${e.code}] ${e.message}',
+      );
+      return Failure(
+        'Unable to delete this ride (${e.code}). Please try again.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       debugPrint('[RideRepository] DELETE unexpected error: $e');
-      return Failure('An unexpected error occurred while deleting. Please try again.', Exception(e.toString()));
+      return Failure(
+        'An unexpected error occurred while deleting. Please try again.',
+        Exception(e.toString()),
+      );
     }
   }
 
@@ -209,7 +252,10 @@ class RideRepository {
     try {
       final now = DateTime.now();
 
-      Query query = _firestoreService.ridesCollection.where('status', isEqualTo: 'active');
+      Query query = _firestoreService.ridesCollection.where(
+        'status',
+        isEqualTo: 'active',
+      );
       if (driverId != null && driverId.isNotEmpty) {
         query = query.where('driverId', isEqualTo: driverId);
       }
@@ -217,13 +263,22 @@ class RideRepository {
       final snapshot = await query.get();
 
       for (final doc in snapshot.docs) {
-        final ride = RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-        if (ride.departureTime.isBefore(now.subtract(const Duration(hours: 2)))) {
+        final ride = RideModel.fromMap(
+          doc.data() as Map<String, dynamic>,
+          doc.id,
+        );
+        if (ride.departureTime.isBefore(
+          now.subtract(const Duration(hours: 2)),
+        )) {
           try {
-            await _firestoreService.ridesCollection.doc(doc.id).update({'status': 'completed'});
+            await _firestoreService.ridesCollection.doc(doc.id).update({
+              'status': 'completed',
+            });
             debugPrint('[RideRepository] AUDIT completed ride ${doc.id}');
           } catch (e) {
-            debugPrint('[RideRepository] AUDIT could not update ride ${doc.id}: $e');
+            debugPrint(
+              '[RideRepository] AUDIT could not update ride ${doc.id}: $e',
+            );
           }
         }
       }
@@ -259,16 +314,26 @@ class RideRepository {
             .get(const GetOptions(source: Source.server))
             .timeout(const Duration(seconds: 6));
       } on FirebaseException catch (e) {
-        debugPrint('[RideRepository] SEARCH Firestore error | [${e.code}] ${e.message}');
-        return Failure('Could not reach the server (${e.code}). Please check your connection.', FirestoreException(e.code));
+        debugPrint(
+          '[RideRepository] SEARCH Firestore error | [${e.code}] ${e.message}',
+        );
+        return Failure(
+          'Could not reach the server (${e.code}). Please check your connection.',
+          FirestoreException(e.code),
+        );
       }
 
-      debugPrint('[RideRepository] SEARCH raw results from Firestore: ${snapshot.docs.length}');
+      debugPrint(
+        '[RideRepository] SEARCH raw results from Firestore: ${snapshot.docs.length}',
+      );
 
       final List<RideModel> results = [];
 
       for (final doc in snapshot.docs) {
-        final ride = RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+        final ride = RideModel.fromMap(
+          doc.data() as Map<String, dynamic>,
+          doc.id,
+        );
 
         // Client-side filters (in order of cheapest to most expensive)
         if (ride.availableSeats < seats) continue;
@@ -277,14 +342,19 @@ class RideRepository {
         if (isGirlsOnly && !ride.isGirlsOnly) continue;
 
         if (boardingLocation.isNotEmpty &&
-            !ride.boardingLocation.toLowerCase().contains(boardingLocation.toLowerCase())) {
+            !ride.boardingLocation.toLowerCase().contains(
+              boardingLocation.toLowerCase(),
+            )) {
           continue;
         }
         if (destination.isNotEmpty &&
-            !ride.destination.toLowerCase().contains(destination.toLowerCase())) {
+            !ride.destination.toLowerCase().contains(
+              destination.toLowerCase(),
+            )) {
           continue;
         }
-        if (departureTime != null && ride.departureTime.isBefore(departureTime)) {
+        if (departureTime != null &&
+            ride.departureTime.isBefore(departureTime)) {
           continue;
         }
 
@@ -293,11 +363,16 @@ class RideRepository {
 
       results.sort((a, b) => a.departureTime.compareTo(b.departureTime));
 
-      debugPrint('[RideRepository] SEARCH final results: ${results.length} | query: "$boardingLocation → $destination"');
+      debugPrint(
+        '[RideRepository] SEARCH final results: ${results.length} | query: "$boardingLocation → $destination"',
+      );
       return Success(results);
     } catch (e) {
       debugPrint('[RideRepository] SEARCH unexpected error: $e');
-      return Failure('An unexpected error occurred during search.', Exception(e.toString()));
+      return Failure(
+        'An unexpected error occurred during search.',
+        Exception(e.toString()),
+      );
     }
   }
 }

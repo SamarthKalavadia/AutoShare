@@ -34,7 +34,9 @@ class ChatsListPage extends ConsumerWidget {
         data: (rides) {
           final activeChats = rides.where((r) {
             final status = r.displayStatus;
-            return status == 'active' || status == 'joined' || status == 'completed';
+            return status == 'active' ||
+                status == 'joined' ||
+                status == 'completed';
           }).toList();
 
           if (activeChats.isEmpty) {
@@ -42,11 +44,19 @@ class ChatsListPage extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.chat_bubble_outline, size: 64, color: theme.brightness == Brightness.dark ? Colors.white24 : Colors.grey),
+                  Icon(
+                    Icons.chat_bubble_outline,
+                    size: 64,
+                    color: theme.brightness == Brightness.dark
+                        ? Colors.white24
+                        : Colors.grey,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'No active chats yet',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -79,8 +89,12 @@ class _ChatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final cardBg =
+        theme.cardTheme.color ??
+        (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    final borderColor = isDark
+        ? const Color(0xFF333333)
+        : const Color(0xFFEAE5DD);
     final textColor = theme.colorScheme.onSurface;
     final subtextColor = isDark ? Colors.white60 : Colors.grey[600];
 
@@ -88,16 +102,21 @@ class _ChatCard extends StatelessWidget {
     // Ideally we should know the exact participant, but for now we link to the ride chat
     // If driver, we don't know the exact passenger here unless we query the requests.
     // For simplicity, we just pass the ride owner id.
-    final participantUid = isDriver ? data.ride.driverId : (data.request?.requesterUid ?? '');
+    final participantUid = isDriver
+        ? data.ride.driverId
+        : (data.request?.requesterUid ?? '');
     final participantName = isDriver ? data.ride.driverName : 'Driver';
 
     return InkWell(
       onTap: () {
-        context.push('/chat', extra: ChatPageArgs(
-          ride: data.ride,
-          otherParticipantUid: participantUid,
-          otherParticipantName: participantName,
-        ));
+        context.push(
+          '/chat',
+          extra: ChatPageArgs(
+            ride: data.ride,
+            otherParticipantUid: participantUid,
+            otherParticipantName: participantName,
+          ),
+        );
       },
       borderRadius: BorderRadius.circular(16),
       child: Container(
@@ -106,15 +125,24 @@ class _ChatCard extends StatelessWidget {
           color: cardBg,
           borderRadius: BorderRadius.circular(16),
           border: isDark ? Border.all(color: borderColor, width: 1.1) : null,
-          boxShadow: isDark ? [] : const [
-            BoxShadow(color: Color(0x05000000), blurRadius: 8, offset: Offset(0, 4)),
-          ],
+          boxShadow: isDark
+              ? []
+              : const [
+                  BoxShadow(
+                    color: Color(0x05000000),
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
+                  ),
+                ],
         ),
         child: Row(
           children: [
             CircleAvatar(
               backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
-              child: Icon(Icons.person, color: isDark ? Colors.white : const Color(0xFF121212)),
+              child: Icon(
+                Icons.person,
+                color: isDark ? Colors.white : const Color(0xFF121212),
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -123,19 +151,29 @@ class _ChatCard extends StatelessWidget {
                 children: [
                   Text(
                     '${data.ride.boardingLocation} → ${data.ride.destination}',
-                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, color: textColor),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    isDriver ? 'Your Ride' : 'Ride with ${data.ride.driverName}',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: subtextColor),
+                    isDriver
+                        ? 'Your Ride'
+                        : 'Ride with ${data.ride.driverName}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: subtextColor,
+                    ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: isDark ? Colors.white54 : Colors.grey),
+            Icon(
+              Icons.chevron_right,
+              color: isDark ? Colors.white54 : Colors.grey,
+            ),
           ],
         ),
       ),

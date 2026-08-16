@@ -12,11 +12,15 @@ class DriverInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     final blackColor = theme.colorScheme.onSurface;
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final borderColor = isDark
+        ? const Color(0xFF333333)
+        : const Color(0xFFEAE5DD);
     final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
-    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    final cardBg =
+        theme.cardTheme.color ??
+        (isDark ? const Color(0xFF1E1E1E) : Colors.white);
     final primaryColor = theme.colorScheme.primary;
 
     final initials = _getInitials(ride.driverName);
@@ -28,9 +32,15 @@ class DriverInfoCard extends StatelessWidget {
         color: cardBg,
         borderRadius: BorderRadius.circular(24),
         border: isDark ? Border.all(color: borderColor, width: 1.1) : null,
-        boxShadow: isDark ? [] : const [
-          BoxShadow(color: Color(0x0A121212), blurRadius: 16, offset: Offset(0, 4)),
-        ],
+        boxShadow: isDark
+            ? []
+            : const [
+                BoxShadow(
+                  color: Color(0x0A121212),
+                  blurRadius: 16,
+                  offset: Offset(0, 4),
+                ),
+              ],
       ),
       child: Row(
         children: [
@@ -41,7 +51,9 @@ class DriverInfoCard extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF2A2A2C) : const Color(0xFFF3F3F3),
+                color: isDark
+                    ? const Color(0xFF2A2A2C)
+                    : const Color(0xFFF3F3F3),
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -121,7 +133,9 @@ class _VerifiedBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF1B3D23) : const Color(0xFFE8F5E9);
-    final iconColor = isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32);
+    final iconColor = isDark
+        ? const Color(0xFF81C784)
+        : const Color(0xFF2E7D32);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -185,15 +199,12 @@ class _StarRating extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).colorScheme.primary;
-    
+
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: List.generate(1, (i) { // Show just 1 star in BlaBlaCar style instead of 5
-        return Icon(
-          Icons.star_rounded,
-          size: 16,
-          color: primaryColor,
-        );
+      children: List.generate(1, (i) {
+        // Show just 1 star in BlaBlaCar style instead of 5
+        return Icon(Icons.star_rounded, size: 16, color: primaryColor);
       }),
     );
   }

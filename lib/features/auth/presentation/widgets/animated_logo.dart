@@ -5,11 +5,7 @@ class AnimatedLogo extends StatefulWidget {
   final double size;
   final bool animate;
 
-  const AnimatedLogo({
-    super.key,
-    this.size = 100.0,
-    this.animate = true,
-  });
+  const AnimatedLogo({super.key, this.size = 100.0, this.animate = true});
 
   @override
   State<AnimatedLogo> createState() => _AnimatedLogoState();
@@ -29,13 +25,15 @@ class _AnimatedLogoState extends State<AnimatedLogo>
       duration: const Duration(milliseconds: 1200),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.6, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.6,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
 
     if (widget.animate) {
       _controller.forward();
@@ -68,10 +66,7 @@ class _AnimatedLogoState extends State<AnimatedLogo>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
-                  colors: [
-                    primaryColor.withValues(alpha: 0.85),
-                    primaryColor,
-                  ],
+                  colors: [primaryColor.withValues(alpha: 0.85), primaryColor],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),

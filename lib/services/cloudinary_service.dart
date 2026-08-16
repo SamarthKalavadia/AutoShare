@@ -18,8 +18,7 @@ class CloudinaryService {
         Uri.parse(CloudinaryConstants.uploadUrl),
       );
 
-      request.fields['upload_preset'] =
-          CloudinaryConstants.uploadPreset;
+      request.fields['upload_preset'] = CloudinaryConstants.uploadPreset;
 
       request.files.add(
         await http.MultipartFile.fromPath(
@@ -34,8 +33,7 @@ class CloudinaryService {
       final response = await request.send();
 
       if (response.statusCode == 200) {
-        final responseData =
-            jsonDecode(await response.stream.bytesToString());
+        final responseData = jsonDecode(await response.stream.bytesToString());
 
         return responseData["secure_url"];
       }

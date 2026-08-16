@@ -20,10 +20,7 @@ class DriverDirectoryModel extends Equatable {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'Name': name,
-      'Phone': phone,
-    };
+    return {'Name': name, 'Phone': phone};
   }
 
   @override

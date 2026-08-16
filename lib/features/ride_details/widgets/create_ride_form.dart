@@ -29,13 +29,13 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
     final blackColor = isDark
         ? const Color(0xFFFFFFFF)
         : theme.colorScheme.onSurface;
-    final cardColor = isDark
-        ? const Color(0xFF181818)
-        : Colors.white;
+    final cardColor = isDark ? const Color(0xFF181818) : Colors.white;
     final mutedText = isDark
         ? const Color(0xFFA1A1A1)
         : const Color(0xFF6F6F72);
-    final borderColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEAE5DD);
+    final borderColor = isDark
+        ? const Color(0xFF2A2A2A)
+        : const Color(0xFFEAE5DD);
     final secondaryBg = isDark
         ? const Color(0xFF2A2A2A)
         : const Color(0xFFF6F5F3);
@@ -432,16 +432,16 @@ class _RideTextFieldState extends State<_RideTextField> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark
-        ? const Color(0xFF181818)
-        : Colors.white;
+    final cardColor = isDark ? const Color(0xFF181818) : Colors.white;
     final textColor = isDark
         ? const Color(0xFFFFFFFF)
         : const Color(0xFF121212);
     final hintColor = isDark
         ? const Color(0xFF6F6F72)
         : const Color(0xFF9E9E9E);
-    final borderColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEAE5DD);
+    final borderColor = isDark
+        ? const Color(0xFF2A2A2A)
+        : const Color(0xFFEAE5DD);
 
     return Container(
       decoration: BoxDecoration(
@@ -509,16 +509,16 @@ class _DatePickerField extends ConsumerWidget {
     final notifier = ref.read(createRideProvider.notifier);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark
-        ? const Color(0xFF181818)
-        : Colors.white;
+    final cardColor = isDark ? const Color(0xFF181818) : Colors.white;
     final textColor = isDark
         ? const Color(0xFFFFFFFF)
         : const Color(0xFF121212);
     final hintColor = isDark
         ? const Color(0xFF6F6F72)
         : const Color(0xFF9E9E9E);
-    final borderColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEAE5DD);
+    final borderColor = isDark
+        ? const Color(0xFF2A2A2A)
+        : const Color(0xFFEAE5DD);
 
     final dateText = state.departureDate != null
         ? DateFormat('MMM dd, yyyy').format(state.departureDate!)
@@ -581,16 +581,16 @@ class _TimePickerField extends ConsumerWidget {
     final notifier = ref.read(createRideProvider.notifier);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark
-        ? const Color(0xFF181818)
-        : Colors.white;
+    final cardColor = isDark ? const Color(0xFF181818) : Colors.white;
     final textColor = isDark
         ? const Color(0xFFFFFFFF)
         : const Color(0xFF121212);
     final hintColor = isDark
         ? const Color(0xFF6F6F72)
         : const Color(0xFF9E9E9E);
-    final borderColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEAE5DD);
+    final borderColor = isDark
+        ? const Color(0xFF2A2A2A)
+        : const Color(0xFFEAE5DD);
 
     final timeText = state.departureTime != null
         ? DateFormat('hh:mm a').format(state.departureTime!)
@@ -661,13 +661,13 @@ class _SeatsStepper extends ConsumerWidget {
     final notifier = ref.read(createRideProvider.notifier);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark
-        ? const Color(0xFF181818)
-        : Colors.white;
+    final cardColor = isDark ? const Color(0xFF181818) : Colors.white;
     final textColor = isDark
         ? const Color(0xFFFFFFFF)
         : const Color(0xFF121212);
-    final borderColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEAE5DD);
+    final borderColor = isDark
+        ? const Color(0xFF2A2A2A)
+        : const Color(0xFFEAE5DD);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),

@@ -21,10 +21,7 @@ class EmptySearch extends StatelessWidget {
           Container(
             width: 140,
             height: 140,
-            decoration: BoxDecoration(
-              color: iconBg,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
             child: const Icon(
               Icons.search_off_rounded,
               size: 64,
@@ -44,10 +41,7 @@ class EmptySearch extends StatelessWidget {
           Text(
             'Try changing your filters or search another route.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: mutedText,
-            ),
+            style: GoogleFonts.inter(fontSize: 14, color: mutedText),
           ),
           const SizedBox(height: 32),
           SizedBox(
@@ -56,8 +50,12 @@ class EmptySearch extends StatelessWidget {
             child: FilledButton(
               onPressed: () => context.push('/create-ride'),
               style: FilledButton.styleFrom(
-                backgroundColor: isDark ? const Color(0xFFF6C000) : const Color(0xFF121212),
-                foregroundColor: isDark ? const Color(0xFF121212) : Colors.white,
+                backgroundColor: isDark
+                    ? const Color(0xFFF6C000)
+                    : const Color(0xFF121212),
+                foregroundColor: isDark
+                    ? const Color(0xFF121212)
+                    : Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),

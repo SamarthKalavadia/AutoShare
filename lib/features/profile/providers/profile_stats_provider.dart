@@ -16,9 +16,11 @@ class ProfileStats {
   });
 }
 
-final profileStatsProvider = FutureProvider.autoDispose<ProfileStats>((ref) async {
+final profileStatsProvider = FutureProvider.autoDispose<ProfileStats>((
+  ref,
+) async {
   final allRides = await ref.watch(myRidesProvider.future);
-  
+
   int createdRides = 0;
   int joinedRides = 0;
   int completedRides = 0;
@@ -29,7 +31,7 @@ final profileStatsProvider = FutureProvider.autoDispose<ProfileStats>((ref) asyn
       createdRides++;
     } else if (rideData.role == 'passenger') {
       // Joined rides are passenger requests that are accepted/joined/completed/active
-      if (rideData.request != null && 
+      if (rideData.request != null &&
           ['joined', 'active', 'completed'].contains(rideData.displayStatus)) {
         joinedRides++;
       }

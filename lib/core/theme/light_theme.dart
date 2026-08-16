@@ -18,10 +18,22 @@ final ThemeData lightTheme = ThemeData(
   scaffoldBackgroundColor: const Color(0xFFFFFDF7),
   brightness: Brightness.light,
   textTheme: GoogleFonts.interTextTheme().copyWith(
-    headlineLarge: GoogleFonts.inter(fontWeight: FontWeight.w800, letterSpacing: -0.5),
-    headlineMedium: GoogleFonts.inter(fontWeight: FontWeight.w700, letterSpacing: -0.5),
-    titleLarge: GoogleFonts.inter(fontWeight: FontWeight.w700, letterSpacing: -0.3),
-    titleMedium: GoogleFonts.inter(fontWeight: FontWeight.w600, letterSpacing: -0.2),
+    headlineLarge: GoogleFonts.inter(
+      fontWeight: FontWeight.w800,
+      letterSpacing: -0.5,
+    ),
+    headlineMedium: GoogleFonts.inter(
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.5,
+    ),
+    titleLarge: GoogleFonts.inter(
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.3,
+    ),
+    titleMedium: GoogleFonts.inter(
+      fontWeight: FontWeight.w600,
+      letterSpacing: -0.2,
+    ),
     bodyLarge: GoogleFonts.inter(fontWeight: FontWeight.w500),
     bodyMedium: GoogleFonts.inter(fontWeight: FontWeight.w400),
   ),

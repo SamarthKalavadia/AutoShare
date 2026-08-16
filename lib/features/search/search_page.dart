@@ -12,7 +12,7 @@ import 'widgets/ride_sort_bottom_sheet.dart';
 
 class SearchPage extends ConsumerStatefulWidget {
   final bool showBackButton;
-  
+
   const SearchPage({super.key, this.showBackButton = false});
 
   @override
@@ -62,7 +62,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             pinned: true,
             elevation: 0,
             scrolledUnderElevation: 4,
-            leading: widget.showBackButton 
+            leading: widget.showBackButton
                 ? IconButton(
                     icon: Icon(Icons.arrow_back_rounded, color: blackColor),
                     onPressed: () => context.pop(),
@@ -78,13 +78,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             ),
             centerTitle: true,
           ),
-          
-
 
           // Filter Card
-          const SliverToBoxAdapter(
-            child: SearchFilterCard(),
-          ),
+          const SliverToBoxAdapter(child: SearchFilterCard()),
 
           // Results Header (Only if results exist or loading)
           if (state.isLoading || state.searchResults.isNotEmpty)
@@ -107,14 +103,21 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         onTap: _showSortBottomSheet,
                         borderRadius: BorderRadius.circular(20),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             border: Border.all(color: const Color(0xFFEAE5DD)),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.sort_rounded, size: 16, color: blackColor),
+                              Icon(
+                                Icons.sort_rounded,
+                                size: 16,
+                                color: blackColor,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 'Sort',
@@ -135,34 +138,22 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
           // Results List
           if (state.isLoading)
-            const SliverToBoxAdapter(
-              child: LoadingShimmer(),
-            )
+            const SliverToBoxAdapter(child: LoadingShimmer())
           else if (state.searchResults.isEmpty && state.hasSearched)
-            const SliverToBoxAdapter(
-              child: EmptySearch(),
-            )
+            const SliverToBoxAdapter(child: EmptySearch())
           else if (state.searchResults.isEmpty && !state.hasSearched)
-            const SliverToBoxAdapter(
-              child: SizedBox.shrink(),
-            )
+            const SliverToBoxAdapter(child: SizedBox.shrink())
           else
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final ride = state.searchResults[index];
-                    return RideCard(
-                      key: ValueKey(ride.id),
-                      ride: ride,
-                    );
-                  },
-                  childCount: state.searchResults.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final ride = state.searchResults[index];
+                  return RideCard(key: ValueKey(ride.id), ride: ride);
+                }, childCount: state.searchResults.length),
               ),
             ),
-            
+
           const SliverToBoxAdapter(child: SizedBox(height: 40)),
         ],
       ),

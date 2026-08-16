@@ -24,8 +24,8 @@ class RideRequestRepository {
   RideRequestRepository({
     FirestoreService? firestoreService,
     NotificationRepository? notificationRepo,
-  })  : _firestoreService = firestoreService ?? FirestoreService(),
-        _notificationRepo = notificationRepo ?? NotificationRepository() {
+  }) : _firestoreService = firestoreService ?? FirestoreService(),
+       _notificationRepo = notificationRepo ?? NotificationRepository() {
     _loadLocalRequests();
   }
 
@@ -37,10 +37,13 @@ class RideRequestRepository {
         final map = json.decode(str) as Map<String, dynamic>;
         DateTime reqDate = DateTime.now();
         if (map['requestedAt'] is String) {
-          reqDate = DateTime.tryParse(map['requestedAt'] as String) ?? DateTime.now();
+          reqDate =
+              DateTime.tryParse(map['requestedAt'] as String) ?? DateTime.now();
         }
-        final req = RideRequestModel.fromMap(map, map['requestId'] ?? map['id'] ?? '')
-            .copyWith(requestedAt: reqDate);
+        final req = RideRequestModel.fromMap(
+          map,
+          map['requestId'] ?? map['id'] ?? '',
+        ).copyWith(requestedAt: reqDate);
         _locallySubmittedRequests[req.requestId] = req;
       }
     } catch (e) {
@@ -66,7 +69,9 @@ class RideRequestRepository {
   Future<Result<String>> submitRequest(RideRequestModel request) async {
     try {
       final docRef = _firestoreService.rideRequestsCollection.doc();
-      final reqId = request.requestId.isNotEmpty ? request.requestId : docRef.id;
+      final reqId = request.requestId.isNotEmpty
+          ? request.requestId
+          : docRef.id;
       final withId = request.copyWith(requestId: reqId);
 
       // 1. Instantly persist locally so it ALWAYS shows in Requested tab & prevents duplicates
@@ -80,26 +85,34 @@ class RideRequestRepository {
             .set(withId.toMap())
             .timeout(const Duration(seconds: 4));
 
-        unawaited(_analytics.logEvent(
-          name: 'ride_joined',
-          parameters: {
-            'rideId': request.rideId,
-            'passengerId': request.requesterUid
-          },
-        ));
+        unawaited(
+          _analytics.logEvent(
+            name: 'ride_joined',
+            parameters: {
+              'rideId': request.rideId,
+              'passengerId': request.requesterUid,
+            },
+          ),
+        );
 
-        unawaited(_notificationRepo.createNotification(NotificationModel(
-          id: '',
-          userId: request.ownerUid,
-          title: 'New Ride Request',
-          body: 'Someone has requested to join your ride.',
-          type: 'new_request',
-          isRead: false,
-          createdAt: DateTime.now(),
-          relatedId: withId.requestId,
-        )));
+        unawaited(
+          _notificationRepo.createNotification(
+            NotificationModel(
+              id: '',
+              userId: request.ownerUid,
+              title: 'New Ride Request',
+              body: 'Someone has requested to join your ride.',
+              type: 'new_request',
+              isRead: false,
+              createdAt: DateTime.now(),
+              relatedId: withId.requestId,
+            ),
+          ),
+        );
       } on FirebaseException catch (e) {
-        debugPrint('Firestore request submit error (${e.code}); request saved locally.');
+        debugPrint(
+          'Firestore request submit error (${e.code}); request saved locally.',
+        );
       } catch (e) {
         debugPrint('Remote request submit error ($e); request saved locally.');
       }
@@ -121,7 +134,8 @@ class RideRequestRepository {
     for (final r in _locallySubmittedRequests.values) {
       if (r.rideId == rideId &&
           r.requesterUid == requesterUid &&
-          (r.status == RideRequestStatus.pending || r.status == RideRequestStatus.accepted)) {
+          (r.status == RideRequestStatus.pending ||
+              r.status == RideRequestStatus.accepted)) {
         return Success(r);
       }
     }
@@ -158,12 +172,18 @@ class RideRequestRepository {
           .timeout(const Duration(seconds: 3));
 
       if (!doc.exists) {
-        return const Failure('Ride not found.', FirestoreException('Ride document does not exist.'));
+        return const Failure(
+          'Ride not found.',
+          FirestoreException('Ride document does not exist.'),
+        );
       }
       final data = doc.data() as Map<String, dynamic>;
       return Success(RideModel.fromMap(data, doc.id));
     } on FirebaseException catch (e) {
-      return Failure(e.message ?? 'Failed to fetch ride.', FirestoreException(e.code));
+      return Failure(
+        e.message ?? 'Failed to fetch ride.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       return Failure('An unexpected error occurred.', Exception(e.toString()));
     }
@@ -175,7 +195,9 @@ class RideRequestRepository {
         .where('ownerUid', isEqualTo: ownerUid)
         .snapshots()
         .map((snapshot) {
-          final Map<String, RideRequestModel> merged = Map.from(_locallySubmittedRequests);
+          final Map<String, RideRequestModel> merged = Map.from(
+            _locallySubmittedRequests,
+          );
 
           for (final doc in snapshot.docs) {
             final req = RideRequestModel.fromDocument(doc);
@@ -189,7 +211,9 @@ class RideRequestRepository {
           return list;
         })
         .handleError((error) {
-          debugPrint('streamRequestsForOwner error ($error); falling back to local requests.');
+          debugPrint(
+            'streamRequestsForOwner error ($error); falling back to local requests.',
+          );
           final list = _locallySubmittedRequests.values
               .where((r) => r.ownerUid == ownerUid || ownerUid.isEmpty)
               .toList();
@@ -207,35 +231,51 @@ class RideRequestRepository {
 
       // Attempt remote Firestore update
       try {
-        final reqRef = _firestoreService.rideRequestsCollection.doc(request.requestId);
-        await reqRef.update({'status': RideRequestStatus.accepted.name}).timeout(const Duration(seconds: 3));
+        final reqRef = _firestoreService.rideRequestsCollection.doc(
+          request.requestId,
+        );
+        await reqRef
+            .update({'status': RideRequestStatus.accepted.name})
+            .timeout(const Duration(seconds: 3));
 
         // Decrement ride available seats remotely if possible
         final rideRef = _firestoreService.ridesCollection.doc(request.rideId);
         final rideDoc = await rideRef.get().timeout(const Duration(seconds: 3));
         if (rideDoc.exists) {
-          final currentSeats = (rideDoc.data() as Map<String, dynamic>?)?['availableSeats'] as int? ?? 1;
+          final currentSeats =
+              (rideDoc.data() as Map<String, dynamic>?)?['availableSeats']
+                  as int? ??
+              1;
           if (currentSeats > 0) {
-            await rideRef.update({'availableSeats': currentSeats - request.requestedSeats});
+            await rideRef.update({
+              'availableSeats': currentSeats - request.requestedSeats,
+            });
           }
         }
       } on FirebaseException catch (e) {
-        debugPrint('Firestore acceptRequest warning (${e.code}); accepted locally.');
+        debugPrint(
+          'Firestore acceptRequest warning (${e.code}); accepted locally.',
+        );
       } catch (e) {
         debugPrint('Remote acceptRequest warning ($e); accepted locally.');
       }
 
       // Send acceptance notification asynchronously
-      unawaited(_notificationRepo.createNotification(NotificationModel(
-        id: '',
-        userId: request.requesterUid,
-        title: 'Ride Request Accepted! 🎉',
-        body: 'Your ride request has been accepted. Contact details are now available.',
-        type: 'accepted',
-        isRead: false,
-        createdAt: DateTime.now(),
-        relatedId: request.requestId,
-      )));
+      unawaited(
+        _notificationRepo.createNotification(
+          NotificationModel(
+            id: '',
+            userId: request.requesterUid,
+            title: 'Ride Request Accepted! 🎉',
+            body:
+                'Your ride request has been accepted. Contact details are now available.',
+            type: 'accepted',
+            isRead: false,
+            createdAt: DateTime.now(),
+            relatedId: request.requestId,
+          ),
+        ),
+      );
 
       return const Success(null);
     } catch (e) {
@@ -245,32 +285,43 @@ class RideRequestRepository {
   }
 
   /// Rejects a ride request (by the ride owner).
-  Future<Result<void>> rejectRequest(String requestId, {required String requesterUid}) async {
+  Future<Result<void>> rejectRequest(
+    String requestId, {
+    required String requesterUid,
+  }) async {
     try {
       if (_locallySubmittedRequests.containsKey(requestId)) {
         _locallySubmittedRequests[requestId] =
-            _locallySubmittedRequests[requestId]!.copyWith(status: RideRequestStatus.rejected);
+            _locallySubmittedRequests[requestId]!.copyWith(
+              status: RideRequestStatus.rejected,
+            );
         unawaited(_saveLocalRequests());
       }
 
       try {
-        await _firestoreService.rideRequestsCollection.doc(requestId).update({
-          'status': RideRequestStatus.rejected.name,
-        }).timeout(const Duration(seconds: 3));
+        await _firestoreService.rideRequestsCollection
+            .doc(requestId)
+            .update({'status': RideRequestStatus.rejected.name})
+            .timeout(const Duration(seconds: 3));
       } catch (e) {
         debugPrint('Remote rejectRequest error ($e); rejected locally.');
       }
 
-      unawaited(_notificationRepo.createNotification(NotificationModel(
-        id: '',
-        userId: requesterUid,
-        title: 'Ride Request Declined',
-        body: 'Your ride request was not accepted. Try looking for another ride.',
-        type: 'rejected',
-        isRead: false,
-        createdAt: DateTime.now(),
-        relatedId: requestId,
-      )));
+      unawaited(
+        _notificationRepo.createNotification(
+          NotificationModel(
+            id: '',
+            userId: requesterUid,
+            title: 'Ride Request Declined',
+            body:
+                'Your ride request was not accepted. Try looking for another ride.',
+            type: 'rejected',
+            isRead: false,
+            createdAt: DateTime.now(),
+            relatedId: requestId,
+          ),
+        ),
+      );
 
       return const Success(null);
     } catch (e) {
@@ -287,9 +338,10 @@ class RideRequestRepository {
       unawaited(_saveLocalRequests());
 
       try {
-        await _firestoreService.rideRequestsCollection.doc(request.requestId).update({
-          'status': RideRequestStatus.cancelled.name,
-        }).timeout(const Duration(seconds: 3));
+        await _firestoreService.rideRequestsCollection
+            .doc(request.requestId)
+            .update({'status': RideRequestStatus.cancelled.name})
+            .timeout(const Duration(seconds: 3));
       } catch (e) {
         debugPrint('Remote cancelRequest error ($e); cancelled locally.');
       }
@@ -301,36 +353,53 @@ class RideRequestRepository {
   }
 
   /// Streams all requests made by [requesterUid].
-  Stream<List<RideRequestModel>> streamRequestsByPassenger(String requesterUid) {
+  Stream<List<RideRequestModel>> streamRequestsByPassenger(
+    String requesterUid,
+  ) {
     return _firestoreService.rideRequestsCollection
         .where('requesterUid', isEqualTo: requesterUid)
         .snapshots()
         .map((snapshot) {
-          final Map<String, RideRequestModel> merged = Map.from(_locallySubmittedRequests);
+          final Map<String, RideRequestModel> merged = Map.from(
+            _locallySubmittedRequests,
+          );
 
           for (final doc in snapshot.docs) {
-            final req = RideRequestModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+            final req = RideRequestModel.fromMap(
+              doc.data() as Map<String, dynamic>,
+              doc.id,
+            );
             merged[req.requestId] = req;
           }
 
           final list = merged.values
-              .where((r) => r.requesterUid == requesterUid || requesterUid.isEmpty)
+              .where(
+                (r) => r.requesterUid == requesterUid || requesterUid.isEmpty,
+              )
               .toList();
           list.sort((a, b) => b.requestedAt.compareTo(a.requestedAt));
           return list;
         })
         .handleError((error) {
-          debugPrint('streamRequestsByPassenger error ($error); returning local requests.');
+          debugPrint(
+            'streamRequestsByPassenger error ($error); returning local requests.',
+          );
           final list = _locallySubmittedRequests.values
-              .where((r) => r.requesterUid == requesterUid || requesterUid.isEmpty)
+              .where(
+                (r) => r.requesterUid == requesterUid || requesterUid.isEmpty,
+              )
               .toList();
           list.sort((a, b) => b.requestedAt.compareTo(a.requestedAt));
           return list;
         });
   }
 
-  Future<List<RideRequestModel>> getRequestsByPassenger(String requesterUid) async {
-    final Map<String, RideRequestModel> merged = Map.from(_locallySubmittedRequests);
+  Future<List<RideRequestModel>> getRequestsByPassenger(
+    String requesterUid,
+  ) async {
+    final Map<String, RideRequestModel> merged = Map.from(
+      _locallySubmittedRequests,
+    );
     try {
       final snapshot = await _firestoreService.rideRequestsCollection
           .where('requesterUid', isEqualTo: requesterUid)
@@ -338,7 +407,10 @@ class RideRequestRepository {
           .timeout(const Duration(seconds: 3));
 
       for (final doc in snapshot.docs) {
-        final req = RideRequestModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+        final req = RideRequestModel.fromMap(
+          doc.data() as Map<String, dynamic>,
+          doc.id,
+        );
         merged[req.requestId] = req;
       }
     } catch (e) {

@@ -15,10 +15,10 @@ class AuthService {
     FirebaseAuth? auth,
     GoogleSignIn? googleSignIn,
     required UserRepository userRepository,
-  })  : _auth = auth ?? FirebaseAuth.instance,
-        _googleSignIn = googleSignIn ?? GoogleSignIn(),
-        // ignore: prefer_initializing_formals
-        _userRepository = userRepository;
+  }) : _auth = auth ?? FirebaseAuth.instance,
+       _googleSignIn = googleSignIn ?? GoogleSignIn(),
+       // ignore: prefer_initializing_formals
+       _userRepository = userRepository;
 
   /// Stream of current user's authentication state.
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -40,7 +40,10 @@ class AuthService {
 
       final user = credential.user;
       if (user == null) {
-        return const Failure('Signup failed. User is null.', AuthException('User is null after signup'));
+        return const Failure(
+          'Signup failed. User is null.',
+          AuthException('User is null after signup'),
+        );
       }
 
       await user.updateDisplayName(name);
@@ -63,14 +66,19 @@ class AuthService {
       final createResult = await _userRepository.createUser(userModel);
       if (createResult is Failure) {
         // ignore: avoid_print
-        print('Warning: User created in Auth but failed in Firestore: ${createResult.message}');
+        print(
+          'Warning: User created in Auth but failed in Firestore: ${createResult.message}',
+        );
       }
 
       return Success(userModel);
     } on FirebaseAuthException catch (e) {
       // ignore: avoid_print
       print('AuthService.signUp Error: $e');
-      return Failure(_mapAuthErrorCode(e.code, defaultMessage: e.message), AuthException(e.code));
+      return Failure(
+        _mapAuthErrorCode(e.code, defaultMessage: e.message),
+        AuthException(e.code),
+      );
     } catch (e) {
       // ignore: avoid_print
       print('AuthService.signUp Unknown Error: $e');
@@ -91,7 +99,10 @@ class AuthService {
 
       final user = credential.user;
       if (user == null) {
-        return const Failure('Login failed. User is null.', AuthException('User is null after login'));
+        return const Failure(
+          'Login failed. User is null.',
+          AuthException('User is null after login'),
+        );
       }
 
       // Fetch user from Firestore
@@ -101,12 +112,18 @@ class AuthService {
       }
 
       // If missing in DB, create an empty shell (fallback)
-      final fallbackUser = UserModel.empty().copyWith(uid: user.uid, email: email);
+      final fallbackUser = UserModel.empty().copyWith(
+        uid: user.uid,
+        email: email,
+      );
       return Success(fallbackUser);
     } on FirebaseAuthException catch (e) {
       // ignore: avoid_print
       print('AuthService.login Error: $e');
-      return Failure(_mapAuthErrorCode(e.code, defaultMessage: e.message), AuthException(e.code));
+      return Failure(
+        _mapAuthErrorCode(e.code, defaultMessage: e.message),
+        AuthException(e.code),
+      );
     } catch (e) {
       // ignore: avoid_print
       print('AuthService.login Unknown Error: $e');
@@ -124,7 +141,9 @@ class AuthService {
         final GoogleAuthProvider googleProvider = GoogleAuthProvider();
         googleProvider.addScope('email');
         googleProvider.addScope('profile');
-        final UserCredential userCredential = await _auth.signInWithPopup(googleProvider);
+        final UserCredential userCredential = await _auth.signInWithPopup(
+          googleProvider,
+        );
         user = userCredential.user;
       } else {
         // On Mobile/Desktop, clear any existing stale session first
@@ -134,10 +153,14 @@ class AuthService {
 
         final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
         if (googleUser == null) {
-          return const Failure('Google Sign In was cancelled.', AuthException('Aborted by user'));
+          return const Failure(
+            'Google Sign In was cancelled.',
+            AuthException('Aborted by user'),
+          );
         }
 
-        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
         if (googleAuth.accessToken == null && googleAuth.idToken == null) {
           return const Failure(
             'Failed to obtain Google authentication tokens. Please check your Google Sign-In setup.',
@@ -150,12 +173,17 @@ class AuthService {
           idToken: googleAuth.idToken,
         );
 
-        final UserCredential userCredential = await _auth.signInWithCredential(credential);
+        final UserCredential userCredential = await _auth.signInWithCredential(
+          credential,
+        );
         user = userCredential.user;
       }
 
       if (user == null) {
-        return const Failure('Google login failed. User credential is null.', AuthException('User is null'));
+        return const Failure(
+          'Google login failed. User credential is null.',
+          AuthException('User is null'),
+        );
       }
 
       // Check if user already exists in Firestore
@@ -170,11 +198,15 @@ class AuthService {
       // If new or missing in DB, create user model in Firestore
       final userModel = UserModel(
         uid: user.uid,
-        name: user.displayName ?? (user.email != null ? user.email!.split('@').first : 'User'),
+        name:
+            user.displayName ??
+            (user.email != null ? user.email!.split('@').first : 'User'),
         email: user.email ?? '',
         phone: user.phoneNumber ?? '',
         profileImage: user.photoURL ?? '',
-        emailVerified: user.emailVerified || (user.email != null && user.email!.isNotEmpty),
+        emailVerified:
+            user.emailVerified ||
+            (user.email != null && user.email!.isNotEmpty),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         lastSeen: DateTime.now(),
@@ -185,14 +217,21 @@ class AuthService {
       final createResult = await _userRepository.createUser(userModel);
       if (createResult is Failure) {
         // ignore: avoid_print
-        print('Warning: Google user created in Auth but failed in Firestore: ${createResult.message}');
+        print(
+          'Warning: Google user created in Auth but failed in Firestore: ${createResult.message}',
+        );
       }
 
       return Success(userModel);
     } on FirebaseAuthException catch (e) {
       // ignore: avoid_print
-      print('AuthService.googleLogin FirebaseAuthException: ${e.code} - ${e.message}');
-      return Failure(_mapAuthErrorCode(e.code, defaultMessage: e.message), AuthException(e.code));
+      print(
+        'AuthService.googleLogin FirebaseAuthException: ${e.code} - ${e.message}',
+      );
+      return Failure(
+        _mapAuthErrorCode(e.code, defaultMessage: e.message),
+        AuthException(e.code),
+      );
     } catch (e) {
       // ignore: avoid_print
       print('AuthService.googleLogin Unknown Error: $e');
@@ -223,7 +262,10 @@ class AuthService {
     } on FirebaseAuthException catch (e) {
       // ignore: avoid_print
       print('AuthService.resetPassword Error: $e');
-      return Failure(_mapAuthErrorCode(e.code, defaultMessage: e.message), AuthException(e.code));
+      return Failure(
+        _mapAuthErrorCode(e.code, defaultMessage: e.message),
+        AuthException(e.code),
+      );
     } catch (e) {
       // ignore: avoid_print
       print('AuthService.resetPassword Unknown Error: $e');
@@ -236,14 +278,20 @@ class AuthService {
     try {
       final user = currentUser;
       if (user == null) {
-        return const Failure('No user logged in.', AuthException('User is null'));
+        return const Failure(
+          'No user logged in.',
+          AuthException('User is null'),
+        );
       }
       await user.sendEmailVerification();
       return const Success(null);
     } on FirebaseAuthException catch (e) {
       // ignore: avoid_print
       print('AuthService.sendEmailVerification Error: $e');
-      return Failure(_mapAuthErrorCode(e.code, defaultMessage: e.message), AuthException(e.code));
+      return Failure(
+        _mapAuthErrorCode(e.code, defaultMessage: e.message),
+        AuthException(e.code),
+      );
     } catch (e) {
       // ignore: avoid_print
       print('AuthService.sendEmailVerification Unknown Error: $e');
@@ -256,7 +304,10 @@ class AuthService {
     try {
       final user = currentUser;
       if (user == null) {
-        return const Failure('No user logged in.', AuthException('User is null'));
+        return const Failure(
+          'No user logged in.',
+          AuthException('User is null'),
+        );
       }
 
       // Delete from Firestore first
@@ -269,9 +320,15 @@ class AuthService {
       // ignore: avoid_print
       print('AuthService.deleteAccount Error: $e');
       if (e.code == 'requires-recent-login') {
-        return Failure('Please log in again to delete your account.', AuthException(e.code));
+        return Failure(
+          'Please log in again to delete your account.',
+          AuthException(e.code),
+        );
       }
-      return Failure(_mapAuthErrorCode(e.code, defaultMessage: e.message), AuthException(e.code));
+      return Failure(
+        _mapAuthErrorCode(e.code, defaultMessage: e.message),
+        AuthException(e.code),
+      );
     } catch (e) {
       // ignore: avoid_print
       print('AuthService.deleteAccount Unknown Error: $e');
@@ -318,13 +375,17 @@ class AuthService {
   /// Maps generic exception objects to user-friendly error messages.
   String _mapGenericErrorMessage(dynamic e) {
     final errString = e.toString().toLowerCase();
-    if (errString.contains('sign_in_failed') || errString.contains('api_exception: 10')) {
+    if (errString.contains('sign_in_failed') ||
+        errString.contains('api_exception: 10')) {
       return 'Google Sign-In failed (Developer Error 10). Ensure SHA-1 fingerprint and Google Sign-In are configured in Firebase Console.';
     } else if (errString.contains('12500')) {
       return 'Google Sign-In failed (Error 12500). Check Google Play Services and Firebase Console setup.';
-    } else if (errString.contains('canceled') || errString.contains('cancelled') || errString.contains('aborted')) {
+    } else if (errString.contains('canceled') ||
+        errString.contains('cancelled') ||
+        errString.contains('aborted')) {
       return 'Google Sign-In was cancelled.';
-    } else if (errString.contains('network') || errString.contains('socketexception')) {
+    } else if (errString.contains('network') ||
+        errString.contains('socketexception')) {
       return 'Network error occurred during Google Sign-In. Please check your internet connection.';
     }
     return 'An error occurred during authentication. Please try again.';

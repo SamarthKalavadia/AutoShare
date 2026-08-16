@@ -66,24 +66,24 @@ class UserModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        uid,
-        name,
-        email,
-        phone,
-        profileImage,
-        emailVerified,
-        createdAt,
-        updatedAt,
-        lastSeen,
-        isOnline,
-        gender,
-        averageRating,
-        totalReviews,
-        blockedUsers,
-        city,
-        emergencyContact,
-        bio,
-      ];
+    uid,
+    name,
+    email,
+    phone,
+    profileImage,
+    emailVerified,
+    createdAt,
+    updatedAt,
+    lastSeen,
+    isOnline,
+    gender,
+    averageRating,
+    totalReviews,
+    blockedUsers,
+    city,
+    emergencyContact,
+    bio,
+  ];
 
   /// Creates a copy of the current model with updated values.
   UserModel copyWith({
@@ -168,7 +168,11 @@ class UserModel extends Equatable {
       gender: map['gender'] as String? ?? '',
       averageRating: (map['averageRating'] as num?)?.toDouble() ?? 0.0,
       totalReviews: map['totalReviews'] as int? ?? 0,
-      blockedUsers: (map['blockedUsers'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      blockedUsers:
+          (map['blockedUsers'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
       city: map['city'] as String? ?? '',
       emergencyContact: map['emergencyContact'] as String? ?? '',
       bio: map['bio'] as String? ?? '',
@@ -176,7 +180,8 @@ class UserModel extends Equatable {
   }
 
   /// Alias for fromMap for standard JSON serialization.
-  factory UserModel.fromJson(Map<String, dynamic> json) => UserModel.fromMap(json);
+  factory UserModel.fromJson(Map<String, dynamic> json) =>
+      UserModel.fromMap(json);
 
   /// Creates a model from a Firestore DocumentSnapshot.
   factory UserModel.fromDocument(DocumentSnapshot doc) {

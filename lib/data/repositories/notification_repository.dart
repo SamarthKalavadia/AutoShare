@@ -9,9 +9,10 @@ class NotificationRepository {
   final FirestoreService _firestoreService;
 
   NotificationRepository({FirestoreService? firestoreService})
-      : _firestoreService = firestoreService ?? FirestoreService();
+    : _firestoreService = firestoreService ?? FirestoreService();
 
-  CollectionReference<Object?> get _notifCollection => _firestoreService.notificationsCollection;
+  CollectionReference<Object?> get _notifCollection =>
+      _firestoreService.notificationsCollection;
 
   /// Streams real-time notifications for [userId], ordered newest first.
   Stream<List<NotificationModel>> streamNotifications(String userId) {
@@ -20,7 +21,11 @@ class NotificationRepository {
         .snapshots()
         .map((s) {
           final list = s.docs
-              .map((d) => NotificationModel.fromDocument(d as DocumentSnapshot<Map<String, dynamic>>))
+              .map(
+                (d) => NotificationModel.fromDocument(
+                  d as DocumentSnapshot<Map<String, dynamic>>,
+                ),
+              )
               .toList();
           list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
           return list;
@@ -29,12 +34,17 @@ class NotificationRepository {
   }
 
   /// Creates a new notification document.
-  Future<Result<void>> createNotification(NotificationModel notification) async {
+  Future<Result<void>> createNotification(
+    NotificationModel notification,
+  ) async {
     try {
       await _notifCollection.add(notification.toMap());
       return const Success(null);
     } on FirebaseException catch (e) {
-      return Failure(e.message ?? 'Failed to create notification.', FirestoreException(e.code));
+      return Failure(
+        e.message ?? 'Failed to create notification.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       return Failure('An unexpected error occurred.', Exception(e.toString()));
     }
@@ -47,7 +57,10 @@ class NotificationRepository {
       await _notifCollection.doc(notificationId).update({'isRead': true});
       return const Success(null);
     } on FirebaseException catch (e) {
-      return Failure(e.message ?? 'Failed to mark as read.', FirestoreException(e.code));
+      return Failure(
+        e.message ?? 'Failed to mark as read.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       return Failure('An unexpected error occurred.', Exception(e.toString()));
     }
@@ -69,7 +82,10 @@ class NotificationRepository {
       await batch.commit();
       return const Success(null);
     } on FirebaseException catch (e) {
-      return Failure(e.message ?? 'Failed to mark all as read.', FirestoreException(e.code));
+      return Failure(
+        e.message ?? 'Failed to mark all as read.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       return Failure('An unexpected error occurred.', Exception(e.toString()));
     }
@@ -77,13 +93,17 @@ class NotificationRepository {
 
   /// Permanently deletes a notification.
   Future<Result<void>> deleteNotification(
-      String userId, String notificationId) async {
+    String userId,
+    String notificationId,
+  ) async {
     try {
       await _notifCollection.doc(notificationId).delete();
       return const Success(null);
     } on FirebaseException catch (e) {
-      return Failure(e.message ?? 'Failed to delete notification.',
-          FirestoreException(e.code));
+      return Failure(
+        e.message ?? 'Failed to delete notification.',
+        FirestoreException(e.code),
+      );
     } catch (e) {
       return Failure('An unexpected error occurred.', Exception(e.toString()));
     }

@@ -19,10 +19,14 @@ class RideCard extends ConsumerWidget {
 
     const primaryColor = Color(0xFFF6C000);
     final blackColor = theme.colorScheme.onSurface;
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final borderColor = isDark
+        ? const Color(0xFF333333)
+        : const Color(0xFFEAE5DD);
     final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
-    final cardBg = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
-    
+    final cardBg =
+        theme.cardTheme.color ??
+        (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+
     final currentUserId = ref.read(authControllerProvider).value?.uid ?? '';
     final isOwner = ride.driverId == currentUserId;
 
@@ -75,7 +79,9 @@ class RideCard extends ConsumerWidget {
                               const SizedBox(height: 24),
                               Text(
                                 DateFormat('h:mm a').format(
-                                  ride.departureTime.add(_parseDuration(ride.estimatedDuration)),
+                                  ride.departureTime.add(
+                                    _parseDuration(ride.estimatedDuration),
+                                  ),
                                 ),
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w700,
@@ -87,7 +93,11 @@ class RideCard extends ConsumerWidget {
                           Column(
                             children: [
                               const SizedBox(height: 10),
-                              Icon(Icons.circle_outlined, color: blackColor, size: 12),
+                              Icon(
+                                Icons.circle_outlined,
+                                color: blackColor,
+                                size: 12,
+                              ),
                               Container(
                                 width: 2,
                                 height: 28,
@@ -141,9 +151,14 @@ class RideCard extends ConsumerWidget {
                         if (isOwner)
                           Container(
                             margin: const EdgeInsets.only(top: 4),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+                              color: isDark
+                                  ? Colors.white10
+                                  : Colors.black.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -157,9 +172,14 @@ class RideCard extends ConsumerWidget {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 20),
-                Divider(height: 1, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                Divider(
+                  height: 1,
+                  color: isDark
+                      ? Colors.white10
+                      : Colors.black.withValues(alpha: 0.05),
+                ),
                 const SizedBox(height: 16),
 
                 // Driver Footer
@@ -170,9 +190,13 @@ class RideCard extends ConsumerWidget {
                       children: [
                         CircleAvatar(
                           radius: 18,
-                          backgroundColor: isDark ? const Color(0xFF2A2A2C) : const Color(0xFFF3F3F3),
+                          backgroundColor: isDark
+                              ? const Color(0xFF2A2A2C)
+                              : const Color(0xFFF3F3F3),
                           child: Text(
-                            ride.driverName.isNotEmpty ? ride.driverName[0].toUpperCase() : 'U',
+                            ride.driverName.isNotEmpty
+                                ? ride.driverName[0].toUpperCase()
+                                : 'U',
                             style: theme.textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
@@ -191,7 +215,11 @@ class RideCard extends ConsumerWidget {
                                   ),
                                 ),
                                 const SizedBox(width: 4),
-                                const Icon(Icons.star_rounded, color: primaryColor, size: 14),
+                                const Icon(
+                                  Icons.star_rounded,
+                                  color: primaryColor,
+                                  size: 14,
+                                ),
                                 const SizedBox(width: 2),
                                 Text(
                                   ride.driverRating.toStringAsFixed(1),
@@ -211,14 +239,25 @@ class RideCard extends ConsumerWidget {
                         if (ride.isGirlsOnly)
                           Container(
                             margin: const EdgeInsets.only(right: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: primaryColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Icon(Icons.female_rounded, color: primaryColor, size: 16),
+                            child: const Icon(
+                              Icons.female_rounded,
+                              color: primaryColor,
+                              size: 16,
+                            ),
                           ),
-                        Icon(Icons.airline_seat_recline_normal_rounded, color: mutedText, size: 16),
+                        Icon(
+                          Icons.airline_seat_recline_normal_rounded,
+                          color: mutedText,
+                          size: 16,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           '${ride.availableSeats}',
@@ -241,16 +280,16 @@ class RideCard extends ConsumerWidget {
 
   Duration _parseDuration(String durationStr) {
     if (durationStr.isEmpty) return const Duration(hours: 1); // fallback
-    
+
     int hours = 0;
     int minutes = 0;
-    
+
     final hMatch = RegExp(r'(\d+)\s*h').firstMatch(durationStr);
     if (hMatch != null) hours = int.tryParse(hMatch.group(1) ?? '0') ?? 0;
-    
+
     final mMatch = RegExp(r'(\d+)\s*m').firstMatch(durationStr);
     if (mMatch != null) minutes = int.tryParse(mMatch.group(1) ?? '0') ?? 0;
-    
+
     if (hours == 0 && minutes == 0) {
       // Just try to get any number and assume minutes
       final anyNum = RegExp(r'(\d+)').firstMatch(durationStr);
@@ -260,7 +299,7 @@ class RideCard extends ConsumerWidget {
         return const Duration(hours: 1); // fallback
       }
     }
-    
+
     return Duration(hours: hours, minutes: minutes);
   }
 }

@@ -6,7 +6,7 @@ class DriverDirectoryRepository {
   final FirebaseFirestore _firestore;
 
   DriverDirectoryRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   CollectionReference get _directoryCollection =>
       _firestore.collection('driver_directory');

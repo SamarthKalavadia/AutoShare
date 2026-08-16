@@ -22,7 +22,10 @@ class HomeNavigationNotifier extends Notifier<int> {
     state = index;
   }
 }
-final homeNavigationProvider = NotifierProvider<HomeNavigationNotifier, int>(HomeNavigationNotifier.new);
+
+final homeNavigationProvider = NotifierProvider<HomeNavigationNotifier, int>(
+  HomeNavigationNotifier.new,
+);
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -32,7 +35,6 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-
   final List<Widget> _pages = [
     const HomeTab(),
     const SearchPage(),
@@ -76,11 +78,19 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     return Scaffold(
       body: IndexedStack(index: currentIndex, children: _pages),
-      bottomNavigationBar: _buildBottomNavigationBar(context, isDark, currentIndex),
+      bottomNavigationBar: _buildBottomNavigationBar(
+        context,
+        isDark,
+        currentIndex,
+      ),
     );
   }
 
-  Widget _buildBottomNavigationBar(BuildContext context, bool isDark, int currentIndex) {
+  Widget _buildBottomNavigationBar(
+    BuildContext context,
+    bool isDark,
+    int currentIndex,
+  ) {
     final surfaceColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final borderColor = isDark
         ? Colors.white10
@@ -267,7 +277,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
               ],
             ),
-
           ],
         ),
       ),

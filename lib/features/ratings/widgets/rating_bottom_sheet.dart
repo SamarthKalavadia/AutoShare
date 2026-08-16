@@ -122,9 +122,13 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Icon(
-                    isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
+                    isSelected
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
                     size: 52,
-                    color: isSelected ? const Color(0xFFF6C000) : const Color(0xFFE0E0E0),
+                    color: isSelected
+                        ? const Color(0xFFF6C000)
+                        : const Color(0xFFE0E0E0),
                   ),
                 ),
               );
@@ -169,7 +173,10 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
                   ),
                   child: Text(
                     'Skip',
-                    style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -177,7 +184,9 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
               Expanded(
                 flex: 2,
                 child: FilledButton(
-                  onPressed: (_isSubmitting || _selectedRating == 0) ? null : () => _submit(false),
+                  onPressed: (_isSubmitting || _selectedRating == 0)
+                      ? null
+                      : () => _submit(false),
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFF121212),
                     foregroundColor: Colors.white,
@@ -198,7 +207,10 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
                         )
                       : Text(
                           'Submit',
-                          style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700),
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                 ),
               ),

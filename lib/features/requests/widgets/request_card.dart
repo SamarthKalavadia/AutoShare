@@ -29,10 +29,14 @@ class RequestCard extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final primaryColor = theme.colorScheme.primary;
-    final surfaceColor = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+    final surfaceColor =
+        theme.cardTheme.color ??
+        (isDark ? const Color(0xFF1E1E1E) : Colors.white);
     final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
     final blackColor = theme.colorScheme.onSurface;
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final borderColor = isDark
+        ? const Color(0xFF333333)
+        : const Color(0xFFEAE5DD);
 
     final req = data.request;
     final ride = data.ride;
@@ -100,7 +104,11 @@ class RequestCard extends ConsumerWidget {
                         ),
                         if (passenger.emailVerified) ...[
                           const SizedBox(width: 4),
-                          const Icon(Icons.verified, color: Colors.blue, size: 16),
+                          const Icon(
+                            Icons.verified,
+                            color: Colors.blue,
+                            size: 16,
+                          ),
                         ],
                       ],
                     ),
@@ -118,10 +126,7 @@ class RequestCard extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          '•',
-                          style: GoogleFonts.inter(color: mutedText),
-                        ),
+                        Text('•', style: GoogleFonts.inter(color: mutedText)),
                         const SizedBox(width: 8),
                         Text(
                           '${req.requestedSeats} seat${req.requestedSeats > 1 ? 's' : ''}',
@@ -138,7 +143,7 @@ class RequestCard extends ConsumerWidget {
               ),
             ],
           ),
-          
+
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Divider(color: borderColor, height: 1),
@@ -172,11 +177,10 @@ class RequestCard extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      DateFormat('MMM d, yyyy • h:mm a').format(ride.departureTime),
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: mutedText,
-                      ),
+                      DateFormat(
+                        'MMM d, yyyy • h:mm a',
+                      ).format(ride.departureTime),
+                      style: GoogleFonts.inter(fontSize: 13, color: mutedText),
                     ),
                   ],
                 ),
@@ -237,11 +241,14 @@ class RequestCard extends ConsumerWidget {
                   Expanded(
                     child: InkWell(
                       onTap: () {
-                        context.push('/chat', extra: ChatPageArgs(
-                          ride: ride,
-                          otherParticipantUid: passenger.uid,
-                          otherParticipantName: passenger.name,
-                        ));
+                        context.push(
+                          '/chat',
+                          extra: ChatPageArgs(
+                            ride: ride,
+                            otherParticipantUid: passenger.uid,
+                            otherParticipantName: passenger.name,
+                          ),
+                        );
                       },
                       borderRadius: BorderRadius.circular(14),
                       child: Container(
@@ -253,7 +260,11 @@ class RequestCard extends ConsumerWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.chat_bubble_outline, size: 16, color: blackColor),
+                            Icon(
+                              Icons.chat_bubble_outline,
+                              size: 16,
+                              color: blackColor,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               'Chat',
@@ -274,20 +285,29 @@ class RequestCard extends ConsumerWidget {
                       onTap: () async {
                         final url = Uri.parse('tel:${passenger.phone}');
                         if (await canLaunchUrl(url)) {
-                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                          await launchUrl(
+                            url,
+                            mode: LaunchMode.externalApplication,
+                          );
                         }
                       },
                       borderRadius: BorderRadius.circular(14),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+                          color: isDark
+                              ? const Color(0xFF2C2C2E)
+                              : const Color(0xFFF2F2F7),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.phone_outlined, size: 16, color: blackColor),
+                            Icon(
+                              Icons.phone_outlined,
+                              size: 16,
+                              color: blackColor,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               'Call',
@@ -306,10 +326,16 @@ class RequestCard extends ConsumerWidget {
                   Expanded(
                     child: InkWell(
                       onTap: () async {
-                        final cleanPhone = passenger.phone.replaceAll(RegExp(r'[^\d+]'), '');
+                        final cleanPhone = passenger.phone.replaceAll(
+                          RegExp(r'[^\d+]'),
+                          '',
+                        );
                         final url = Uri.parse('https://wa.me/$cleanPhone');
                         if (await canLaunchUrl(url)) {
-                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                          await launchUrl(
+                            url,
+                            mode: LaunchMode.externalApplication,
+                          );
                         }
                       },
                       borderRadius: BorderRadius.circular(14),
@@ -322,7 +348,11 @@ class RequestCard extends ConsumerWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.message_outlined, size: 16, color: Colors.white),
+                            const Icon(
+                              Icons.message_outlined,
+                              size: 16,
+                              color: Colors.white,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               'WhatsApp',

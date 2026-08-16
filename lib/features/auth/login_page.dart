@@ -41,7 +41,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     setState(() => _authAction = AuthAction.email);
 
-    final result = await ref.read(authControllerProvider.notifier).login(
+    final result = await ref
+        .read(authControllerProvider.notifier)
+        .login(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
@@ -67,7 +69,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     setState(() => _authAction = AuthAction.google);
 
     try {
-      final result = await ref.read(authControllerProvider.notifier).signInWithGoogle();
+      final result = await ref
+          .read(authControllerProvider.notifier)
+          .signInWithGoogle();
 
       if (!mounted) return;
 
@@ -119,8 +123,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter your email';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                        .hasMatch(value.trim())) {
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value.trim())) {
                       return 'Enter a valid email address';
                     }
                     return null;
@@ -170,8 +175,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         Text(
                           'Remember me',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.8),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.8,
+                            ),
                           ),
                         ),
                       ],
@@ -194,7 +200,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 LoadingButton(
                   text: 'Sign In',
                   isLoading: _authAction == AuthAction.email,
-                  onPressed: _authAction == AuthAction.idle ? _submitLogin : null,
+                  onPressed: _authAction == AuthAction.idle
+                      ? _submitLogin
+                      : null,
                 ),
                 const SizedBox(height: 24),
 
@@ -203,7 +211,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                 // Google Button
                 GoogleButton(
-                  onPressed: _authAction == AuthAction.idle ? _handleGoogleSignIn : null,
+                  onPressed: _authAction == AuthAction.idle
+                      ? _handleGoogleSignIn
+                      : null,
                   isLoading: _authAction == AuthAction.google,
                 ),
                 const SizedBox(height: 32),
@@ -215,8 +225,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     Text(
                       "Don't have an account? ",
                       style: TextStyle(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.7),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                     ),
                     GestureDetector(

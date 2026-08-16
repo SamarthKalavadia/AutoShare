@@ -6,7 +6,11 @@ class PlaceSuggestion {
   final String mainText;
   final String secondaryText;
 
-  PlaceSuggestion({required this.placeId, required this.mainText, required this.secondaryText});
+  PlaceSuggestion({
+    required this.placeId,
+    required this.mainText,
+    required this.secondaryText,
+  });
 
   factory PlaceSuggestion.fromJson(Map<String, dynamic> json) {
     final structured = json['structured_formatting'];
@@ -25,7 +29,13 @@ class PlaceDetails {
   final double lat;
   final double lng;
 
-  PlaceDetails({required this.placeId, required this.name, required this.address, required this.lat, required this.lng});
+  PlaceDetails({
+    required this.placeId,
+    required this.name,
+    required this.address,
+    required this.lat,
+    required this.lng,
+  });
 
   factory PlaceDetails.fromJson(Map<String, dynamic> json) {
     final location = json['geometry']['location'];
@@ -42,22 +52,32 @@ class PlaceDetails {
 class PlacesService {
   // Insert your Google Places API key via --dart-define=GOOGLE_PLACES_API_KEY=your_key
   static const String _apiKey = String.fromEnvironment('GOOGLE_PLACES_API_KEY');
-  static const String _autocompleteUrl = 'https://maps.googleapis.com/maps/api/place/autocomplete/json';
-  static const String _detailsUrl = 'https://maps.googleapis.com/maps/api/place/details/json';
+  static const String _autocompleteUrl =
+      'https://maps.googleapis.com/maps/api/place/autocomplete/json';
+  static const String _detailsUrl =
+      'https://maps.googleapis.com/maps/api/place/details/json';
 
-  Future<List<PlaceSuggestion>> autocomplete(String query, {String sessionToken = ''}) async {
-    final uri = Uri.parse(_autocompleteUrl).replace(queryParameters: {
-      'input': query,
-      'key': _apiKey,
-      'sessiontoken': sessionToken,
-      'components': 'country:in', // restrict to India for example; adjust as needed
-    });
+  Future<List<PlaceSuggestion>> autocomplete(
+    String query, {
+    String sessionToken = '',
+  }) async {
+    final uri = Uri.parse(_autocompleteUrl).replace(
+      queryParameters: {
+        'input': query,
+        'key': _apiKey,
+        'sessiontoken': sessionToken,
+        'components':
+            'country:in', // restrict to India for example; adjust as needed
+      },
+    );
     final response = await http.get(uri);
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       if (data['status'] == 'OK') {
         final predictions = data['predictions'] as List<dynamic>;
-        return predictions.map((e) => PlaceSuggestion.fromJson(e as Map<String, dynamic>)).toList();
+        return predictions
+            .map((e) => PlaceSuggestion.fromJson(e as Map<String, dynamic>))
+            .toList();
       } else {
         throw Exception('Places API error: ${data['status']}');
       }
@@ -66,13 +86,18 @@ class PlacesService {
     }
   }
 
-  Future<PlaceDetails> getPlaceDetails(String placeId, {String sessionToken = ''}) async {
-    final uri = Uri.parse(_detailsUrl).replace(queryParameters: {
-      'place_id': placeId,
-      'key': _apiKey,
-      'sessiontoken': sessionToken,
-      'fields': 'place_id,name,formatted_address,geometry',
-    });
+  Future<PlaceDetails> getPlaceDetails(
+    String placeId, {
+    String sessionToken = '',
+  }) async {
+    final uri = Uri.parse(_detailsUrl).replace(
+      queryParameters: {
+        'place_id': placeId,
+        'key': _apiKey,
+        'sessiontoken': sessionToken,
+        'fields': 'place_id,name,formatted_address,geometry',
+      },
+    );
     final response = await http.get(uri);
     if (response.statusCode == 200) {
       final data = json.decode(response.body);

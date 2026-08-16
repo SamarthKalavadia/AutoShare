@@ -38,7 +38,9 @@ class _RequestsPageState extends ConsumerState<RequestsPage>
     final backgroundColor = theme.scaffoldBackgroundColor;
     final blackColor = theme.colorScheme.onSurface;
     final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final borderColor = isDark
+        ? const Color(0xFF333333)
+        : const Color(0xFFEAE5DD);
 
     final requestsAsync = ref.watch(incomingRequestsProvider);
     final isActionLoading = ref.watch(requestActionProvider);
@@ -90,9 +92,15 @@ class _RequestsPageState extends ConsumerState<RequestsPage>
         children: [
           requestsAsync.when(
             data: (requests) {
-              final pending = requests.where((r) => r.request.status == RideRequestStatus.pending).toList();
-              final accepted = requests.where((r) => r.request.status == RideRequestStatus.accepted).toList();
-              final rejected = requests.where((r) => r.request.status == RideRequestStatus.rejected).toList();
+              final pending = requests
+                  .where((r) => r.request.status == RideRequestStatus.pending)
+                  .toList();
+              final accepted = requests
+                  .where((r) => r.request.status == RideRequestStatus.accepted)
+                  .toList();
+              final rejected = requests
+                  .where((r) => r.request.status == RideRequestStatus.rejected)
+                  .toList();
 
               return TabBarView(
                 controller: _tabController,
@@ -103,7 +111,8 @@ class _RequestsPageState extends ConsumerState<RequestsPage>
                 ],
               );
             },
-            loading: () => Center(child: CircularProgressIndicator(color: primaryColor)),
+            loading: () =>
+                Center(child: CircularProgressIndicator(color: primaryColor)),
             error: (err, stack) => Center(
               child: Text(
                 'Failed to load requests\n$err',
@@ -142,8 +151,8 @@ class _RequestListView extends ConsumerWidget {
               type == 'pending'
                   ? Icons.hourglass_empty_rounded
                   : type == 'accepted'
-                      ? Icons.check_circle_outline_rounded
-                      : Icons.cancel_outlined,
+                  ? Icons.check_circle_outline_rounded
+                  : Icons.cancel_outlined,
               size: 64,
               color: const Color(0xFFEAE5DD),
             ),
@@ -181,7 +190,11 @@ class _RequestListView extends ConsumerWidget {
     );
   }
 
-  void _handleAccept(BuildContext context, WidgetRef ref, IncomingRequestData data) async {
+  void _handleAccept(
+    BuildContext context,
+    WidgetRef ref,
+    IncomingRequestData data,
+  ) async {
     try {
       await ref.read(requestActionProvider.notifier).accept(data.request);
       if (context.mounted) {
@@ -191,26 +204,30 @@ class _RequestListView extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to accept: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to accept: $e')));
       }
     }
   }
 
-  void _handleReject(BuildContext context, WidgetRef ref, IncomingRequestData data) async {
+  void _handleReject(
+    BuildContext context,
+    WidgetRef ref,
+    IncomingRequestData data,
+  ) async {
     try {
       await ref.read(requestActionProvider.notifier).reject(data.request);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Request rejected')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Request rejected')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to reject: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to reject: $e')));
       }
     }
   }

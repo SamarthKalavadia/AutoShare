@@ -100,7 +100,8 @@ class CreateRideState {
     if (destination.trim().isEmpty) {
       return 'Please enter a destination';
     }
-    if (boardingLocation.trim().toLowerCase() == destination.trim().toLowerCase()) {
+    if (boardingLocation.trim().toLowerCase() ==
+        destination.trim().toLowerCase()) {
       return 'Boarding location and destination cannot be the same';
     }
     if (departureDate == null) {
@@ -116,7 +117,9 @@ class CreateRideState {
       departureTime!.hour,
       departureTime!.minute,
     );
-    if (combinedDateTime.isBefore(DateTime.now().subtract(const Duration(minutes: 5)))) {
+    if (combinedDateTime.isBefore(
+      DateTime.now().subtract(const Duration(minutes: 5)),
+    )) {
       return 'Departure time must be in the future';
     }
     if (availableSeats < 1 || availableSeats > 4) {
@@ -145,7 +148,12 @@ class CreateRideNotifier extends Notifier<CreateRideState> {
     state = state.copyWith(boardingLocation: value);
   }
 
-  void updateBoardingDetails({required String placeId, required String address, double? lat, double? lng}) {
+  void updateBoardingDetails({
+    required String placeId,
+    required String address,
+    double? lat,
+    double? lng,
+  }) {
     state = state.copyWith(
       boardingPlaceId: placeId,
       boardingAddress: address,
@@ -158,7 +166,12 @@ class CreateRideNotifier extends Notifier<CreateRideState> {
     state = state.copyWith(destination: value);
   }
 
-  void updateDestinationDetails({required String placeId, required String address, double? lat, double? lng}) {
+  void updateDestinationDetails({
+    required String placeId,
+    required String address,
+    double? lat,
+    double? lng,
+  }) {
     state = state.copyWith(
       destinationPlaceId: placeId,
       destinationAddress: address,
@@ -239,7 +252,10 @@ class CreateRideNotifier extends Notifier<CreateRideState> {
     final user = ref.read(authControllerProvider).value;
     if (user == null) {
       state = state.copyWith(isLoading: false);
-      return Failure('User not logged in. Please sign in to create a ride.', Exception('Unauthenticated'));
+      return Failure(
+        'User not logged in. Please sign in to create a ride.',
+        Exception('Unauthenticated'),
+      );
     }
 
     final ride = RideModel(
@@ -271,7 +287,10 @@ class CreateRideNotifier extends Notifier<CreateRideState> {
     if (result is Success<String>) {
       // Schedule background reminders safely
       try {
-        await NotificationService().scheduleRideReminder(result.data, ride.departureTime);
+        await NotificationService().scheduleRideReminder(
+          result.data,
+          ride.departureTime,
+        );
       } catch (e) {
         // Notification error should never prevent successful ride creation
       }
@@ -281,9 +300,10 @@ class CreateRideNotifier extends Notifier<CreateRideState> {
   }
 }
 
-final createRideProvider = NotifierProvider<CreateRideNotifier, CreateRideState>(
-  CreateRideNotifier.new,
-);
+final createRideProvider =
+    NotifierProvider<CreateRideNotifier, CreateRideState>(
+      CreateRideNotifier.new,
+    );
 
 final isUserFemaleProvider = Provider.autoDispose<bool>((ref) {
   final userAsync = ref.watch(authControllerProvider);

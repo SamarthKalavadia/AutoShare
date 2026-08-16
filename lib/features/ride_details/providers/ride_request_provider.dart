@@ -55,7 +55,10 @@ class RideRequestNotifier extends Notifier<RideRequestState> {
 
   void decrementSeats() {
     if (state.requestedSeats > 1) {
-      state = state.copyWith(requestedSeats: state.requestedSeats - 1, clearError: true);
+      state = state.copyWith(
+        requestedSeats: state.requestedSeats - 1,
+        clearError: true,
+      );
     }
   }
 
@@ -144,7 +147,8 @@ class RideRequestNotifier extends Notifier<RideRequestState> {
     if (state.requestedSeats > freshRide.availableSeats) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Seats were just filled. Only ${freshRide.availableSeats} seat(s) remain.',
+        error:
+            'Seats were just filled. Only ${freshRide.availableSeats} seat(s) remain.',
       );
       return;
     }
@@ -172,17 +176,22 @@ class RideRequestNotifier extends Notifier<RideRequestState> {
   }
 }
 
-final rideRequestProvider = NotifierProvider<RideRequestNotifier, RideRequestState>(
-  RideRequestNotifier.new,
-);
+final rideRequestProvider =
+    NotifierProvider<RideRequestNotifier, RideRequestState>(
+      RideRequestNotifier.new,
+    );
 
-final currentRideRequestProvider = FutureProvider.autoDispose.family<RideRequestModel?, String>((ref, rideId) async {
-  final currentUser = ref.watch(authControllerProvider).value;
-  if (currentUser == null) return null;
-  final repo = ref.watch(rideRequestRepositoryProvider);
-  final result = await repo.getExistingRequest(rideId: rideId, requesterUid: currentUser.uid);
-  if (result is Success<RideRequestModel?>) {
-    return result.data;
-  }
-  return null;
-});
+final currentRideRequestProvider = FutureProvider.autoDispose
+    .family<RideRequestModel?, String>((ref, rideId) async {
+      final currentUser = ref.watch(authControllerProvider).value;
+      if (currentUser == null) return null;
+      final repo = ref.watch(rideRequestRepositoryProvider);
+      final result = await repo.getExistingRequest(
+        rideId: rideId,
+        requesterUid: currentUser.uid,
+      );
+      if (result is Success<RideRequestModel?>) {
+        return result.data;
+      }
+      return null;
+    });
