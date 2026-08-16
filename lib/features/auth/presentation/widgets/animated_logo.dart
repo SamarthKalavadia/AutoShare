@@ -84,11 +84,22 @@ class _AnimatedLogoState extends State<AnimatedLogo>
                   ),
                 ],
               ),
-              child: Center(
-                child: Icon(
-                  Icons.directions_car_filled_rounded,
-                  size: widget.size * 0.55,
-                  color: Colors.white,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(widget.size * 0.28),
+                child: Image.asset(
+                  'assets/appicon.png',
+                  width: widget.size,
+                  height: widget.size,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Center(
+                      child: Icon(
+                        Icons.directions_car_filled_rounded,
+                        size: widget.size * 0.55,
+                        color: Colors.white,
+                      ),
+                    );
+                  },
                 ),
               ),
             ),

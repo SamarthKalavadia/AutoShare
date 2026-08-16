@@ -28,7 +28,9 @@ class LocationAutocompleteField extends StatefulWidget {
   final IconData icon;
   final Color iconColor;
   final String? initialValue;
+  final bool showCurrentLocationButton;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<bool>? onSuggestionsVisibilityChanged;
   final Future<void> Function(PlacePrediction prediction, LocationDetails details) onPlaceSelected;
 
   const LocationAutocompleteField({
@@ -38,7 +40,9 @@ class LocationAutocompleteField extends StatefulWidget {
     required this.icon,
     required this.iconColor,
     this.initialValue,
+    this.showCurrentLocationButton = true,
     this.onChanged,
+    this.onSuggestionsVisibilityChanged,
     required this.onPlaceSelected,
   });
 
@@ -78,6 +82,17 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
     );
     _fadeAnimation =
         CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
+
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) {
+        widget.onSuggestionsVisibilityChanged?.call(false);
+        setState(() {
+          _predictions = [];
+          _isLoading = false;
+        });
+        _fadeController.reverse();
+      }
+    });
   }
 
   @override
@@ -119,6 +134,7 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
         _isLoading = false;
         _activeQuery = '';
       });
+      widget.onSuggestionsVisibilityChanged?.call(false);
       _fadeController.reverse();
       return;
     }
@@ -139,6 +155,9 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
 
         if (!mounted || _activeQuery != trimmed) return;
 
+        final hasResults = results.isNotEmpty;
+        widget.onSuggestionsVisibilityChanged?.call(hasResults);
+
         setState(() {
           _isLoading = false;
           if (results.isEmpty) {
@@ -151,6 +170,7 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
         });
       } on HttpException catch (e) {
         if (!mounted || _activeQuery != trimmed) return;
+        widget.onSuggestionsVisibilityChanged?.call(false);
         final isQuota = e.message.contains('OVER_QUERY_LIMIT') ||
             e.message.contains('REQUEST_DENIED');
         setState(() {
@@ -160,6 +180,7 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
         });
       } catch (_) {
         if (!mounted || _activeQuery != trimmed) return;
+        widget.onSuggestionsVisibilityChanged?.call(false);
         setState(() {
           _predictions = [];
           _isLoading = false;
@@ -180,6 +201,7 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
       _errorType = LocationErrorType.none;
     });
 
+    widget.onSuggestionsVisibilityChanged?.call(false);
     _focusNode.unfocus();
     _fadeController.reverse();
 
@@ -189,7 +211,27 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
       TextPosition(offset: prediction.description.length),
     );
 
-    // Fetch coordinates in background; show text immediately.
+    // If prediction already contains exact coordinates (e.g. from GPS or Nominatim), use them directly!
+    if (prediction.latitude != null && prediction.longitude != null) {
+      try {
+        await widget.onPlaceSelected(
+          prediction,
+          LocationDetails(
+            address: prediction.description,
+            latitude: prediction.latitude,
+            longitude: prediction.longitude,
+            placeId: prediction.placeId,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          _isSelecting = false;
+        }
+      }
+      return;
+    }
+
+    // Fetch coordinates in background if not already present.
     try {
       final details = await LocationService.fetchPlaceDetails(prediction.placeId);
       if (!mounted) return;
@@ -198,8 +240,8 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
         prediction,
         LocationDetails(
           address: prediction.description,
-          latitude: details.latitude,
-          longitude: details.longitude,
+          latitude: details.latitude ?? prediction.latitude,
+          longitude: details.longitude ?? prediction.longitude,
           placeId: prediction.placeId,
         ),
       );
@@ -210,14 +252,55 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
         prediction,
         LocationDetails(
           address: prediction.description,
-          latitude: null,
-          longitude: null,
+          latitude: prediction.latitude,
+          longitude: prediction.longitude,
           placeId: prediction.placeId,
         ),
       );
     } finally {
       if (mounted) {
         _isSelecting = false;
+      }
+    }
+  }
+
+  bool _isFetchingLocation = false;
+
+  Future<void> _fetchAndSetCurrentLocation() async {
+    setState(() {
+      _isFetchingLocation = true;
+    });
+
+    try {
+      final prediction = await LocationService.getCurrentLocation();
+      if (!mounted) return;
+      await _onSelect(prediction);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Current Location: ${prediction.description}'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e.toString().replaceAll('PermissionException: ', '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFetchingLocation = false;
+        });
       }
     }
   }
@@ -282,7 +365,7 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
             child: Icon(widget.icon, color: widget.iconColor, size: 20),
           ),
           prefixIconConstraints: const BoxConstraints(minWidth: 48),
-          suffixIcon: _isLoading
+          suffixIcon: _isLoading || _isFetchingLocation
               ? Padding(
                   padding: const EdgeInsets.all(14),
                   child: SizedBox(
@@ -294,7 +377,14 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
                     ),
                   ),
                 )
-              : null,
+              : (widget.showCurrentLocationButton
+                  ? IconButton(
+                      icon: const Icon(Icons.my_location_rounded, size: 20),
+                      color: const Color(0xFFF6C000), // Primary Yellow GPS Icon
+                      tooltip: 'Use Current Location',
+                      onPressed: _fetchAndSetCurrentLocation,
+                    )
+                  : null),
           filled: true,
           fillColor: cardBg,
           contentPadding:

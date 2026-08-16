@@ -242,85 +242,81 @@ class HomeTab extends ConsumerWidget {
                     child: Column(
                       children: [
                         // Uber-style stacked location inputs
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF202020) : const Color(0xFFF3F3F3),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: IntrinsicHeight(
-                            child: Row(
-                              children: [
-                                // Visual Route Line
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                  child: Column(
-                                    children: [
-                                      Container(
-                                        width: 10,
-                                        height: 10,
-                                        decoration: BoxDecoration(
-                                          color: isDark ? Colors.white70 : Colors.black87,
-                                          shape: BoxShape.circle,
+                        InkWell(
+                          onTap: () => context.push('/create-ride'),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF202020) : const Color(0xFFF3F3F3),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: IntrinsicHeight(
+                              child: Row(
+                                children: [
+                                  // Visual Route Line
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 8),
+                                    child: Column(
+                                      children: [
+                                        Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            color: isDark ? Colors.white70 : Colors.black87,
+                                            shape: BoxShape.circle,
+                                          ),
                                         ),
-                                      ),
-                                      Expanded(
-                                        child: Container(
-                                          width: 2,
-                                          color: isDark ? Colors.white24 : Colors.black12,
-                                          margin: const EdgeInsets.symmetric(vertical: 6),
+                                        Expanded(
+                                          child: Container(
+                                            width: 2,
+                                            color: isDark ? Colors.white24 : Colors.black12,
+                                            margin: const EdgeInsets.symmetric(vertical: 6),
+                                          ),
                                         ),
-                                      ),
-                                      Container(
-                                        width: 10,
-                                        height: 10,
-                                        decoration: BoxDecoration(
-                                          color: primaryColor,
-                                          shape: BoxShape.rectangle,
-                                          borderRadius: BorderRadius.circular(2),
+                                        Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            color: primaryColor,
+                                            shape: BoxShape.rectangle,
+                                            borderRadius: BorderRadius.circular(2),
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 20),
-                                // Inputs
-                                Expanded(
-                                  child: Column(
-                                    children: [
-                                      _uberInput(
-                                        context: context,
-                                        label: searchState.boarding.isEmpty
-                                            ? 'Current Location'
-                                            : searchState.boarding,
-                                        isBold: searchState.boarding.isNotEmpty,
-                                        onTap: () => _showLocationPicker(
-                                          context,
-                                          ref,
-                                          'boarding',
+                                  const SizedBox(width: 20),
+                                  // Inputs
+                                  Expanded(
+                                    child: Column(
+                                      children: [
+                                        _uberInput(
+                                          context: context,
+                                          label: searchState.boarding.isEmpty
+                                              ? 'Pickup location'
+                                              : searchState.boarding,
+                                          isBold: searchState.boarding.isNotEmpty,
+                                          onTap: () => context.push('/create-ride'),
                                         ),
-                                      ),
-                                      Divider(
-                                        height: 24,
-                                        thickness: 1,
-                                        color: isDark ? Colors.white12 : Colors.black12,
-                                      ),
-                                      _uberInput(
-                                        context: context,
-                                        label: searchState.destination.isEmpty
-                                            ? 'Where to?'
-                                            : searchState.destination,
-                                        isBold: searchState.destination.isNotEmpty,
-                                        onTap: () => _showLocationPicker(
-                                          context,
-                                          ref,
-                                          'destination',
+                                        Divider(
+                                          height: 24,
+                                          thickness: 1,
+                                          color: isDark ? Colors.white12 : Colors.black12,
                                         ),
-                                      ),
-                                    ],
+                                        _uberInput(
+                                          context: context,
+                                          label: searchState.destination.isEmpty
+                                              ? 'Dropoff location'
+                                              : searchState.destination,
+                                          isBold: searchState.destination.isNotEmpty,
+                                          onTap: () => context.push('/create-ride'),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -743,7 +739,7 @@ class HomeTab extends ConsumerWidget {
             ref.read(homeSearchProvider.notifier).updateBoarding(
               label,
               placeId: details?.placeId,
-              address: details?.description,
+              address: details?.address,
               lat: details?.latitude,
               lng: details?.longitude,
             );
@@ -751,7 +747,7 @@ class HomeTab extends ConsumerWidget {
             ref.read(homeSearchProvider.notifier).updateDestination(
               label,
               placeId: details?.placeId,
-              address: details?.description,
+              address: details?.address,
               lat: details?.latitude,
               lng: details?.longitude,
             );

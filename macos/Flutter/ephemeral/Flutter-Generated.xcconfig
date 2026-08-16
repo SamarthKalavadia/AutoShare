@@ -1,7 +1,13 @@
 // This is a generated file; do not edit or check into version control.
+<<<<<<< HEAD
 FLUTTER_ROOT=C:\Users\Sanidhya\flutter
 FLUTTER_APPLICATION_PATH=C:\Users\Sanidhya\Desktop\AutoShare\AutoShare
 FLUTTER_FRAMEWORK_SWIFT_PACKAGE_PATH=C:\Users\Sanidhya\Desktop\AutoShare\AutoShare\macos\Flutter\ephemeral\Packages\.packages\FlutterFramework
+=======
+FLUTTER_ROOT=/opt/homebrew/share/flutter
+FLUTTER_APPLICATION_PATH=/Users/dakshkarangiya/Desktop/Test Project
+FLUTTER_FRAMEWORK_SWIFT_PACKAGE_PATH=/Users/dakshkarangiya/Desktop/Test Project/macos/Flutter/ephemeral/Packages/.packages/FlutterFramework
+>>>>>>> 0ba92ba (location fix)
 COCOAPODS_PARALLEL_CODE_SIGN=true
 FLUTTER_BUILD_DIR=build
 FLUTTER_BUILD_NAME=1.0.0

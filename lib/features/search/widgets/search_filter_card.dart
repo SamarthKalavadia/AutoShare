@@ -8,11 +8,19 @@ import '../providers/search_ride_provider.dart';
 import '../../../shared/widgets/location_autocomplete_field.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
 
-class SearchFilterCard extends ConsumerWidget {
+class SearchFilterCard extends ConsumerStatefulWidget {
   const SearchFilterCard({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SearchFilterCard> createState() => _SearchFilterCardState();
+}
+
+class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
+  bool _isSearchingBoarding = false;
+  bool _isSearchingDestination = false;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -29,6 +37,7 @@ class SearchFilterCard extends ConsumerWidget {
     
     final authState = ref.watch(authControllerProvider);
     final isFemale = authState.value?.gender.toLowerCase() == 'female';
+    final isSearching = _isSearchingBoarding || _isSearchingDestination;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -52,17 +61,23 @@ class SearchFilterCard extends ConsumerWidget {
         children: [
           // Boarding Location & Destination with Swap Button
           Stack(
-            alignment: Alignment.centerRight,
+            alignment: Alignment.center,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   LocationAutocompleteField(
                     fieldKey: 'search_boarding',
-                    hint: 'Where from?',
+                    hint: 'Pickup location',
                     icon: Icons.circle_outlined,
                     iconColor: blackColor,
                     initialValue: state.boardingLocation,
+                    showCurrentLocationButton: true,
+                    onSuggestionsVisibilityChanged: (visible) {
+                      if (_isSearchingBoarding != visible) {
+                        setState(() => _isSearchingBoarding = visible);
+                      }
+                    },
                     onPlaceSelected: (prediction, details) async {
                       notifier.updateBoardingLocation(prediction.description);
                     },
@@ -77,49 +92,57 @@ class SearchFilterCard extends ConsumerWidget {
                   ),
                   LocationAutocompleteField(
                     fieldKey: 'search_destination',
-                    hint: 'Where to?',
+                    hint: 'Dropoff location',
                     icon: Icons.location_on,
                     iconColor: primaryColor,
                     initialValue: state.destination,
+                    showCurrentLocationButton: false,
+                    onSuggestionsVisibilityChanged: (visible) {
+                      if (_isSearchingDestination != visible) {
+                        setState(() => _isSearchingDestination = visible);
+                      }
+                    },
                     onPlaceSelected: (prediction, details) async {
                       notifier.updateDestination(prediction.description);
                     },
                   ),
                 ],
               ),
-              Positioned(
-                right: 12,
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => notifier.swapLocations(),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: primaryColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha(25),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
+              // Center-aligned Swap Button - Automatically hidden when searching suggestions to prevent overlap
+              if (!isSearching)
+                Align(
+                  alignment: Alignment.center,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => notifier.swapLocations(),
+                      borderRadius: BorderRadius.circular(24),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: primaryColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                            width: 3,
                           ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.swap_vert_rounded,
-                        color: Color(0xFF121212),
-                        size: 20,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(35),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.swap_vert_rounded,
+                          color: Color(0xFF121212),
+                          size: 22,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 24),

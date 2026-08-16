@@ -311,15 +311,16 @@ class LocationService {
       } catch (_) {}
     }
 
-    // 3. Combine online and local results avoiding duplicates
+    // 3. Combine results prioritizing local verified matches with exact coordinates first
     final Map<String, PlacePrediction> combined = {};
-    for (final p in onlineResults) {
+    for (final p in localMatches) {
       combined[p.description] = p;
       _detailsCache[p.placeId] = p;
     }
-    for (final p in localMatches) {
+    for (final p in onlineResults) {
       if (!combined.containsKey(p.description)) {
         combined[p.description] = p;
+        _detailsCache[p.placeId] = p;
       }
     }
 
@@ -468,18 +469,12 @@ class LocationService {
   static Future<PlacePrediction> fetchPlaceDetails(String placeId) async {
     if (_detailsCache.containsKey(placeId)) return _detailsCache[placeId]!;
 
-    if (placeId.startsWith('osm_') ||
-        placeId.startsWith('offline_') ||
-        placeId.startsWith('dyn_') ||
-        placeId.startsWith('custom_')) {
-      return PlacePrediction(
-        placeId: placeId,
-        description: placeId,
-        primaryText: placeId,
-        secondaryText: '',
-        latitude: 22.6916,
-        longitude: 72.8634,
-      );
+    // Check offline database first
+    for (final p in _offlinePlaces) {
+      if (p.placeId == placeId) {
+        _detailsCache[placeId] = p;
+        return p;
+      }
     }
 
     try {
@@ -490,7 +485,7 @@ class LocationService {
           'X-Goog-Api-Key': MapsConfig.googleMapsApiKey,
           'X-Goog-FieldMask': 'id,formattedAddress,displayName,location',
         },
-      ).timeout(const Duration(seconds: 3));
+      ).timeout(const Duration(seconds: 4));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
@@ -516,8 +511,8 @@ class LocationService {
       description: placeId,
       primaryText: placeId,
       secondaryText: '',
-      latitude: 22.6916,
-      longitude: 72.8634,
+      latitude: null,
+      longitude: null,
     );
   }
 
@@ -574,48 +569,67 @@ class LocationService {
         'lon': '$lng',
         'format': 'json',
         'addressdetails': '1',
+        'zoom': '18', // Building/street precision level
       });
 
       final response = await http.get(
         uri,
         headers: {'User-Agent': 'AutoShareApp/1.0 (com.autoshare.app)'},
-      ).timeout(const Duration(seconds: 3));
+      ).timeout(const Duration(seconds: 6));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as Map<String, dynamic>;
         final displayName = data['display_name'] as String? ?? '';
         final address = data['address'] as Map<String, dynamic>? ?? {};
 
-        final mainName = address['city'] as String? ??
-            address['town'] as String? ??
-            address['village'] as String? ??
-            displayName.split(',').first;
+        final house = address['house_number'] as String? ?? address['building'] as String? ?? address['amenity'] as String?;
+        final road = address['road'] as String? ?? address['pedestrian'] as String? ?? address['suburb'] as String? ?? address['neighbourhood'] as String?;
+        final villageCity = address['city'] as String? ?? address['town'] as String? ?? address['village'] as String? ?? address['county'] as String?;
+        final state = address['state'] as String? ?? '';
+        final postcode = address['postcode'] as String? ?? '';
 
-        final parts = displayName.split(',');
-        final secondary = parts.length > 1 ? parts.sublist(1).join(',').trim() : '';
+        final List<String> addressParts = [];
+        if (house != null && house.isNotEmpty) addressParts.add(house);
+        if (road != null && road.isNotEmpty) addressParts.add(road);
+        if (villageCity != null && villageCity.isNotEmpty) addressParts.add(villageCity);
+        if (state.isNotEmpty) addressParts.add(state);
+        if (postcode.isNotEmpty) addressParts.add(postcode);
 
-        return PlacePrediction(
+        final preciseAddress = addressParts.isNotEmpty
+            ? addressParts.join(', ')
+            : displayName;
+
+        final primaryText = (house != null && house.isNotEmpty)
+            ? '$house, $road'
+            : (road ?? villageCity ?? 'Current Location');
+
+        final prediction = PlacePrediction(
           placeId: 'osm_${data['place_id']}',
-          description: displayName,
-          primaryText: mainName.trim(),
-          secondaryText: secondary,
+          description: preciseAddress.isNotEmpty ? preciseAddress : displayName,
+          primaryText: primaryText.trim(),
+          secondaryText: addressParts.skip(1).join(', '),
           latitude: lat,
           longitude: lng,
         );
+
+        _detailsCache[prediction.placeId] = prediction;
+        return prediction;
       }
     } catch (_) {}
 
-    return PlacePrediction(
-      placeId: 'current_loc',
-      description: 'Current Location',
+    final fallback = PlacePrediction(
+      placeId: 'current_loc_${lat.toStringAsFixed(4)}_${lng.toStringAsFixed(4)}',
+      description: 'Current Location (${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)})',
       primaryText: 'Current Location',
-      secondaryText: '',
+      secondaryText: '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}',
       latitude: lat,
       longitude: lng,
     );
+    _detailsCache[fallback.placeId] = fallback;
+    return fallback;
   }
 
-  /// Get device current location and reverse-geocode it.
+  /// Get device current location with high-precision GPS hardware fix.
   static Future<PlacePrediction> getCurrentLocation() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -633,9 +647,34 @@ class LocationService {
       throw PermissionException('Location permission is disabled. Enable it in Settings or search for a location manually.');
     }
 
-    final position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-    );
+    // Force high precision hardware GPS satellite position
+    Position? position;
+    try {
+      position = await Geolocator.getCurrentPosition(
+        locationSettings: AndroidSettings(
+          accuracy: LocationAccuracy.bestForNavigation,
+          forceLocationManager: true,
+          intervalDuration: const Duration(milliseconds: 500),
+          timeLimit: const Duration(seconds: 10),
+        ),
+      );
+    } catch (_) {
+      try {
+        position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.best,
+            timeLimit: Duration(seconds: 8),
+          ),
+        );
+      } catch (_) {
+        position = await Geolocator.getLastKnownPosition();
+      }
+    }
+
+    if (position == null) {
+      throw PermissionException('Unable to acquire GPS signal. Please check your device location settings.');
+    }
+
     return reverseGeocode(position.latitude, position.longitude);
   }
 }

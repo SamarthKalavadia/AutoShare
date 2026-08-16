@@ -132,19 +132,9 @@ class CreateRidePage extends ConsumerWidget {
                 ),
               ),
               
-              // Publish Button Sticky Bottom
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: backgroundColor,
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x0A000000),
-                      blurRadius: 10,
-                      offset: Offset(0, -5),
-                    )
-                  ],
-                ),
+              // Publish Button Sticky Bottom - Pure Button No Background Container
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
                 child: SizedBox(
                   width: double.infinity,
                   height: 56,

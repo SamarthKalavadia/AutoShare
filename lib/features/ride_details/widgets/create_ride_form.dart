@@ -7,11 +7,19 @@ import 'package:intl/intl.dart';
 import '../../../shared/widgets/location_autocomplete_field.dart';
 import '../providers/create_ride_provider.dart';
 
-class CreateRideForm extends ConsumerWidget {
+class CreateRideForm extends ConsumerStatefulWidget {
   const CreateRideForm({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CreateRideForm> createState() => _CreateRideFormState();
+}
+
+class _CreateRideFormState extends ConsumerState<CreateRideForm> {
+  bool _isSearchingBoarding = false;
+  bool _isSearchingDestination = false;
+
+  @override
+  Widget build(BuildContext context) {
     const primaryColor = Color(0xFFF6C000);
     const blackColor = Color(0xFF121212);
     const mutedText = Color(0xFF6F6F72);
@@ -23,24 +31,31 @@ class CreateRideForm extends ConsumerWidget {
     final state = ref.watch(createRideProvider);
     final notifier = ref.read(createRideProvider.notifier);
     final isFemale = ref.watch(isUserFemaleProvider);
+    final isSearching = _isSearchingBoarding || _isSearchingDestination;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Boarding Location & Destination with Swap Button
+        // Boarding Location & Destination with Centered Swap Button
         Stack(
-          alignment: Alignment.centerRight,
+          alignment: Alignment.center,
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 LocationAutocompleteField(
                   fieldKey: 'create_ride_boarding',
-                  hint: 'Boarding location',
+                  hint: 'Pickup location',
                   icon: Icons.trip_origin,
                   iconColor: successColor,
                   initialValue: state.boardingLocation,
+                  showCurrentLocationButton: true,
                   onChanged: notifier.updateBoardingLocation,
+                  onSuggestionsVisibilityChanged: (visible) {
+                    if (_isSearchingBoarding != visible) {
+                      setState(() => _isSearchingBoarding = visible);
+                    }
+                  },
                   onPlaceSelected: (prediction, details) async {
                     notifier.updateBoardingLocation(prediction.description);
                     notifier.updateBoardingDetails(
@@ -54,11 +69,17 @@ class CreateRideForm extends ConsumerWidget {
                 const SizedBox(height: 16),
                 LocationAutocompleteField(
                   fieldKey: 'create_ride_destination',
-                  hint: 'Destination',
+                  hint: 'Dropoff location',
                   icon: Icons.location_on,
                   iconColor: dangerColor,
                   initialValue: state.destination,
+                  showCurrentLocationButton: false,
                   onChanged: notifier.updateDestinationLocation,
+                  onSuggestionsVisibilityChanged: (visible) {
+                    if (_isSearchingDestination != visible) {
+                      setState(() => _isSearchingDestination = visible);
+                    }
+                  },
                   onPlaceSelected: (prediction, details) async {
                     notifier.updateDestinationLocation(prediction.description);
                     notifier.updateDestinationDetails(
@@ -71,39 +92,41 @@ class CreateRideForm extends ConsumerWidget {
                 ),
               ],
             ),
-            Positioned(
-              right: 12,
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => notifier.swapLocations(),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: primaryColor,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(25),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+            // Center-aligned Swap Button - Automatically hidden when searching suggestions to prevent overlap
+            if (!isSearching)
+              Align(
+                alignment: Alignment.center,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => notifier.swapLocations(),
+                    borderRadius: BorderRadius.circular(24),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: primaryColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                          width: 3,
                         ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.swap_vert_rounded,
-                      color: Color(0xFF121212),
-                      size: 20,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(35),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.swap_vert_rounded,
+                        color: Color(0xFF121212),
+                        size: 22,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 20),
