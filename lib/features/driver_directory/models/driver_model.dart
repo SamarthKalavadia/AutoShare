@@ -1,92 +1,31 @@
 import 'package:equatable/equatable.dart';
 
-/// Represents a single driver in the Driver Directory.
-class DriverModel extends Equatable {
-  final String driverId;
+class DriverDirectoryModel extends Equatable {
+  final String id;
   final String name;
-  final String phoneNumber;
-  final String area;
-  final String city;
-  final bool available;
-  final bool verified;
-  final double rating;
-  final String? profileImage; // Optional URL or asset path
+  final String phone;
 
-  const DriverModel({
-    required this.driverId,
+  const DriverDirectoryModel({
+    required this.id,
     required this.name,
-    required this.phoneNumber,
-    required this.area,
-    required this.city,
-    required this.available,
-    required this.verified,
-    required this.rating,
-    this.profileImage,
+    required this.phone,
   });
 
-  @override
-  List<Object?> get props => [
-        driverId,
-        name,
-        phoneNumber,
-        area,
-        city,
-        available,
-        verified,
-        rating,
-        profileImage,
-      ];
-
-  DriverModel copyWith({
-    String? driverId,
-    String? name,
-    String? phoneNumber,
-    String? area,
-    String? city,
-    bool? available,
-    bool? verified,
-    double? rating,
-    String? profileImage,
-  }) {
-    return DriverModel(
-      driverId: driverId ?? this.driverId,
-      name: name ?? this.name,
-      phoneNumber: phoneNumber ?? this.phoneNumber,
-      area: area ?? this.area,
-      city: city ?? this.city,
-      available: available ?? this.available,
-      verified: verified ?? this.verified,
-      rating: rating ?? this.rating,
-      profileImage: profileImage ?? this.profileImage,
+  factory DriverDirectoryModel.fromMap(Map<String, dynamic> map, String id) {
+    return DriverDirectoryModel(
+      id: id,
+      name: map['Name'] as String? ?? '',
+      phone: map['Phone'] as String? ?? '',
     );
   }
 
-  // ── Future Firebase integration ──────────────────────────────────────────────
   Map<String, dynamic> toMap() {
     return {
-      'driverId': driverId,
-      'name': name,
-      'phoneNumber': phoneNumber,
-      'area': area,
-      'city': city,
-      'available': available,
-      'verified': verified,
-      'rating': rating,
-      'profileImage': profileImage,
+      'Name': name,
+      'Phone': phone,
     };
   }
 
-  factory DriverModel.fromMap(Map<String, dynamic> map, String id) {
-    return DriverModel(
-      driverId: id,
-      name: map['name'] as String? ?? '',
-      phoneNumber: map['phone'] as String? ?? '', // Fallback to 'phone' if 'phoneNumber' not found
-      area: map['area'] as String? ?? '',
-      city: map['city'] as String? ?? '',
-      available: map['available'] as bool? ?? true, // Default true if not present
-      verified: map['emailVerified'] as bool? ?? false, // Mapped from emailVerified if verified not present
-      rating: (map['averageRating'] as num?)?.toDouble() ?? 0.0, // Map from averageRating in UserModel
-      profileImage: map['profileImage'] as String?,
-    );
-  }
+  @override
+  List<Object?> get props => [id, name, phone];
 }

@@ -437,8 +437,8 @@ class HomeTab extends ConsumerWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _ActionCard(
-                        icon: Icons.people_alt_rounded,
-                        label: 'Directory',
+                        icon: Icons.directions_car_rounded,
+                        label: 'Driver Directory',
                         onTap: () => context.push('/driver-directory'),
                       ),
                     ),

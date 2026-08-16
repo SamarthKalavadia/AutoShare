@@ -1,80 +1,55 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:autoshare/core/services/firestore_service.dart';
+import 'package:flutter/foundation.dart';
 import '../models/driver_model.dart';
 
-/// Repository for driver data.
-/// Fetches all registered users to display in the driver directory.
-class DriverRepository {
-  final FirestoreService _firestoreService;
+class DriverDirectoryRepository {
+  final FirebaseFirestore _firestore;
 
-  DriverRepository({FirestoreService? firestoreService})
-      : _firestoreService = firestoreService ?? FirestoreService();
+  DriverDirectoryRepository({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  /// Returns the list of drivers from Firestore.
-  Future<List<DriverModel>> fetchDrivers() async {
+  CollectionReference get _directoryCollection =>
+      _firestore.collection('driver_directory');
+
+  /// Fetches drivers from the `driver_directory` Firestore collection.
+  /// Seeds the collection with default records if it is empty.
+  Future<List<DriverDirectoryModel>> fetchDrivers() async {
     try {
-      final snapshot = await _firestoreService.usersCollection.get();
-      
-      final List<DriverModel> drivers = [];
+      var snapshot = await _directoryCollection.get();
 
-      for (var doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        final role = data['role'] as String?;
-        
-        // We only want to display drivers.
-        if (role == 'driver' || role == 'auto_driver') {
-          drivers.add(DriverModel.fromMap(data, doc.id));
-        }
+      if (snapshot.docs.isEmpty) {
+        // Seed database with default 7 drivers
+        await _seedDefaultDrivers();
+        snapshot = await _directoryCollection.get();
       }
 
+      final List<DriverDirectoryModel> drivers = [];
+      for (final doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        drivers.add(DriverDirectoryModel.fromMap(data, doc.id));
+      }
       return drivers;
     } catch (e) {
-      print('Error fetching drivers: $e');
-      return [];
-    }
-  }
-
-  /// Creates or updates a driver based on phone number.
-  Future<void> saveDriver(DriverModel driver) async {
-    try {
-      final data = driver.toMap()..addAll({'role': 'driver'});
-
-      // Check if driver exists with same phone
-      final snapshot = await _firestoreService.usersCollection
-          .where('phone', isEqualTo: driver.phoneNumber)
-          .limit(1)
-          .get();
-
-      if (snapshot.docs.isNotEmpty) {
-        // Update existing
-        await snapshot.docs.first.reference.update(data);
-      } else {
-        // Check by name just in case
-        final nameSnapshot = await _firestoreService.usersCollection
-            .where('name', isEqualTo: driver.name)
-            .limit(1)
-            .get();
-        if (nameSnapshot.docs.isNotEmpty) {
-          await nameSnapshot.docs.first.reference.update(data);
-        } else {
-           // Create new
-          await _firestoreService.usersCollection.doc(driver.driverId).set(data);
-        }
-      }
-    } catch (e) {
-      print('Error saving driver: $e');
+      debugPrint('Error fetching drivers: $e');
       rethrow;
     }
   }
 
-  /// Deletes a driver.
-  Future<void> deleteDriver(String driverId) async {
-    try {
-      await _firestoreService.usersCollection.doc(driverId).delete();
-    } catch (e) {
-      print('Error deleting driver: $e');
-      rethrow;
+  /// Seeds default drivers into Firestore
+  Future<void> _seedDefaultDrivers() async {
+    final List<Map<String, String>> defaultDrivers = [
+      {'Name': 'Vijay', 'Phone': '7874512833'},
+      {'Name': 'Raju', 'Phone': '7990496596'},
+      {'Name': 'Kanti', 'Phone': '7990697077'},
+      {'Name': 'Sandip', 'Phone': '9904264835'},
+      {'Name': 'Ghanshyam', 'Phone': '9824866946'},
+      {'Name': 'Rahul', 'Phone': '9727935297'},
+      {'Name': 'Dashrath', 'Phone': '9265134763'},
+    ];
+
+    for (final driver in defaultDrivers) {
+      final id = driver['Name']!.toLowerCase();
+      await _directoryCollection.doc(id).set(driver);
     }
   }
-
 }

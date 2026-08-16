@@ -1,3 +1,0 @@
-class DriverModel {
-  const DriverModel();
-}

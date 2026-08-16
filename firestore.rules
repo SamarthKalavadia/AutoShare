@@ -147,5 +147,10 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if false;
     }
+
+    // ─── Driver Directory ─────────────────────────────────────────────────────
+    match /driver_directory/{driverId} {
+      allow read, write: if isAuthenticated();
+    }
   }
 }
