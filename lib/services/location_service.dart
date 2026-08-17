@@ -739,6 +739,12 @@ class LocationService {
       );
     }
 
+    print('GPS LATITUDE: ${bestPosition.latitude}');
+    print('GPS LONGITUDE: ${bestPosition.longitude}');
+    print('GPS ACCURACY: ${bestPosition.accuracy}');
+    print('GPS TIMESTAMP: ${bestPosition.timestamp}');
+    print('GPS IS MOCKED: ${bestPosition.isMocked}');
+
     return reverseGeocode(bestPosition.latitude, bestPosition.longitude);
   }
 }
