@@ -1,5 +1,6 @@
 import 'dart:async';
-
+import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:autoshare/core/utils/result.dart';
@@ -119,30 +120,48 @@ class ChatNotifier extends Notifier<ChatInputState> {
   }
 
   Future<bool> sendMessage() async {
-    if (_rideId == null) return false;
+    if (_rideId == null || _receiverUid == null) return false;
     final text = state.text.trim();
     if (text.isEmpty) return false;
 
-    state = state.copyWith(isSending: true, text: '');
-    _typingTimer?.cancel();
-    _setTyping(false);
+    state = ChatInputState(text: text, isSending: true);
 
-    final message = ChatMessage.create(
-      rideId: _rideId!,
-      senderId: _uid,
-      senderName: _name,
-      receiverUid: _receiverUid ?? '',
-      text: text,
-    );
+    try {
+      final user = ref.read(authControllerProvider).value;
+      if (user == null || FirebaseAuth.instance.currentUser == null) {
+        debugPrint('[CHAT SEND] ERROR: User not authenticated');
+        state = ChatInputState(text: text, isSending: false);
+        return false;
+      }
+      
+      final currentUid = FirebaseAuth.instance.currentUser!.uid;
+      
+      debugPrint('[CHAT SEND] currentUserUid: $currentUid');
+      debugPrint('[CHAT SEND] conversationId: $_rideId');
+      debugPrint('[CHAT SEND] recipientUid: $_receiverUid');
+      debugPrint('[CHAT SEND] message: $text');
+      debugPrint('[CHAT SEND] firestorePath: chats/$_rideId/messages');
 
-    final result = await ref.read(chatRepositoryProvider).sendMessage(message);
-    
-    if (result is Success) {
-      state = state.copyWith(isSending: false);
-      return true;
-    } else {
-      // Restore text if failed
-      state = state.copyWith(isSending: false, text: text);
+      final message = ChatMessage.create(
+        rideId: _rideId!,
+        senderId: currentUid,
+        senderName: user.name,
+        receiverUid: _receiverUid!,
+        text: text,
+      );
+
+      final result = await ref.read(chatRepositoryProvider).sendMessage(message);
+
+      if (result is Success) {
+        state = const ChatInputState();
+        return true;
+      } else {
+        state = ChatInputState(text: text, isSending: false);
+        return false;
+      }
+    } catch (e) {
+      debugPrint('[CHAT SEND] ERROR: Unexpected exception: $e');
+      state = ChatInputState(text: text, isSending: false);
       return false;
     }
   }

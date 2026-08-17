@@ -105,14 +105,29 @@ service cloud.firestore {
 
     // ─── Chats ────────────────────────────────────────────────────────────────
     // Document path: chats/{chatId}
-    // A chat belongs to two participants; both can read and write.
-
+    
     match /chats/{chatId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated() && (request.auth.uid in resource.data.participants);
       
+      // For create: the user must be adding themselves to the participants list
+      allow create: if isAuthenticated() && (request.auth.uid in request.resource.data.participants);
+      
+      // For update: the user must already be a participant
+      allow update: if isAuthenticated() && (request.auth.uid in resource.data.participants);
+      
+      allow delete: if isAuthenticated() && (request.auth.uid in resource.data.participants);
+
+      // ─── Messages ─────────────────────────────────────────────────────────────
       // Messages are a subcollection under the chat document.
       match /messages/{messageId} {
-        allow read, write: if isAuthenticated();
+        allow read: if isAuthenticated() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
+        // Only the sender can create their own message, and they must be a participant in the chat
+        allow create: if isAuthenticated() 
+                      && request.resource.data.senderId == request.auth.uid
+                      && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
+        // Allow updates (like marking as read) if the user is a participant
+        allow update: if isAuthenticated() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
+        allow delete: if isAuthenticated() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
       }
     }
 

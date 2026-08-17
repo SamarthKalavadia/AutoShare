@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../core/services/firestore_service.dart';
@@ -81,13 +82,21 @@ class ChatRepository {
       batch.set(docRef, withId.toMap());
 
       // Update chat room last-message metadata using set with merge
-      // so it doesn't fail if the chat room document doesn't exist yet.
+      // We also include the participants array so if this acts as a 'create'
+      // it satisfies the firestore.rules requirement that the sender is in the array.
+      final participantsUpdate = [message.senderId];
+      if (message.receiverUid.isNotEmpty) {
+        participantsUpdate.add(message.receiverUid);
+      }
       batch.set(_fs.chatsCollection.doc(message.rideId), {
         'lastMessageAt': Timestamp.fromDate(message.sentAt),
         'lastMessageText': message.text,
+        'participants': FieldValue.arrayUnion(participantsUpdate),
       }, SetOptions(merge: true));
 
+      debugPrint('[CHAT SEND] attempting write...');
       await batch.commit();
+      debugPrint('[CHAT SEND] write successful');
 
       // Notify the other participant about the new message (fire-and-forget).
       if (message.receiverUid.isNotEmpty) {
@@ -111,11 +120,16 @@ class ChatRepository {
 
       return const Success(null);
     } on FirebaseException catch (e) {
+      debugPrint('[CHAT SEND] ERROR: FirebaseException');
+      debugPrint('[CHAT SEND] Firebase code: ${e.code}');
+      debugPrint('[CHAT SEND] Firebase message: ${e.message}');
       return Failure(
         e.message ?? 'Failed to send message.',
         FirestoreException(e.code),
       );
     } catch (e) {
+      debugPrint('[CHAT SEND] ERROR: Exception');
+      debugPrint('[CHAT SEND] Firebase message: ${e.toString()}');
       return Failure('Unexpected error.', Exception(e.toString()));
     }
   }
