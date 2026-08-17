@@ -45,7 +45,7 @@ class AppLogo extends StatelessWidget {
                     size: size,
                     color: primaryColor,
                   );
-                },
+                },//test commit
               );
             },
           ),
