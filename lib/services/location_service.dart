@@ -576,8 +576,8 @@ class LocationService {
               description: formatted,
               primaryText: primaryText,
               secondaryText: formatted,
-              latitude: (location['lat'] as num?)?.toDouble(),
-              longitude: (location['lng'] as num?)?.toDouble(),
+              latitude: lat,
+              longitude: lng,
             );
 
             _detailsCache[placeId] = prediction;
