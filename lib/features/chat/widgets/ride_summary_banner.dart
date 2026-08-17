@@ -23,6 +23,14 @@ class RideSummaryBanner extends StatelessWidget {
         (isDark ? const Color(0xFF1E1E1E) : Colors.white);
     final iconBg = primaryColor.withValues(alpha: isDark ? 0.2 : 0.3);
 
+    final hasRoute = ride.boardingLocation.isNotEmpty &&
+        ride.destination.isNotEmpty &&
+        ride.boardingLocation != 'Shared Route';
+
+    final routeText = hasRoute
+        ? '${ride.boardingLocation} → ${ride.destination}'
+        : 'AutoShare Ride Discussion';
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.all(12),
@@ -62,7 +70,7 @@ class RideSummaryBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${ride.boardingLocation} → ${ride.destination}',
+                  routeText,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: blackColor,
@@ -78,25 +86,26 @@ class RideSummaryBanner extends StatelessWidget {
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '₹${ride.farePerSeat.toInt()}',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: blackColor,
+          if (ride.farePerSeat > 0)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '₹${ride.farePerSeat.toInt()}',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: blackColor,
+                  ),
                 ),
-              ),
-              Text(
-                'per seat',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontSize: 10,
-                  color: mutedText,
+                Text(
+                  'per seat',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontSize: 10,
+                    color: mutedText,
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
         ],
       ),
     );

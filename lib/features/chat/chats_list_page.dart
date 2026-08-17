@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:intl/intl.dart';
-import '../my_rides/providers/my_rides_provider.dart';
-import '../chat/providers/chat_provider.dart';
-import '../../features/auth/presentation/controllers/auth_controller.dart';
+
+import 'package:autoshare/data/models/chat_model.dart';
+import 'package:autoshare/data/models/ride_model.dart';
+import 'package:autoshare/features/my_rides/providers/my_rides_provider.dart';
+import 'package:autoshare/features/chat/providers/chat_provider.dart';
+import 'package:autoshare/features/auth/presentation/controllers/auth_controller.dart';
 
 class ChatsListPage extends ConsumerStatefulWidget {
   const ChatsListPage({super.key});
@@ -48,15 +50,14 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final ridesState = ref.watch(myRidesProvider);
-
+    final userChatsAsync = ref.watch(userChatsStreamProvider);
     final theme = Theme.of(context);
     final backgroundColor = theme.scaffoldBackgroundColor;
     final textColor = theme.colorScheme.onSurface;
 
     return PopScope(
       canPop: !_isSelectionMode,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         if (_isSelectionMode) {
           _clearSelection();
@@ -64,17 +65,10 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
       },
       child: Scaffold(
         backgroundColor: backgroundColor,
-        appBar: ridesState.when(
-          data: (rides) {
-            final activeChats = rides.where((r) {
-              final status = r.displayStatus;
-              return status == 'active' ||
-                  status == 'joined' ||
-                  status == 'completed';
-            }).toList();
-
+        appBar: userChatsAsync.when(
+          data: (chatRooms) {
+            final allIds = chatRooms.map((r) => r.chatId).toList();
             if (_isSelectionMode) {
-              final allIds = activeChats.map((r) => r.ride.id).toList();
               return _buildSelectionAppBar(context, ref, allIds, textColor);
             }
             return _buildNormalAppBar(context, textColor);
@@ -82,34 +76,19 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
           loading: () => _buildNormalAppBar(context, textColor),
           error: (_, __) => _buildNormalAppBar(context, textColor),
         ),
-        body: ridesState.when(
-          data: (rides) {
-            final activeRides = rides.where((r) {
-              final status = r.displayStatus;
-              return status == 'active' ||
-                  status == 'joined' ||
-                  status == 'completed';
-            }).toList();
-
-            final activeChats = <MyRideData>[];
-            for (final r in activeRides) {
-              final chatRoomAsync = ref.watch(chatRoomProvider(r.ride.id));
-              if (chatRoomAsync is AsyncData && chatRoomAsync.value != null) {
-                activeChats.add(r);
-              }
-            }
-
-            if (activeChats.isEmpty) {
+        body: userChatsAsync.when(
+          data: (chatRooms) {
+            if (chatRooms.isEmpty) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.chat_bubble_outline,
+                      Icons.chat_bubble_outline_rounded,
                       size: 64,
                       color: theme.brightness == Brightness.dark
                           ? Colors.white24
-                          : Colors.grey,
+                          : Colors.grey.shade400,
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -118,6 +97,16 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Conversations with drivers and riders will appear here.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.brightness == Brightness.dark
+                            ? Colors.white54
+                            : Colors.grey.shade600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ],
                 ),
               );
@@ -125,63 +114,135 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
 
             return ListView.separated(
               padding: const EdgeInsets.only(bottom: 24),
-              itemCount: activeChats.length,
+              itemCount: chatRooms.length,
               separatorBuilder: (context, index) => Divider(
-                height: 1, 
-                thickness: 1, 
+                height: 1,
+                thickness: 1,
                 color: theme.brightness == Brightness.dark
                     ? const Color(0xFF2A2A2A)
                     : const Color(0xFFF3F3F3),
               ),
               itemBuilder: (context, index) {
-                final rideData = activeChats[index];
-                final rideId = rideData.ride.id;
+                final room = chatRooms[index];
+                final chatId = room.chatId;
                 return _ChatCard(
-                  data: rideData,
+                  chatRoom: room,
                   isSelectionMode: _isSelectionMode,
-                  isSelected: _selectedIds.contains(rideId),
+                  isSelected: _selectedIds.contains(chatId),
                   onTap: () {
                     if (_isSelectionMode) {
-                      _toggleSelection(rideId);
+                      _toggleSelection(chatId);
                     } else {
-                      _handleNormalTap(rideData);
+                      _handleNormalTap(room);
                     }
                   },
                   onLongPress: () {
                     if (!_isSelectionMode) {
-                      _toggleSelection(rideId);
+                      _toggleSelection(chatId);
                     }
                   },
                 );
               },
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Center(child: Text('Error loading chats: $err')),
+          loading: () {
+            final rides = ref.watch(myRidesProvider).value ?? [];
+            final activeRides = rides.where((r) {
+              final status = r.displayStatus;
+              return status == 'active' || status == 'joined' || status == 'completed';
+            }).toList();
+
+            if (activeRides.isEmpty) {
+              return Center(
+                child: SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              );
+            }
+
+            return ListView.separated(
+              padding: const EdgeInsets.only(bottom: 24),
+              itemCount: activeRides.length,
+              separatorBuilder: (context, index) => Divider(
+                height: 1,
+                thickness: 1,
+                color: theme.brightness == Brightness.dark
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFF3F3F3),
+              ),
+              itemBuilder: (context, index) {
+                final r = activeRides[index];
+                final otherUid = r.role == 'driver'
+                    ? (r.request?.requesterUid ?? '')
+                    : r.ride.driverId;
+                return _ChatCard(
+                  chatRoom: ChatRoom(
+                    chatId: r.ride.id,
+                    rideId: r.ride.id,
+                    participants: [otherUid],
+                    lastMessageText: '${r.ride.boardingLocation} → ${r.ride.destination}',
+                    lastMessageAt: r.ride.departureTime,
+                  ),
+                  isSelectionMode: false,
+                  isSelected: false,
+                  onTap: () {
+                    context.push(
+                      '/chat',
+                      extra: ChatPageArgs(
+                        ride: r.ride,
+                        otherParticipantUid: otherUid,
+                        otherParticipantName: '',
+                      ),
+                    );
+                  },
+                  onLongPress: () {},
+                );
+              },
+            );
+          },
+          error: (err, _) => Center(
+            child: Text(
+              'Error loading chats: $err',
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
         ),
       ),
     );
   }
 
-  void _handleNormalTap(MyRideData data) {
+  void _handleNormalTap(ChatRoom room) {
     final currentUid = ref.read(authControllerProvider).value?.uid ?? '';
-    final rideId = data.ride.id;
-    final chatRoom = ref.read(chatRoomProvider(rideId)).value;
-    
-    String otherUid = '';
-    if (chatRoom != null && chatRoom.participants.length > 1) {
-      otherUid = chatRoom.participants.firstWhere((p) => p != currentUid, orElse: () => '');
-    } else {
-      otherUid = data.role == 'driver' 
-          ? (data.request?.requesterUid ?? '') 
-          : data.ride.driverId;
-    }
+    final otherUid = room.participants.firstWhere(
+      (p) => p != currentUid,
+      orElse: () => '',
+    );
 
-    // We pass an empty name here, ChatPage will fetch the real one.
+    // Check if we have the full ride model in myRidesProvider
+    final myRides = ref.read(myRidesProvider).value ?? [];
+    final matchingRide = myRides.where((r) => r.ride.id == room.rideId).firstOrNull;
+
+    final ride = matchingRide?.ride ??
+        RideModel(
+          id: room.rideId,
+          driverId: otherUid,
+          boardingLocation: 'Shared Route',
+          destination: 'Destination',
+          farePerSeat: 0,
+          availableSeats: 0,
+          departureTime: room.lastMessageAt ?? DateTime.now(),
+          createdAt: DateTime.now(),
+        );
+
     context.push(
       '/chat',
       extra: ChatPageArgs(
-        ride: data.ride,
+        ride: ride,
         otherParticipantUid: otherUid,
         otherParticipantName: '',
       ),
@@ -396,14 +457,14 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
 }
 
 class _ChatCard extends ConsumerWidget {
-  final MyRideData data;
+  final ChatRoom chatRoom;
   final bool isSelectionMode;
   final bool isSelected;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
   const _ChatCard({
-    required this.data,
+    required this.chatRoom,
     required this.isSelectionMode,
     required this.isSelected,
     required this.onTap,
@@ -414,39 +475,37 @@ class _ChatCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     final currentUid = ref.watch(authControllerProvider).value?.uid ?? '';
-    final rideId = data.ride.id;
-    
-    final chatRoomAsync = ref.watch(chatRoomProvider(rideId));
-    final chatRoom = chatRoomAsync.value;
-    
-    String otherUid = '';
-    if (chatRoom != null && chatRoom.participants.length > 1) {
-      otherUid = chatRoom.participants.firstWhere((p) => p != currentUid, orElse: () => '');
-    } else {
-      otherUid = data.role == 'driver' 
-          ? (data.request?.requesterUid ?? '') 
-          : data.ride.driverId;
-    }
+    final rideId = chatRoom.rideId;
+
+    final otherUid = chatRoom.participants.firstWhere(
+      (p) => p != currentUid,
+      orElse: () => '',
+    );
 
     final otherUserAsync = ref.watch(chatUserProvider(otherUid));
-    
+
     final participantName = otherUserAsync.when(
       data: (user) {
         if (user != null && user.name.isNotEmpty) return user.name;
-        return 'Unknown User';
+        return 'User';
       },
       loading: () => 'Loading...',
-      error: (_, __) => 'Unknown User',
+      error: (_, __) => 'User',
     );
     final participantAvatar = otherUserAsync.value?.profileImage;
 
     final messagesAsync = ref.watch(chatMessagesProvider(rideId));
-    final unreadCount = messagesAsync.value?.where((m) => m.senderId != currentUid && !m.isReadBy(currentUid)).length ?? 0;
+    final unreadCount = messagesAsync.value
+            ?.where((m) => m.senderId != currentUid && !m.isReadBy(currentUid))
+            .length ??
+        0;
 
-    final lastMessageText = chatRoom?.lastMessageText ?? '';
-    final lastMessageAt = chatRoom?.lastMessageAt;
+    final lastMessageText = chatRoom.lastMessageText;
+    final lastMessageAt = chatRoom.lastMessageAt;
+
+    final isTyping = chatRoom.typing.entries.any((e) => e.key == otherUid && e.value);
 
     final selectedBg = isDark ? const Color(0xFF332D19) : const Color(0xFFFFFBE6);
     final cardBg = isSelected ? selectedBg : Colors.transparent;
@@ -528,12 +587,19 @@ class _ChatCard extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            lastMessageText.isNotEmpty 
-                                ? lastMessageText 
-                                : '${data.ride.boardingLocation} → ${data.ride.destination}',
+                            isTyping
+                                ? 'typing...'
+                                : (lastMessageText.isNotEmpty
+                                    ? lastMessageText
+                                    : 'Tap to chat'),
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: unreadCount > 0 ? textColor : subtextColor,
-                              fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.w400,
+                              color: isTyping
+                                  ? primaryColor
+                                  : (unreadCount > 0 ? textColor : subtextColor),
+                              fontWeight: (isTyping || unreadCount > 0)
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              fontStyle: isTyping ? FontStyle.italic : FontStyle.normal,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -542,16 +608,16 @@ class _ChatCard extends ConsumerWidget {
                         if (unreadCount > 0 && !isSelected)
                           Container(
                             margin: const EdgeInsets.only(left: 8),
-                            padding: const EdgeInsets.all(6),
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                             decoration: BoxDecoration(
                               color: primaryColor,
-                              shape: BoxShape.circle,
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
                               unreadCount.toString(),
                               style: const TextStyle(
                                 color: Color(0xFF121212),
-                                fontSize: 10,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),

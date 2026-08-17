@@ -93,8 +93,10 @@ class _ChatPageState extends ConsumerState<ChatPage> {
       return;
     }
 
-    final text = _controller.text;
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
     _controller.clear();
+    ref.read(chatProvider.notifier).updateText(text);
     
     final sent = await ref.read(chatProvider.notifier).sendMessage();
     
@@ -125,25 +127,32 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final currentUid = ref.watch(authControllerProvider).value?.uid ?? '';
     final chatInput = ref.watch(chatProvider);
     
-    final otherUserAsync = ref.watch(chatUserProvider(widget.args.otherParticipantUid));
-    
-    debugPrint('[CHAT DEBUG] participant profile loading: ${otherUserAsync.isLoading}');
-    if (otherUserAsync.hasValue) {
-      debugPrint('[CHAT DEBUG] participant profile loaded: ${otherUserAsync.value?.name}');
-    }
+    final chatRoomAsync = ref.watch(chatRoomProvider(_rideId));
+    final resolvedOtherUid = widget.args.otherParticipantUid.isNotEmpty
+        ? widget.args.otherParticipantUid
+        : (chatRoomAsync.value?.participants.firstWhere(
+            (p) => p != currentUid,
+            orElse: () => '',
+          ) ?? '');
 
+    final otherUserAsync = ref.watch(chatUserProvider(resolvedOtherUid));
+    
     final participantName = otherUserAsync.when(
       data: (user) {
         if (user != null && user.name.isNotEmpty) return user.name;
-        return 'Unknown User';
+        if (widget.args.otherParticipantName.isNotEmpty) return widget.args.otherParticipantName;
+        return 'User';
       },
-      loading: () => 'Loading...',
-      error: (_, __) => 'Unknown User',
+      loading: () => widget.args.otherParticipantName.isNotEmpty
+          ? widget.args.otherParticipantName
+          : 'Loading...',
+      error: (_, __) => widget.args.otherParticipantName.isNotEmpty
+          ? widget.args.otherParticipantName
+          : 'User',
     );
     final participantAvatar = otherUserAsync.value?.profileImage;
 
     final messagesAsync = ref.watch(chatMessagesProvider(_rideId));
-    final chatRoomAsync = ref.watch(chatRoomProvider(_rideId));
 
     final typingUids = chatRoomAsync.value?.typing.entries
         .where((e) => e.value && e.key != currentUid)
@@ -290,7 +299,16 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               },
               loading: () {
                 debugPrint('[CHAT DEBUG] message stream started / loading');
-                return Center(child: CircularProgressIndicator(color: primaryColor));
+                return Center(
+                  child: SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: primaryColor,
+                    ),
+                  ),
+                );
               },
               error: (e, stack) {
                 debugPrint('[CHAT DEBUG] stream error: $e');

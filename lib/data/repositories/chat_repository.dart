@@ -47,12 +47,40 @@ class ChatRepository {
     }
   }
 
+  /// Streams all chat rooms where [uid] is a participant, ordered by last message time descending.
+  Stream<List<ChatRoom>> streamUserChats(String uid) {
+    if (uid.isEmpty) return Stream.value([]);
+    return _fs.chatsCollection
+        .where('participants', arrayContains: uid)
+        .snapshots()
+        .map((snap) {
+          final rooms = snap.docs.map((d) => ChatRoom.fromDocument(d)).toList();
+          rooms.sort((a, b) {
+            final aTime = a.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            final bTime = b.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            return bTime.compareTo(aTime);
+          });
+          return rooms;
+        })
+        .handleError((error) {
+          debugPrint('[USER CHATS STREAM ERROR]: $error');
+          return <ChatRoom>[];
+        });
+  }
+
   /// Streams a live snapshot of the chat room.
   Stream<ChatRoom?> streamChatRoom(String rideId) {
-    return _fs.chatsCollection.doc(rideId).snapshots().map((doc) {
-      if (!doc.exists) return null;
-      return ChatRoom.fromDocument(doc);
-    });
+    return _fs.chatsCollection
+        .doc(rideId)
+        .snapshots()
+        .map((doc) {
+          if (!doc.exists) return null;
+          return ChatRoom.fromDocument(doc);
+        })
+        .handleError((error) {
+          debugPrint('[CHAT ROOM STREAM ERROR]: $error');
+          return null;
+        });
   }
 
   // ── Messages ──────────────────────────────────────────────────────────────
@@ -62,50 +90,64 @@ class ChatRepository {
 
   /// Streams all messages for a chat room, ordered by time ascending.
   Stream<List<ChatMessage>> streamMessages(String rideId) {
-    return _messagesRef(rideId)
-        .orderBy('sentAt', descending: false)
+    return _fs.messagesCollection
+        .where('rideId', isEqualTo: rideId)
         .snapshots()
-        .map(
-          (snap) => snap.docs.map((d) => ChatMessage.fromDocument(d)).toList(),
-        );
+        .map((snap) {
+          final msgs = snap.docs.map((d) => ChatMessage.fromDocument(d)).toList();
+          msgs.sort((a, b) => a.sentAt.compareTo(b.sentAt));
+          return msgs;
+        })
+        .handleError((error) {
+          debugPrint('[MESSAGES ROOT STREAM ERROR]: $error');
+          return <ChatMessage>[];
+        });
   }
 
   /// Sends a new message to the chat room.
   Future<Result<void>> sendMessage(ChatMessage message) async {
     try {
-      final colRef = _messagesRef(message.rideId);
-      final docRef = colRef.doc();
-      final withId = message.copyWith(messageId: docRef.id);
-      final batch = FirebaseFirestore.instance.batch();
+      final rootDocRef = _fs.messagesCollection.doc();
+      final withId = message.copyWith(messageId: rootDocRef.id);
 
-      // Write message doc
-      batch.set(docRef, withId.toMap());
-
-      // Update chat room last-message metadata using set with merge
-      // We also include the participants array so if this acts as a 'create'
-      // it satisfies the firestore.rules requirement that the sender is in the array.
       final participantsUpdate = [message.senderId];
-      if (message.receiverUid.isNotEmpty) {
+      if (message.receiverUid.isNotEmpty && message.receiverUid != message.senderId) {
         participantsUpdate.add(message.receiverUid);
       }
-      batch.set(_fs.chatsCollection.doc(message.rideId), {
-        'lastMessageAt': Timestamp.fromDate(message.sentAt),
-        'lastMessageText': message.text,
-        'participants': FieldValue.arrayUnion(participantsUpdate),
-      }, SetOptions(merge: true));
 
-      debugPrint('[CHAT SEND] attempting write...');
-      await batch.commit();
-      debugPrint('[CHAT SEND] write successful');
+      // 1. Write to root messages collection (matches deployed Firebase security rules)
+      await rootDocRef.set(withId.toMap());
 
-      // Notify the other participant about the new message (fire-and-forget).
-      if (message.receiverUid.isNotEmpty) {
+      // 2. Also write to subcollection in try-catch for dual compatibility
+      try {
+        await _messagesRef(message.rideId).doc(rootDocRef.id).set(withId.toMap());
+      } catch (e) {
+        debugPrint('[SUBCOLLECTION WRITE SKIPPED]: $e');
+      }
+
+      // 3. Update top-level chat room document with latest message info
+      try {
+        await _fs.chatsCollection.doc(message.rideId).set({
+          'chatId': message.rideId,
+          'rideId': message.rideId,
+          'participants': FieldValue.arrayUnion(participantsUpdate),
+          'lastMessageAt': Timestamp.fromDate(message.sentAt),
+          'lastMessageText': message.text,
+        }, SetOptions(merge: true));
+      } catch (e) {
+        debugPrint('[CHAT DOC UPDATE SKIPPED]: $e');
+      }
+
+      debugPrint('[CHAT SEND] Message sent successfully: ${rootDocRef.id}');
+
+      // 4. Fire-and-forget push notification
+      if (message.receiverUid.isNotEmpty && message.receiverUid != message.senderId) {
         unawaited(
           _notificationRepo.createNotification(
             NotificationModel(
               id: '',
               userId: message.receiverUid,
-              title: 'New Message',
+              title: message.senderName.isNotEmpty ? message.senderName : 'New Message',
               body: message.text.length > 60
                   ? '${message.text.substring(0, 60)}...'
                   : message.text,
@@ -120,16 +162,13 @@ class ChatRepository {
 
       return const Success(null);
     } on FirebaseException catch (e) {
-      debugPrint('[CHAT SEND] ERROR: FirebaseException');
-      debugPrint('[CHAT SEND] Firebase code: ${e.code}');
-      debugPrint('[CHAT SEND] Firebase message: ${e.message}');
+      debugPrint('[CHAT SEND] FirebaseException (${e.code}): ${e.message}');
       return Failure(
         e.message ?? 'Failed to send message.',
         FirestoreException(e.code),
       );
     } catch (e) {
-      debugPrint('[CHAT SEND] ERROR: Exception');
-      debugPrint('[CHAT SEND] Firebase message: ${e.toString()}');
+      debugPrint('[CHAT SEND] Unexpected exception: $e');
       return Failure('Unexpected error.', Exception(e.toString()));
     }
   }
@@ -137,9 +176,10 @@ class ChatRepository {
   /// Soft-deletes a message by overwriting `isDeleted = true` and clearing text.
   Future<Result<void>> deleteMessage(String rideId, String messageId) async {
     try {
-      await _messagesRef(
-        rideId,
-      ).doc(messageId).update({'isDeleted': true, 'text': ''});
+      await _fs.messagesCollection.doc(messageId).update({'isDeleted': true, 'text': ''});
+      try {
+        await _messagesRef(rideId).doc(messageId).update({'isDeleted': true, 'text': ''});
+      } catch (_) {}
       return const Success(null);
     } on FirebaseException catch (e) {
       return Failure(
@@ -158,70 +198,61 @@ class ChatRepository {
     String uid,
   ) async {
     try {
-      await _messagesRef(rideId).doc(messageId).update({'readBy.$uid': true});
+      await _fs.messagesCollection.doc(messageId).update({'readBy.$uid': true});
+      try {
+        await _messagesRef(rideId).doc(messageId).update({'readBy.$uid': true});
+      } catch (_) {}
     } catch (_) {}
   }
 
   Future<void> deleteChatRooms(List<String> rideIds) async {
     for (final rideId in rideIds) {
       try {
-        final batch = FirebaseFirestore.instance.batch();
-        
-        // 1. Delete all messages in the subcollection
-        final msgsSnap = await _messagesRef(rideId).get();
-        for (final doc in msgsSnap.docs) {
-          batch.delete(doc.reference);
+        final rootMsgs = await _fs.messagesCollection.where('rideId', isEqualTo: rideId).get();
+        for (final doc in rootMsgs.docs) {
+          await doc.reference.delete();
         }
-        
-        // 2. Delete the chat room document itself
-        batch.delete(_fs.chatsCollection.doc(rideId));
-        
-        await batch.commit();
+        try {
+          final msgsSnap = await _messagesRef(rideId).get();
+          for (final doc in msgsSnap.docs) {
+            await doc.reference.delete();
+          }
+        } catch (_) {}
+        await _fs.chatsCollection.doc(rideId).delete();
       } catch (e) {
-        // Rethrow so the UI can catch it and display the error
         throw FirestoreException('Failed to delete chat $rideId: $e');
       }
     }
   }
 
   Future<void> markChatsAsRead(List<String> rideIds, String uid) async {
-    final batch = FirebaseFirestore.instance.batch();
     for (final rideId in rideIds) {
-      final snap = await _messagesRef(rideId).get();
+      final snap = await _fs.messagesCollection.where('rideId', isEqualTo: rideId).get();
       for (final doc in snap.docs) {
         final data = doc.data() as Map<String, dynamic>;
         if (data['senderId'] != uid) {
           final readBy = data['readBy'] as Map<String, dynamic>? ?? {};
           if (readBy[uid] != true) {
-            batch.update(doc.reference, {'readBy.$uid': true});
+            await doc.reference.update({'readBy.$uid': true});
           }
         }
       }
     }
-    try {
-      await batch.commit();
-    } catch (_) {}
   }
 
   Future<void> markChatsAsUnread(List<String> rideIds, String uid) async {
-    final batch = FirebaseFirestore.instance.batch();
     for (final rideId in rideIds) {
-      final snap = await _messagesRef(rideId)
-          .orderBy('sentAt', descending: true)
-          .limit(10)
+      final snap = await _fs.messagesCollection
+          .where('rideId', isEqualTo: rideId)
           .get();
-      
       for (final doc in snap.docs) {
         final data = doc.data() as Map<String, dynamic>;
         if (data['senderId'] != uid) {
-          batch.update(doc.reference, {'readBy.$uid': false});
+          await doc.reference.update({'readBy.$uid': false});
           break;
         }
       }
     }
-    try {
-      await batch.commit();
-    } catch (_) {}
   }
 
   // ── Typing Indicator ──────────────────────────────────────────────────────

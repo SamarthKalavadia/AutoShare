@@ -46,6 +46,14 @@ final chatUserProvider = FutureProvider.autoDispose.family<UserModel?, String>((
   return null;
 });
 
+// ── Live User Chats Stream ──────────────────────────────────────────────────
+
+final userChatsStreamProvider = StreamProvider.autoDispose<List<ChatRoom>>((ref) {
+  final uid = ref.watch(authControllerProvider).value?.uid ?? '';
+  if (uid.isEmpty) return Stream.value([]);
+  return ref.watch(chatRepositoryProvider).streamUserChats(uid);
+});
+
 // ── Multi-selection Chat List Actions ───────────────────────────────────────
 
 class ChatsListActionsNotifier extends Notifier<void> {
@@ -90,7 +98,6 @@ class ChatNotifier extends Notifier<ChatInputState> {
   String? _rideId;
 
   String get _uid => ref.read(authControllerProvider).value?.uid ?? '';
-  String get _name => ref.read(authControllerProvider).value?.name ?? 'User';
   String? _receiverUid;
 
   @override
@@ -120,7 +127,7 @@ class ChatNotifier extends Notifier<ChatInputState> {
   }
 
   Future<bool> sendMessage() async {
-    if (_rideId == null || _receiverUid == null) return false;
+    if (_rideId == null || _rideId!.isEmpty) return false;
     final text = state.text.trim();
     if (text.isEmpty) return false;
 
@@ -128,25 +135,41 @@ class ChatNotifier extends Notifier<ChatInputState> {
 
     try {
       final user = ref.read(authControllerProvider).value;
-      if (user == null || FirebaseAuth.instance.currentUser == null) {
+      final currentUid = FirebaseAuth.instance.currentUser?.uid ?? user?.uid;
+      if (currentUid == null || currentUid.isEmpty) {
         debugPrint('[CHAT SEND] ERROR: User not authenticated');
         state = ChatInputState(text: text, isSending: false);
         return false;
       }
-      
-      final currentUid = FirebaseAuth.instance.currentUser!.uid;
+
+      final senderName = (user?.name.isNotEmpty == true)
+          ? user!.name
+          : (FirebaseAuth.instance.currentUser?.displayName?.isNotEmpty == true
+              ? FirebaseAuth.instance.currentUser!.displayName!
+              : 'User');
+
+      var targetReceiverUid = _receiverUid ?? '';
+      if (targetReceiverUid.isEmpty) {
+        final chatRoom = ref.read(chatRoomProvider(_rideId!)).value;
+        if (chatRoom != null && chatRoom.participants.isNotEmpty) {
+          targetReceiverUid = chatRoom.participants.firstWhere(
+            (p) => p != currentUid,
+            orElse: () => '',
+          );
+        }
+      }
       
       debugPrint('[CHAT SEND] currentUserUid: $currentUid');
       debugPrint('[CHAT SEND] conversationId: $_rideId');
-      debugPrint('[CHAT SEND] recipientUid: $_receiverUid');
+      debugPrint('[CHAT SEND] recipientUid: $targetReceiverUid');
       debugPrint('[CHAT SEND] message: $text');
       debugPrint('[CHAT SEND] firestorePath: chats/$_rideId/messages');
 
       final message = ChatMessage.create(
         rideId: _rideId!,
         senderId: currentUid,
-        senderName: user.name,
-        receiverUid: _receiverUid!,
+        senderName: senderName,
+        receiverUid: targetReceiverUid,
         text: text,
       );
 
