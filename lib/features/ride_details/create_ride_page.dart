@@ -30,101 +30,162 @@ class CreateRidePage extends ConsumerWidget {
     final state = ref.watch(createRideProvider);
     final notifier = ref.read(createRideProvider.notifier);
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: backgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: blackColor),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'Create Ride',
-          style: GoogleFonts.inter(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: blackColor,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // The Form
-                    const CreateRideForm(),
-                    const SizedBox(height: 16),
-                  ],
-                ),
+    final hasData =
+        state.boardingLocation.isNotEmpty ||
+        state.destination.isNotEmpty ||
+        state.departureDate != null ||
+        state.departureTime != null ||
+        state.vehicleNumber.isNotEmpty ||
+        state.rideDescription.isNotEmpty;
+
+    return PopScope(
+      canPop: !hasData,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        final discard = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Text(
+              'Discard this ride?',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+            ),
+            content: Text(
+              'You have unsaved changes. Are you sure you want to discard them?',
+              style: GoogleFonts.inter(
+                color: isDark ? Colors.white70 : const Color(0xFF6F6F72),
               ),
             ),
-
-            // Publish Button Sticky Bottom - Pure Button No Background Container
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-              child: SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: FilledButton(
-                  onPressed: state.isLoading
-                      ? null
-                      : () async {
-                          final result = await notifier.publishRide();
-                          if (!context.mounted) return;
-
-                          if (result is Success<String>) {
-                            _showSuccessDialog(context, ref);
-                          } else if (result is Failure<String>) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(result.message),
-                                backgroundColor: dangerColor,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                  style: FilledButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: state.isValid ? 4 : 0,
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(
+                  'Cancel',
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white60 : const Color(0xFF6F6F72),
                   ),
-                  child: state.isLoading
-                      ? SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              isDark ? Colors.black : Colors.white,
+                ),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: dangerColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Discard'),
+              ),
+            ],
+          ),
+        );
+        if (discard == true) {
+          if (context.mounted) {
+            context.pop();
+          }
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: backgroundColor,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_rounded, color: blackColor),
+            onPressed: () => Navigator.maybePop(context),
+          ),
+          title: Text(
+            'Create Ride',
+            style: GoogleFonts.inter(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: blackColor,
+            ),
+          ),
+          centerTitle: true,
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // The Form
+                      const CreateRideForm(),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Publish Button Sticky Bottom - Pure Button No Background Container
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: FilledButton(
+                    onPressed: state.isLoading
+                        ? null
+                        : () async {
+                            final result = await notifier.publishRide();
+                            if (!context.mounted) return;
+
+                            if (result is Success<String>) {
+                              _showSuccessDialog(context, ref);
+                            } else if (result is Failure<String>) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(result.message),
+                                  backgroundColor: dangerColor,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                    style: FilledButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: state.isValid ? 4 : 0,
+                    ),
+                    child: state.isLoading
+                        ? SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                isDark ? Colors.black : Colors.white,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            'Create Ride',
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        )
-                      : Text(
-                          'Create Ride',
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

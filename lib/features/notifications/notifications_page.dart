@@ -207,18 +207,18 @@ class NotificationsPage extends ConsumerWidget {
     GroupedNotifications grouped,
   ) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.only(bottom: 24),
       children: [
         if (grouped.today.isNotEmpty) ...[
-          _SectionHeader(label: 'Today'),
+          const _SectionHeader(label: 'TODAY'),
           ...grouped.today.map((n) => _NotificationTile(notification: n)),
         ],
         if (grouped.yesterday.isNotEmpty) ...[
-          _SectionHeader(label: 'Yesterday'),
+          const _SectionHeader(label: 'YESTERDAY'),
           ...grouped.yesterday.map((n) => _NotificationTile(notification: n)),
         ],
         if (grouped.older.isNotEmpty) ...[
-          _SectionHeader(label: 'Older'),
+          const _SectionHeader(label: 'EARLIER'),
           ...grouped.older.map((n) => _NotificationTile(notification: n)),
         ],
       ],
@@ -228,45 +228,34 @@ class NotificationsPage extends ConsumerWidget {
   Widget _buildEmptyState(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final blackColor = isDark ? Colors.white : const Color(0xFF121212);
-    final iconBgColor = isDark
-        ? const Color(0xFF332D19)
-        : const Color(0xFFF8F3E7);
-    final iconColor = isDark
-        ? const Color(0xFFF6C000)
-        : const Color(0xFF121212);
+    final grayColor = isDark ? Colors.white60 : const Color(0xFF6F6F72);
 
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 96,
-            height: 96,
-            decoration: BoxDecoration(
-              color: iconBgColor,
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: Icon(
-              Icons.notifications_none_rounded,
-              size: 48,
-              color: iconColor,
-            ),
+          Icon(
+            Icons.notifications_none_rounded,
+            size: 48,
+            color: isDark ? const Color(0xFF555555) : const Color(0xFFCCCCCC),
           ),
           const SizedBox(height: 24),
           Text(
-            'No notifications',
-            style: GoogleFonts.outfit(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
+            'You\'re all caught up',
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
               color: blackColor,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'You\'re all caught up.',
+            'New ride updates and activity\nwill appear here.',
+            textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 14,
-              color: isDark ? Colors.white60 : const Color(0xFF6F6F72),
+              color: grayColor,
+              height: 1.4,
             ),
           ),
         ],
@@ -275,11 +264,10 @@ class NotificationsPage extends ConsumerWidget {
   }
 
   Widget _buildShimmer() {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: 6,
-      separatorBuilder: (context, index) => const SizedBox(height: 10),
-      itemBuilder: (context, index) => _ShimmerTile(),
+    return ListView.builder(
+      padding: EdgeInsets.zero,
+      itemCount: 8,
+      itemBuilder: (context, index) => const _ShimmerTile(),
     );
   }
 }
@@ -293,14 +281,14 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 16, bottom: 8, left: 4),
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
       child: Text(
         label,
-        style: GoogleFonts.outfit(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: const Color(0xFF6F6F72),
-          letterSpacing: 0.8,
+        style: GoogleFonts.inter(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFFA1A1A1),
+          letterSpacing: 0.5,
         ),
       ),
     );
@@ -319,19 +307,20 @@ class _NotificationTile extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     final isUnread = !notification.isRead;
 
-    final iconBg = _iconBgForType(notification.type);
-    final iconColor = _iconColorForType(notification.type);
+    final iconBg = _iconBgForType(notification.type, isDark);
+    final iconColor = _iconColorForType(notification.type, isDark);
     final icon = _iconForType(notification.type);
 
-    final cardBg = isUnread
-        ? (isDark ? const Color(0xFF332D19) : const Color(0xFFFFF8E1))
-        : (isDark ? const Color(0xFF1E1E1E) : Colors.white);
-    final cardBorder = isUnread
-        ? (isDark ? const Color(0xFF5C4E14) : const Color(0xFFFFE082))
-        : (isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD));
+    final bgColor = isUnread
+        ? (isDark ? const Color(0xFF2A2820) : const Color(0xFFFFFDF5))
+        : Colors.transparent;
+
+    final borderColor = isDark
+        ? const Color(0xFF2A2A2A)
+        : const Color(0xFFF3F3F3);
 
     final titleColor = isDark ? Colors.white : const Color(0xFF121212);
-    final bodyColor = isDark ? Colors.white60 : const Color(0xFF6F6F72);
+    final bodyColor = isDark ? Colors.white70 : const Color(0xFF6F6F72);
 
     return Dismissible(
       key: ValueKey(notification.id),
@@ -339,11 +328,7 @@ class _NotificationTile extends ConsumerWidget {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFF4444),
-          borderRadius: BorderRadius.circular(20),
-        ),
+        color: const Color(0xFFFF4444),
         child: const Icon(
           Icons.delete_outline_rounded,
           color: Colors.white,
@@ -368,32 +353,18 @@ class _NotificationTile extends ConsumerWidget {
             context.push('/my-rides');
           }
         },
-        borderRadius: BorderRadius.circular(20),
         child: Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: cardBg,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: cardBorder),
-            boxShadow: [
-              BoxShadow(
-                color: isUnread
-                    ? const Color(0x12F6C000)
-                    : (isDark
-                          ? const Color(0x33000000)
-                          : const Color(0x08121212)),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            color: bgColor,
+            border: Border(bottom: BorderSide(color: borderColor, width: 1)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: iconBg,
                   shape: BoxShape.circle,
@@ -406,12 +377,13 @@ class _NotificationTile extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Text(
                             notification.title,
                             style: GoogleFonts.inter(
-                              fontSize: 14,
+                              fontSize: 15,
                               fontWeight: isUnread
                                   ? FontWeight.w700
                                   : FontWeight.w600,
@@ -419,17 +391,15 @@ class _NotificationTile extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        if (isUnread) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFF6C000),
-                              shape: BoxShape.circle,
-                            ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _formatTime(notification.createdAt),
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: const Color(0xFFA1A1A1),
+                            fontWeight: FontWeight.w400,
                           ),
-                        ],
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -441,18 +411,25 @@ class _NotificationTile extends ConsumerWidget {
                         height: 1.4,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _formatTime(notification.createdAt),
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: const Color(0xFFAAAAAA),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
                   ],
                 ),
               ),
+              if (isUnread) ...[
+                const SizedBox(width: 12),
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF6C000),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ] else ...[
+                const SizedBox(width: 20),
+              ],
             ],
           ),
         ),
@@ -463,77 +440,67 @@ class _NotificationTile extends ConsumerWidget {
   IconData _iconForType(String type) {
     switch (type) {
       case 'new_request':
-        return Icons.person_add_outlined;
+        return Icons.person_add_alt_1_rounded;
       case 'accepted':
-        return Icons.check_circle_outline_rounded;
+      case 'completed':
+        return Icons.check_circle_rounded;
       case 'rejected':
-        return Icons.cancel_outlined;
       case 'cancelled':
-        return Icons.block_rounded;
+        return Icons.cancel_rounded;
       case 'chat':
-        return Icons.chat_bubble_outline_rounded;
-      case 'reminder':
-        return Icons.access_time_rounded;
-      case 'starting_soon':
-        return Icons.directions_car_outlined;
+        return Icons.chat_bubble_rounded;
       default:
-        return Icons.notifications_outlined;
+        return Icons.notifications_rounded;
     }
   }
 
-  Color _iconBgForType(String type) {
+  Color _iconBgForType(String type, bool isDark) {
     switch (type) {
       case 'new_request':
-        return const Color(0xFFE3F2FD);
+        return isDark ? const Color(0xFF332D19) : const Color(0xFFFFF8E1);
       case 'accepted':
-        return const Color(0xFFE8F5E9);
+      case 'completed':
+        return isDark ? const Color(0xFF1B3320) : const Color(0xFFE8F5E9);
       case 'rejected':
-        return const Color(0xFFFFEBEE);
       case 'cancelled':
-        return const Color(0xFFFFF3E0);
+        return isDark ? const Color(0xFF331B1B) : const Color(0xFFFFEBEE);
       case 'chat':
-        return const Color(0xFFF3E5F5);
-      case 'reminder':
-      case 'starting_soon':
-        return const Color(0xFFFFF8E1);
+        return isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF3F3F3);
       default:
-        return const Color(0xFFF5F5F5);
+        return isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF3F3F3);
     }
   }
 
-  Color _iconColorForType(String type) {
+  Color _iconColorForType(String type, bool isDark) {
     switch (type) {
       case 'new_request':
-        return const Color(0xFF1565C0);
+        return const Color(0xFFF6C000);
       case 'accepted':
-        return const Color(0xFF2E7D32);
+      case 'completed':
+        return const Color(0xFF4CAF50);
       case 'rejected':
-        return const Color(0xFFC62828);
       case 'cancelled':
-        return const Color(0xFFE65100);
-      case 'chat':
-        return const Color(0xFF6A1B9A);
-      case 'reminder':
-      case 'starting_soon':
-        return const Color(0xFFF57F17);
+        return const Color(0xFFE53935);
       default:
-        return const Color(0xFF6F6F72);
+        return isDark ? const Color(0xFFA1A1A1) : const Color(0xFF6F6F72);
     }
   }
 
   String _formatTime(DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return DateFormat('MMM d, h:mm a').format(dt);
+    if (diff.inMinutes < 1) return 'Now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+    if (diff.inHours < 24) return '${diff.inHours}h';
+    return DateFormat('MMM d').format(dt);
   }
 }
 
 // ─── Shimmer Tile ─────────────────────────────────────────────────────────────
 
 class _ShimmerTile extends StatefulWidget {
+  const _ShimmerTile();
+
   @override
   State<_ShimmerTile> createState() => _ShimmerTileState();
 }
@@ -561,26 +528,34 @@ class _ShimmerTileState extends State<_ShimmerTile>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return AnimatedBuilder(
       animation: _anim,
       builder: (context, child) {
         final shimmerColor = Color.lerp(
-          const Color(0xFFEEEEEE),
-          const Color(0xFFDDDDDD),
+          isDark ? const Color(0xFF333333) : const Color(0xFFEEEEEE),
+          isDark ? const Color(0xFF444444) : const Color(0xFFDDDDDD),
           _anim.value,
         )!;
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFEAE5DD)),
+            color: Colors.transparent,
+            border: Border(
+              bottom: BorderSide(
+                color: isDark
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFF3F3F3),
+                width: 1,
+              ),
+            ),
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: shimmerColor,
                   shape: BoxShape.circle,
@@ -593,16 +568,16 @@ class _ShimmerTileState extends State<_ShimmerTile>
                   children: [
                     Container(
                       height: 14,
-                      width: double.infinity,
+                      width: 160,
                       decoration: BoxDecoration(
                         color: shimmerColor,
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(4),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Container(
                       height: 12,
-                      width: 180,
+                      width: double.infinity,
                       decoration: BoxDecoration(
                         color: shimmerColor,
                         borderRadius: BorderRadius.circular(6),

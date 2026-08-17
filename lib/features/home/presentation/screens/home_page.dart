@@ -76,12 +76,19 @@ class _HomePageState extends ConsumerState<HomePage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      body: IndexedStack(index: currentIndex, children: _pages),
-      bottomNavigationBar: _buildBottomNavigationBar(
-        context,
-        isDark,
-        currentIndex,
+    return PopScope(
+      canPop: currentIndex == 0,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        ref.read(homeNavigationProvider.notifier).setIndex(0);
+      },
+      child: Scaffold(
+        body: IndexedStack(index: currentIndex, children: _pages),
+        bottomNavigationBar: _buildBottomNavigationBar(
+          context,
+          isDark,
+          currentIndex,
+        ),
       ),
     );
   }
