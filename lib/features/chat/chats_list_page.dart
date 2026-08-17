@@ -4,11 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:autoshare/data/models/chat_model.dart';
 import 'package:autoshare/data/models/ride_model.dart';
 import 'package:autoshare/features/my_rides/providers/my_rides_provider.dart';
 import 'package:autoshare/features/chat/providers/chat_provider.dart';
 import 'package:autoshare/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:autoshare/shared/utils/avatar_utils.dart';
 
 class ChatsListPage extends ConsumerStatefulWidget {
   const ChatsListPage({super.key});
@@ -476,13 +478,39 @@ class _ChatCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final currentUid = ref.watch(authControllerProvider).value?.uid ?? '';
+    final currentUid = ref.watch(authControllerProvider).value?.uid ??
+        FirebaseAuth.instance.currentUser?.uid ??
+        '';
     final rideId = chatRoom.rideId;
 
-    final otherUid = chatRoom.participants.firstWhere(
-      (p) => p != currentUid,
+    var otherUid = chatRoom.participants.firstWhere(
+      (p) => p.isNotEmpty && p != currentUid,
       orElse: () => '',
     );
+
+    if (otherUid.isEmpty) {
+      final myRides = ref.watch(myRidesProvider).value ?? [];
+      final match = myRides.where((r) => r.ride.id == chatRoom.rideId).firstOrNull;
+      if (match != null) {
+        otherUid = match.role == 'driver'
+            ? (match.request?.requesterUid ?? '')
+            : match.ride.driverId;
+      }
+    }
+
+    if (otherUid.isEmpty) {
+      final msgs = ref.watch(chatMessagesProvider(rideId)).value ?? [];
+      for (final m in msgs) {
+        if (m.senderId.isNotEmpty && m.senderId != currentUid) {
+          otherUid = m.senderId;
+          break;
+        }
+        if (m.receiverUid.isNotEmpty && m.receiverUid != currentUid) {
+          otherUid = m.receiverUid;
+          break;
+        }
+      }
+    }
 
     final otherUserAsync = ref.watch(chatUserProvider(otherUid));
 
@@ -536,21 +564,10 @@ class _ChatCard extends ConsumerWidget {
                     size: 20,
                   ),
                 ),
-              CircleAvatar(
+              _UserAvatar(
+                imageUrl: participantAvatar,
+                name: participantName,
                 radius: 26,
-                backgroundColor: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFEAE5DD),
-                backgroundImage: participantAvatar != null && participantAvatar.isNotEmpty
-                    ? NetworkImage(participantAvatar)
-                    : null,
-                child: participantAvatar == null || participantAvatar.isEmpty
-                    ? Text(
-                        participantName.isNotEmpty ? participantName[0].toUpperCase() : '?',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: textColor,
-                        ),
-                      )
-                    : null,
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -643,5 +660,53 @@ class _ChatCard extends ConsumerWidget {
     } else {
       return DateFormat('MMM d').format(time);
     }
+  }
+}
+
+class _UserAvatar extends StatelessWidget {
+  final String? imageUrl;
+  final String name;
+  final double radius;
+
+  const _UserAvatar({
+    required this.imageUrl,
+    required this.name,
+    this.radius = 26,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFEAE5DD);
+    final textColor = theme.colorScheme.onSurface;
+    final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?';
+
+    final imageProvider = getAvatarImageProvider(imageUrl);
+
+    return Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: bgColor,
+        image: imageProvider != null
+            ? DecorationImage(
+                image: imageProvider,
+                fit: BoxFit.cover,
+              )
+            : null,
+      ),
+      alignment: Alignment.center,
+      child: imageProvider == null
+          ? Text(
+              initial,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: textColor,
+              ),
+            )
+          : null,
+    );
   }
 }

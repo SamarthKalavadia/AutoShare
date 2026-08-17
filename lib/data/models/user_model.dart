@@ -154,12 +154,26 @@ class UserModel extends Equatable {
 
   /// Creates a model from a JSON map.
   factory UserModel.fromMap(Map<String, dynamic> map) {
+    final photo = (map['profileImage'] as String?)?.trim() ??
+        (map['photoURL'] as String?)?.trim() ??
+        (map['photoUrl'] as String?)?.trim() ??
+        (map['avatar'] as String?)?.trim() ??
+        (map['profile_image'] as String?)?.trim() ??
+        (map['profilePic'] as String?)?.trim() ??
+        (map['image'] as String?)?.trim() ??
+        '';
+
+    final userName = (map['name'] as String?)?.trim() ??
+        (map['displayName'] as String?)?.trim() ??
+        (map['fullName'] as String?)?.trim() ??
+        '';
+
     return UserModel(
       uid: map['uid'] as String? ?? '',
-      name: map['name'] as String? ?? '',
+      name: userName,
       email: map['email'] as String? ?? '',
       phone: map['phone'] as String? ?? '',
-      profileImage: map['profileImage'] as String? ?? '',
+      profileImage: photo,
       emailVerified: map['emailVerified'] as bool? ?? false,
       createdAt: _parseTimestamp(map['createdAt']),
       updatedAt: _parseTimestamp(map['updatedAt']),

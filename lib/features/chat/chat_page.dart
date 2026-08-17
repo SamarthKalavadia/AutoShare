@@ -8,6 +8,7 @@ import 'package:autoshare/features/auth/presentation/controllers/auth_controller
 import 'package:autoshare/features/chat/providers/chat_provider.dart';
 import 'package:autoshare/features/chat/widgets/message_bubble.dart';
 import 'package:autoshare/features/chat/widgets/ride_summary_banner.dart';
+import 'package:autoshare/shared/utils/avatar_utils.dart';
 import 'package:autoshare/shared/providers.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
@@ -172,39 +173,33 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         ),
         title: Row(
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFEAE5DD),
-              ),
-              clipBehavior: Clip.antiAlias,
-              alignment: Alignment.center,
-              child: participantAvatar != null && participantAvatar.trim().isNotEmpty
-                  ? Image.network(
-                      participantAvatar,
-                      fit: BoxFit.cover,
-                      width: 36,
-                      height: 36,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Text(
-                          participantName.isNotEmpty ? participantName[0].toUpperCase() : '?',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: blackColor,
-                          ),
-                        );
-                      },
-                    )
-                  : Text(
-                      participantName.isNotEmpty ? participantName[0].toUpperCase() : '?',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: blackColor,
-                      ),
-                    ),
-            ),
+            () {
+              final avatarProvider = getAvatarImageProvider(participantAvatar);
+              return Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFEAE5DD),
+                  image: avatarProvider != null
+                      ? DecorationImage(
+                          image: avatarProvider,
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                alignment: Alignment.center,
+                child: avatarProvider == null
+                    ? Text(
+                        participantName.isNotEmpty ? participantName[0].toUpperCase() : '?',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: blackColor,
+                        ),
+                      )
+                    : null,
+              );
+            }(),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
