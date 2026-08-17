@@ -16,7 +16,11 @@ class AuthService {
     GoogleSignIn? googleSignIn,
     required UserRepository userRepository,
   }) : _auth = auth ?? FirebaseAuth.instance,
-       _googleSignIn = googleSignIn ?? GoogleSignIn(),
+       _googleSignIn =
+           googleSignIn ??
+           GoogleSignIn(
+             scopes: const <String>['email', 'profile'],
+           ),
        // ignore: prefer_initializing_formals
        _userRepository = userRepository;
 
@@ -376,18 +380,22 @@ class AuthService {
   String _mapGenericErrorMessage(dynamic e) {
     final errString = e.toString().toLowerCase();
     if (errString.contains('sign_in_failed') ||
-        errString.contains('api_exception: 10')) {
-      return 'Google Sign-In failed (Developer Error 10). Ensure SHA-1 fingerprint and Google Sign-In are configured in Firebase Console.';
+        errString.contains('api_exception: 10') ||
+        errString.contains('apiexception: 10') ||
+        errString.contains('code: 10') ||
+        errString.contains('developer_error')) {
+      return 'Google Sign-In failed (Developer Error 10). Please ensure your SHA-1 fingerprint is added in Firebase Console and Google Sign-In is enabled in Authentication.';
     } else if (errString.contains('12500')) {
-      return 'Google Sign-In failed (Error 12500). Check Google Play Services and Firebase Console setup.';
+      return 'Google Sign-In failed (Error 12500). Please check Google Play Services and ensure a project support email is set in Firebase Console Settings.';
     } else if (errString.contains('canceled') ||
         errString.contains('cancelled') ||
-        errString.contains('aborted')) {
+        errString.contains('aborted') ||
+        errString.contains('sign_in_canceled')) {
       return 'Google Sign-In was cancelled.';
     } else if (errString.contains('network') ||
         errString.contains('socketexception')) {
       return 'Network error occurred during Google Sign-In. Please check your internet connection.';
     }
-    return 'An error occurred during authentication. Please try again.';
+    return 'An error occurred during authentication: $e';
   }
 }

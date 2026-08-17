@@ -150,7 +150,7 @@ class _ProfileBody extends ConsumerWidget {
             slivers: [
               // ── Header SliverAppBar ──
               SliverAppBar(
-                expandedHeight: isOwnProfile ? 220 : 260,
+                expandedHeight: isOwnProfile ? 210 : 250,
                 pinned: true,
                 backgroundColor: backgroundColor,
                 elevation: 0,
@@ -261,8 +261,9 @@ class _ProfileBody extends ConsumerWidget {
                               ? 'Verified'
                               : 'Unverified',
                           onTap: () {
-                            if (!user.emailVerified)
+                            if (!user.emailVerified) {
                               context.push('/email-verification');
+                            }
                           },
                         ),
 
@@ -668,99 +669,114 @@ class _ProfileHeader extends ConsumerWidget {
 
     return Container(
       color: theme.scaffoldBackgroundColor,
-      padding: const EdgeInsets.fromLTRB(24, 100, 24, 16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 88,
-            height: 88,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: avatarBgColor,
-            ),
-            child: user.profileImage.isNotEmpty
-                ? Image(
-                    image: getAvatarImageProvider(user.profileImage)!,
-                    fit: BoxFit.cover,
-                  )
-                : Center(
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: avatarBgColor,
+                ),
+                child: user.profileImage.isNotEmpty
+                    ? Image(
+                        image: getAvatarImageProvider(user.profileImage)!,
+                        fit: BoxFit.cover,
+                      )
+                    : Center(
+                        child: Text(
+                          user.name.isNotEmpty
+                              ? user.name[0].toUpperCase()
+                              : '?',
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: blackColor,
+                          ),
+                        ),
+                      ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
                     child: Text(
-                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                      user.name,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
                         color: blackColor,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                user.name,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: blackColor,
-                ),
+                  if (user.emailVerified) ...[
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.verified_rounded,
+                      color: successColor,
+                      size: 20,
+                    ),
+                  ],
+                ],
               ),
-              if (user.emailVerified) ...[
-                const SizedBox(width: 6),
-                const Icon(
-                  Icons.verified_rounded,
-                  color: successColor,
-                  size: 20,
+              if (user.email.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  user.email,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: mutedTextColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              if (!isOwnProfile) ...[
+                const SizedBox(height: 12),
+                // ── Verified / Gender Badge Row for Public Profile ──
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    if (user.emailVerified)
+                      _Chip(
+                        icon: Icons.verified_rounded,
+                        label: 'Verified',
+                        color: successColor,
+                        bgColor: const Color(0xFFEAF5ED),
+                      ),
+                    if (user.gender.isNotEmpty)
+                      _Chip(
+                        icon: user.gender.toLowerCase() == 'female'
+                            ? Icons.female_rounded
+                            : Icons.male_rounded,
+                        label: user.gender,
+                        color: blackColor,
+                        bgColor: chipBgColor,
+                      ),
+                    if (user.averageRating >= 4.5)
+                      _Chip(
+                        icon: Icons.star_rounded,
+                        label: user.averageRating.toStringAsFixed(1),
+                        color: const Color(0xFF7C5700),
+                        bgColor: const Color(0xFFFFF2CC),
+                      ),
+                  ],
                 ),
               ],
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            user.email,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: mutedTextColor,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          if (!isOwnProfile) ...[
-            const SizedBox(height: 16),
-            // ── Verified / Gender Badge Row for Public Profile ──
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (user.emailVerified)
-                  _Chip(
-                    icon: Icons.verified_rounded,
-                    label: 'Verified',
-                    color: successColor,
-                    bgColor: const Color(0xFFEAF5ED),
-                  ),
-                const SizedBox(width: 10),
-                if (user.gender.isNotEmpty)
-                  _Chip(
-                    icon: user.gender.toLowerCase() == 'female'
-                        ? Icons.female_rounded
-                        : Icons.male_rounded,
-                    label: user.gender,
-                    color: blackColor,
-                    bgColor: chipBgColor,
-                  ),
-                if (user.averageRating >= 4.5) ...[
-                  const SizedBox(width: 10),
-                  _Chip(
-                    icon: Icons.star_rounded,
-                    label: user.averageRating.toStringAsFixed(1),
-                    color: const Color(0xFF7C5700),
-                    bgColor: const Color(0xFFFFF2CC),
-                  ),
-                ],
-              ],
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
