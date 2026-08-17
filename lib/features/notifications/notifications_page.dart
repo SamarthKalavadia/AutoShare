@@ -8,11 +8,46 @@ import '../../data/models/notification_model.dart';
 import '../auth/presentation/controllers/auth_controller.dart';
 import 'providers/notification_provider.dart';
 
-class NotificationsPage extends ConsumerWidget {
+class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NotificationsPage> createState() => _NotificationsPageState();
+}
+
+class _NotificationsPageState extends ConsumerState<NotificationsPage> {
+  final Set<String> _selectedIds = {};
+
+  bool get _isSelectionMode => _selectedIds.isNotEmpty;
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectedIds.clear();
+    });
+  }
+
+  void _selectAll(List<NotificationModel> allNotifications) {
+    setState(() {
+      if (_selectedIds.length == allNotifications.length) {
+        _selectedIds.clear();
+      } else {
+        _selectedIds.addAll(allNotifications.map((n) => n.id));
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
     final blackColor = theme.colorScheme.onSurface;
@@ -22,14 +57,7 @@ class NotificationsPage extends ConsumerWidget {
     if (user == null) {
       return Scaffold(
         backgroundColor: backgroundColor,
-        appBar: _buildAppBar(
-          context,
-          ref,
-          false,
-          primaryColor,
-          blackColor,
-          false,
-        ),
+        appBar: _buildNormalAppBar(context, blackColor),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -65,109 +93,82 @@ class NotificationsPage extends ConsumerWidget {
     }
 
     final groupedAsync = ref.watch(groupedNotificationsProvider);
-    final isMarkingAll = ref.watch(notificationActionsProvider);
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: _buildAppBar(
-        context,
-        ref,
-        isMarkingAll,
-        primaryColor,
-        blackColor,
-        true,
-      ),
-      body: groupedAsync.when(
-        data: (grouped) {
-          if (grouped.isEmpty) return _buildEmptyState(context);
-          return _buildList(context, ref, grouped);
-        },
-        loading: () => _buildShimmer(),
-        error: (err, stack) {
-          String errorMessage =
-              "Something went wrong while loading notifications.";
-          final errStr = err.toString();
-          if (errStr.contains('permission-denied') ||
-              errStr.contains('PERMISSION_DENIED')) {
-            errorMessage =
-                "Permission denied:\nUnable to load notifications right now.";
-          } else if (errStr.contains('network') ||
-              errStr.contains('unavailable')) {
-            errorMessage = "Unable to load notifications. Please try again.";
-          }
+    return PopScope(
+      canPop: !_isSelectionMode,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        if (_isSelectionMode) {
+          _clearSelection();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: backgroundColor,
+        appBar: groupedAsync.when(
+          data: (grouped) {
+            if (_isSelectionMode) {
+              return _buildSelectionAppBar(context, ref, grouped, blackColor);
+            }
+            return _buildNormalAppBar(context, blackColor);
+          },
+          loading: () => _buildNormalAppBar(context, blackColor),
+          error: (_, __) => _buildNormalAppBar(context, blackColor),
+        ),
+        body: groupedAsync.when(
+          data: (grouped) {
+            if (grouped.isEmpty) return _buildEmptyState(context);
+            return _buildList(context, ref, grouped);
+          },
+          loading: () => _buildShimmer(),
+          error: (err, stack) {
+            String errorMessage =
+                "Something went wrong while loading notifications.";
+            final errStr = err.toString();
+            if (errStr.contains('permission-denied') ||
+                errStr.contains('PERMISSION_DENIED')) {
+              errorMessage =
+                  "Permission denied:\nUnable to load notifications right now.";
+            } else if (errStr.contains('network') ||
+                errStr.contains('unavailable')) {
+              errorMessage = "Unable to load notifications. Please try again.";
+            }
 
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline_rounded,
-                    size: 48,
-                    color: Colors.redAccent,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    errorMessage,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(color: blackColor, fontSize: 16),
-                  ),
-                ],
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      size: 48,
+                      color: Colors.redAccent,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      errorMessage,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(color: blackColor, fontSize: 16),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(
+  PreferredSizeWidget _buildNormalAppBar(
     BuildContext context,
-    WidgetRef ref,
-    bool isMarkingAll,
-    Color primaryColor,
     Color blackColor,
-    bool showActions,
   ) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final hasUnread = showActions
-        ? ref.watch(unreadNotificationCountProvider) > 0
-        : false;
-
     return AppBar(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       scrolledUnderElevation: 0,
       elevation: 0,
-      leading: IconButton(
-        icon: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF2C2C2E) : Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isDark ? const Color(0xFF38383A) : const Color(0xFFEAE5DD),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: isDark
-                    ? const Color(0x33000000)
-                    : const Color(0x0A121212),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            size: 16,
-            color: isDark ? Colors.white : const Color(0xFF121212),
-          ),
-        ),
-        onPressed: () => Navigator.of(context).pop(),
-      ),
+      automaticallyImplyLeading: false,
       title: Text(
         'Notifications',
         style: GoogleFonts.inter(
@@ -177,28 +178,200 @@ class NotificationsPage extends ConsumerWidget {
         ),
       ),
       centerTitle: true,
-      actions: showActions
-          ? [
-              TextButton(
-                onPressed: (isMarkingAll || !hasUnread)
-                    ? null
-                    : () => ref
-                          .read(notificationActionsProvider.notifier)
-                          .markAllAsRead(),
-                child: Text(
-                  'Mark all read',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: (isMarkingAll || !hasUnread)
-                        ? const Color(0xFFAAAAAA)
-                        : primaryColor,
-                  ),
-                ),
-              ),
-            ]
-          : [],
     );
+  }
+
+  PreferredSizeWidget _buildSelectionAppBar(
+    BuildContext context,
+    WidgetRef ref,
+    GroupedNotifications grouped,
+    Color blackColor,
+  ) {
+    final allNotifications = [
+      ...grouped.today,
+      ...grouped.yesterday,
+      ...grouped.older,
+    ];
+    final allSelected =
+        allNotifications.isNotEmpty &&
+        _selectedIds.length == allNotifications.length;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final menuColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final iconColor = isDark ? Colors.white70 : const Color(0xFF6F6F72);
+    final textStyle = GoogleFonts.inter(
+      fontSize: 15,
+      fontWeight: FontWeight.w500,
+      color: blackColor,
+    );
+
+    return AppBar(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      scrolledUnderElevation: 0,
+      elevation: 0,
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back, color: blackColor),
+        onPressed: _clearSelection,
+      ),
+      title: Text(
+        '${_selectedIds.length} selected',
+        style: GoogleFonts.inter(
+          fontSize: 18,
+          fontWeight: FontWeight.w500,
+          color: blackColor,
+        ),
+      ),
+      actions: [
+        IconButton(
+          icon: Icon(allSelected ? Icons.deselect : Icons.select_all, color: blackColor),
+          tooltip: allSelected ? 'Deselect all' : 'Select all',
+          onPressed: () => _selectAll(allNotifications),
+        ),
+        IconButton(
+          icon: Icon(Icons.delete_outline, color: blackColor),
+          tooltip: 'Delete',
+          onPressed: () => _confirmDelete(),
+        ),
+        PopupMenuButton<String>(
+          icon: Icon(Icons.more_vert, color: blackColor),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 4,
+          color: menuColor,
+          offset: const Offset(0, 48),
+          onSelected: (val) {
+            if (val == 'select_all') {
+              _selectAll(allNotifications);
+            } else if (val == 'mark_read') {
+              ref
+                  .read(notificationActionsProvider.notifier)
+                  .markMultipleAsRead(_selectedIds.toList());
+              _clearSelection();
+            } else if (val == 'mark_unread') {
+              ref
+                  .read(notificationActionsProvider.notifier)
+                  .markMultipleAsUnread(_selectedIds.toList());
+              _clearSelection();
+            } else if (val == 'delete') {
+              _confirmDelete();
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'select_all',
+              height: 48,
+              child: Row(
+                children: [
+                  Icon(
+                    allSelected ? Icons.deselect : Icons.select_all,
+                    color: iconColor,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    allSelected ? 'Deselect all' : 'Select all',
+                    style: textStyle,
+                  ),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'mark_read',
+              height: 48,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.mark_email_read_outlined,
+                    color: iconColor,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text('Mark as read', style: textStyle),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'mark_unread',
+              height: 48,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.mark_email_unread_outlined,
+                    color: iconColor,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text('Mark as unread', style: textStyle),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'delete',
+              height: 48,
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.delete_outline,
+                    color: Color(0xFFD32F2F),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Delete',
+                    style: textStyle.copyWith(color: const Color(0xFFD32F2F)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _confirmDelete() async {
+    final count = _selectedIds.length;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Delete notifications?',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'Delete $count selected notification${count > 1 ? 's' : ''}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white60 : const Color(0xFF6F6F72),
+              ),
+            ),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFD32F2F),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      ref
+          .read(notificationActionsProvider.notifier)
+          .deleteMultiple(_selectedIds.toList());
+      _clearSelection();
+    }
   }
 
   Widget _buildList(
@@ -211,18 +384,91 @@ class NotificationsPage extends ConsumerWidget {
       children: [
         if (grouped.today.isNotEmpty) ...[
           const _SectionHeader(label: 'TODAY'),
-          ...grouped.today.map((n) => _NotificationTile(notification: n)),
+          ...grouped.today.map(
+            (n) => _NotificationTile(
+              notification: n,
+              isSelectionMode: _isSelectionMode,
+              isSelected: _selectedIds.contains(n.id),
+              onTap: () {
+                if (_isSelectionMode) {
+                  _toggleSelection(n.id);
+                } else {
+                  _handleNormalTap(n, ref, context);
+                }
+              },
+              onLongPress: () {
+                if (!_isSelectionMode) {
+                  _toggleSelection(n.id);
+                }
+              },
+            ),
+          ),
         ],
         if (grouped.yesterday.isNotEmpty) ...[
           const _SectionHeader(label: 'YESTERDAY'),
-          ...grouped.yesterday.map((n) => _NotificationTile(notification: n)),
+          ...grouped.yesterday.map(
+            (n) => _NotificationTile(
+              notification: n,
+              isSelectionMode: _isSelectionMode,
+              isSelected: _selectedIds.contains(n.id),
+              onTap: () {
+                if (_isSelectionMode) {
+                  _toggleSelection(n.id);
+                } else {
+                  _handleNormalTap(n, ref, context);
+                }
+              },
+              onLongPress: () {
+                if (!_isSelectionMode) {
+                  _toggleSelection(n.id);
+                }
+              },
+            ),
+          ),
         ],
         if (grouped.older.isNotEmpty) ...[
           const _SectionHeader(label: 'EARLIER'),
-          ...grouped.older.map((n) => _NotificationTile(notification: n)),
+          ...grouped.older.map(
+            (n) => _NotificationTile(
+              notification: n,
+              isSelectionMode: _isSelectionMode,
+              isSelected: _selectedIds.contains(n.id),
+              onTap: () {
+                if (_isSelectionMode) {
+                  _toggleSelection(n.id);
+                } else {
+                  _handleNormalTap(n, ref, context);
+                }
+              },
+              onLongPress: () {
+                if (!_isSelectionMode) {
+                  _toggleSelection(n.id);
+                }
+              },
+            ),
+          ),
         ],
       ],
     );
+  }
+
+  void _handleNormalTap(
+    NotificationModel notification,
+    WidgetRef ref,
+    BuildContext context,
+  ) {
+    if (!notification.isRead) {
+      ref
+          .read(notificationActionsProvider.notifier)
+          .markAsRead(notification.id);
+    }
+    if (notification.type == 'new_request') {
+      context.push('/incoming-requests');
+    } else if (notification.type == 'accepted' ||
+        notification.type == 'rejected' ||
+        notification.type == 'cancelled') {
+      context.push('/my-rides');
+    }
   }
 
   Widget _buildEmptyState(BuildContext context) {
@@ -299,7 +545,18 @@ class _SectionHeader extends StatelessWidget {
 
 class _NotificationTile extends ConsumerWidget {
   final NotificationModel notification;
-  const _NotificationTile({required this.notification});
+  final bool isSelectionMode;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  const _NotificationTile({
+    required this.notification,
+    required this.isSelectionMode,
+    required this.isSelected,
+    required this.onTap,
+    required this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -311,9 +568,14 @@ class _NotificationTile extends ConsumerWidget {
     final iconColor = _iconColorForType(notification.type, isDark);
     final icon = _iconForType(notification.type);
 
-    final bgColor = isUnread
-        ? (isDark ? const Color(0xFF2A2820) : const Color(0xFFFFFDF5))
-        : Colors.transparent;
+    final unreadBg = isDark ? const Color(0xFF2A2820) : const Color(0xFFFFFDF5);
+    final selectedBg = isDark
+        ? const Color(0xFF332D19)
+        : const Color(0xFFFFFBE6);
+
+    final bgColor = isSelected
+        ? selectedBg
+        : (isUnread ? unreadBg : Colors.transparent);
 
     final borderColor = isDark
         ? const Color(0xFF2A2A2A)
@@ -324,7 +586,9 @@ class _NotificationTile extends ConsumerWidget {
 
     return Dismissible(
       key: ValueKey(notification.id),
-      direction: DismissDirection.endToStart,
+      direction: isSelectionMode
+          ? DismissDirection.none
+          : DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
@@ -338,99 +602,102 @@ class _NotificationTile extends ConsumerWidget {
       onDismissed: (_) {
         ref.read(notificationActionsProvider.notifier).delete(notification.id);
       },
-      child: InkWell(
-        onTap: () {
-          if (isUnread) {
-            ref
-                .read(notificationActionsProvider.notifier)
-                .markAsRead(notification.id);
-          }
-          if (notification.type == 'new_request') {
-            context.push('/incoming-requests');
-          } else if (notification.type == 'accepted' ||
-              notification.type == 'rejected' ||
-              notification.type == 'cancelled') {
-            context.push('/my-rides');
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: bgColor,
-            border: Border(bottom: BorderSide(color: borderColor, width: 1)),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 20, color: iconColor),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            notification.title,
-                            style: GoogleFonts.inter(
-                              fontSize: 15,
-                              fontWeight: isUnread
-                                  ? FontWeight.w700
-                                  : FontWeight.w600,
-                              color: titleColor,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _formatTime(notification.createdAt),
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: const Color(0xFFA1A1A1),
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      notification.body,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: bodyColor,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isUnread) ...[
-                const SizedBox(width: 12),
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF6C000),
-                      shape: BoxShape.circle,
+      child: Material(
+        color: bgColor,
+        child: InkWell(
+          onTap: onTap,
+          onLongPress: onLongPress,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: borderColor, width: 1)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isSelectionMode)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 14, top: 10),
+                    child: Icon(
+                      isSelected
+                          ? Icons.check_circle
+                          : Icons.radio_button_unchecked,
+                      color: isSelected
+                          ? const Color(0xFFFFC400)
+                          : (isDark ? Colors.white30 : Colors.black26),
+                      size: 20,
                     ),
                   ),
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: iconBg,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 20, color: iconColor),
                 ),
-              ] else ...[
-                const SizedBox(width: 20),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              notification.title,
+                              style: GoogleFonts.inter(
+                                fontSize: 15,
+                                fontWeight: isUnread
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                                color: titleColor,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _formatTime(notification.createdAt),
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: const Color(0xFFA1A1A1),
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        notification.body,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: bodyColor,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isUnread && !isSelected) ...[
+                  const SizedBox(width: 12),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF6C000),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  const SizedBox(width: 20),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

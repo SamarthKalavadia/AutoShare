@@ -108,4 +108,73 @@ class NotificationRepository {
       return Failure('An unexpected error occurred.', Exception(e.toString()));
     }
   }
+
+  /// Marks multiple notifications as read.
+  Future<Result<void>> markMultipleAsRead(
+    String userId,
+    List<String> notificationIds,
+  ) async {
+    if (notificationIds.isEmpty) return const Success(null);
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+      for (final id in notificationIds) {
+        batch.update(_notifCollection.doc(id), {'isRead': true});
+      }
+      await batch.commit();
+      return const Success(null);
+    } on FirebaseException catch (e) {
+      return Failure(
+        e.message ?? 'Failed to mark as read.',
+        FirestoreException(e.code),
+      );
+    } catch (e) {
+      return Failure('An unexpected error occurred.', Exception(e.toString()));
+    }
+  }
+
+  /// Marks multiple notifications as unread.
+  Future<Result<void>> markMultipleAsUnread(
+    String userId,
+    List<String> notificationIds,
+  ) async {
+    if (notificationIds.isEmpty) return const Success(null);
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+      for (final id in notificationIds) {
+        batch.update(_notifCollection.doc(id), {'isRead': false});
+      }
+      await batch.commit();
+      return const Success(null);
+    } on FirebaseException catch (e) {
+      return Failure(
+        e.message ?? 'Failed to mark as unread.',
+        FirestoreException(e.code),
+      );
+    } catch (e) {
+      return Failure('An unexpected error occurred.', Exception(e.toString()));
+    }
+  }
+
+  /// Permanently deletes multiple notifications.
+  Future<Result<void>> deleteMultiple(
+    String userId,
+    List<String> notificationIds,
+  ) async {
+    if (notificationIds.isEmpty) return const Success(null);
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+      for (final id in notificationIds) {
+        batch.delete(_notifCollection.doc(id));
+      }
+      await batch.commit();
+      return const Success(null);
+    } on FirebaseException catch (e) {
+      return Failure(
+        e.message ?? 'Failed to delete notifications.',
+        FirestoreException(e.code),
+      );
+    } catch (e) {
+      return Failure('An unexpected error occurred.', Exception(e.toString()));
+    }
+  }
 }

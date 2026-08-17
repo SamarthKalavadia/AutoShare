@@ -97,6 +97,24 @@ class NotificationActionsNotifier extends Notifier<bool> {
   Future<void> delete(String notificationId) async {
     await _repo.deleteNotification(_userId, notificationId);
   }
+
+  Future<void> markMultipleAsRead(List<String> notificationIds) async {
+    state = true;
+    await _repo.markMultipleAsRead(_userId, notificationIds);
+    state = false;
+  }
+
+  Future<void> markMultipleAsUnread(List<String> notificationIds) async {
+    state = true;
+    await _repo.markMultipleAsUnread(_userId, notificationIds);
+    state = false;
+  }
+
+  Future<void> deleteMultiple(List<String> notificationIds) async {
+    state = true;
+    await _repo.deleteMultiple(_userId, notificationIds);
+    state = false;
+  }
 }
 
 final notificationActionsProvider =
