@@ -559,10 +559,6 @@ class LocationService {
             final best = results.first as Map<String, dynamic>;
             final placeId = best['place_id'] as String? ?? '';
             final formatted = best['formatted_address'] as String? ?? '';
-            final location =
-                (best['geometry'] as Map<String, dynamic>?)?['location']
-                    as Map<String, dynamic>? ??
-                {};
             final components =
                 best['address_components'] as List<dynamic>? ?? [];
             final primaryText = components.isNotEmpty

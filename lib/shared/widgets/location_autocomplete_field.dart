@@ -384,13 +384,19 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
         prefixIconConstraints: const BoxConstraints(minWidth: 48),
         suffixIcon: _isLoading || _isFetchingLocation
             ? Padding(
-                padding: const EdgeInsets.only(right: 10, top: 14, bottom: 14),
+                padding: const EdgeInsets.only(right: 10),
                 child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: widget.iconColor,
+                  width: 48,
+                  height: 48,
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Color(0xFFF6C000),
+                      ),
+                    ),
                   ),
                 ),
               )
