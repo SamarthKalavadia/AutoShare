@@ -5,22 +5,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:autoshare/core/utils/result.dart';
 import 'package:autoshare/data/models/chat_model.dart';
 import 'package:autoshare/data/models/ride_model.dart';
+import 'package:autoshare/data/models/user_model.dart';
 import 'package:autoshare/shared/providers.dart';
 import 'package:autoshare/features/auth/presentation/controllers/auth_controller.dart';
 
 // ── Chat Room Init ────────────────────────────────────────────────────────────
 
-final chatRoomInitProvider = FutureProvider.autoDispose
-    .family<void, ({String rideId, List<String> participants})>((
-      ref,
-      args,
-    ) async {
-      final repo = ref.watch(chatRepositoryProvider);
-      await repo.ensureChatRoom(
-        rideId: args.rideId,
-        participants: args.participants,
-      );
-    });
+final chatRoomInitProvider = FutureProvider.family<void, ({String rideId, String participantIds})>(
+  (ref, args) async {
+    final participants = args.participantIds.split(',').where((id) => id.isNotEmpty).toList();
+    await ref.read(chatRepositoryProvider).ensureChatRoom(
+      rideId: args.rideId,
+      participants: participants,
+    );
+  },
+);
 
 // ── Messages Stream ───────────────────────────────────────────────────────────
 
@@ -33,6 +32,44 @@ final chatMessagesProvider = StreamProvider.autoDispose
 
 final chatRoomProvider = StreamProvider.autoDispose.family<ChatRoom?, String>(
   (ref, rideId) => ref.watch(chatRepositoryProvider).streamChatRoom(rideId),
+);
+
+// ── Chat User ─────────────────────────────────────────────────────────────────
+
+final chatUserProvider = FutureProvider.autoDispose.family<UserModel?, String>((ref, uid) async {
+  if (uid.isEmpty) return null;
+  final result = await ref.watch(userRepositoryProvider).getUser(uid);
+  if (result is Success<UserModel>) {
+    return result.data;
+  }
+  return null;
+});
+
+// ── Multi-selection Chat List Actions ───────────────────────────────────────
+
+class ChatsListActionsNotifier extends Notifier<void> {
+  @override
+  void build() {}
+
+  Future<void> deleteMultiple(List<String> rideIds) async {
+    await ref.read(chatRepositoryProvider).deleteChatRooms(rideIds);
+  }
+
+  Future<void> markMultipleAsRead(List<String> rideIds) async {
+    final uid = ref.read(authControllerProvider).value?.uid;
+    if (uid == null) return;
+    await ref.read(chatRepositoryProvider).markChatsAsRead(rideIds, uid);
+  }
+
+  Future<void> markMultipleAsUnread(List<String> rideIds) async {
+    final uid = ref.read(authControllerProvider).value?.uid;
+    if (uid == null) return;
+    await ref.read(chatRepositoryProvider).markChatsAsUnread(rideIds, uid);
+  }
+}
+
+final chatsListActionsProvider = NotifierProvider<ChatsListActionsNotifier, void>(
+  ChatsListActionsNotifier.new,
 );
 
 // ── Chat Input State ─────────────────────────────────────────────────────────
@@ -99,8 +136,15 @@ class ChatNotifier extends Notifier<ChatInputState> {
     );
 
     final result = await ref.read(chatRepositoryProvider).sendMessage(message);
-    state = state.copyWith(isSending: false);
-    return result is Success;
+    
+    if (result is Success) {
+      state = state.copyWith(isSending: false);
+      return true;
+    } else {
+      // Restore text if failed
+      state = state.copyWith(isSending: false, text: text);
+      return false;
+    }
   }
 
   Future<void> deleteMessage(String messageId) async {

@@ -80,11 +80,12 @@ class ChatRepository {
       // Write message doc
       batch.set(docRef, withId.toMap());
 
-      // Update chat room last-message metadata
-      batch.update(_fs.chatsCollection.doc(message.rideId), {
+      // Update chat room last-message metadata using set with merge
+      // so it doesn't fail if the chat room document doesn't exist yet.
+      batch.set(_fs.chatsCollection.doc(message.rideId), {
         'lastMessageAt': Timestamp.fromDate(message.sentAt),
         'lastMessageText': message.text,
-      });
+      }, SetOptions(merge: true));
 
       await batch.commit();
 
@@ -144,6 +145,68 @@ class ChatRepository {
   ) async {
     try {
       await _messagesRef(rideId).doc(messageId).update({'readBy.$uid': true});
+    } catch (_) {}
+  }
+
+  Future<void> deleteChatRooms(List<String> rideIds) async {
+    for (final rideId in rideIds) {
+      try {
+        final batch = FirebaseFirestore.instance.batch();
+        
+        // 1. Delete all messages in the subcollection
+        final msgsSnap = await _messagesRef(rideId).get();
+        for (final doc in msgsSnap.docs) {
+          batch.delete(doc.reference);
+        }
+        
+        // 2. Delete the chat room document itself
+        batch.delete(_fs.chatsCollection.doc(rideId));
+        
+        await batch.commit();
+      } catch (e) {
+        // Rethrow so the UI can catch it and display the error
+        throw FirestoreException('Failed to delete chat $rideId: $e');
+      }
+    }
+  }
+
+  Future<void> markChatsAsRead(List<String> rideIds, String uid) async {
+    final batch = FirebaseFirestore.instance.batch();
+    for (final rideId in rideIds) {
+      final snap = await _messagesRef(rideId).get();
+      for (final doc in snap.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        if (data['senderId'] != uid) {
+          final readBy = data['readBy'] as Map<String, dynamic>? ?? {};
+          if (readBy[uid] != true) {
+            batch.update(doc.reference, {'readBy.$uid': true});
+          }
+        }
+      }
+    }
+    try {
+      await batch.commit();
+    } catch (_) {}
+  }
+
+  Future<void> markChatsAsUnread(List<String> rideIds, String uid) async {
+    final batch = FirebaseFirestore.instance.batch();
+    for (final rideId in rideIds) {
+      final snap = await _messagesRef(rideId)
+          .orderBy('sentAt', descending: true)
+          .limit(10)
+          .get();
+      
+      for (final doc in snap.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        if (data['senderId'] != uid) {
+          batch.update(doc.reference, {'readBy.$uid': false});
+          break;
+        }
+      }
+    }
+    try {
+      await batch.commit();
     } catch (_) {}
   }
 

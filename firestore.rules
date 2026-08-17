@@ -109,11 +109,11 @@ service cloud.firestore {
 
     match /chats/{chatId} {
       allow read, write: if isAuthenticated();
-    }
-
-    // ─── Messages ─────────────────────────────────────────────────────────────
-    match /messages/{messageId} {
-      allow read, write: if isAuthenticated();
+      
+      // Messages are a subcollection under the chat document.
+      match /messages/{messageId} {
+        allow read, write: if isAuthenticated();
+      }
     }
 
     // ─── Ratings ──────────────────────────────────────────────────────────────

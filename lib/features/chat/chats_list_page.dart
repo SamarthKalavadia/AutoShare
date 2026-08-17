@@ -3,180 +3,579 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:intl/intl.dart';
 import '../my_rides/providers/my_rides_provider.dart';
 import '../chat/providers/chat_provider.dart';
+import '../../features/auth/presentation/controllers/auth_controller.dart';
 
-class ChatsListPage extends ConsumerWidget {
+class ChatsListPage extends ConsumerStatefulWidget {
   const ChatsListPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ChatsListPage> createState() => _ChatsListPageState();
+}
+
+class _ChatsListPageState extends ConsumerState<ChatsListPage> {
+  final Set<String> _selectedIds = {};
+
+  bool get _isSelectionMode => _selectedIds.isNotEmpty;
+
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectedIds.clear();
+    });
+  }
+
+  void _selectAll(List<String> allIds) {
+    setState(() {
+      if (_selectedIds.length == allIds.length) {
+        _selectedIds.clear();
+      } else {
+        _selectedIds.addAll(allIds);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final ridesState = ref.watch(myRidesProvider);
 
     final theme = Theme.of(context);
     final backgroundColor = theme.scaffoldBackgroundColor;
     final textColor = theme.colorScheme.onSurface;
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
+    return PopScope(
+      canPop: !_isSelectionMode,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        if (_isSelectionMode) {
+          _clearSelection();
+        }
+      },
+      child: Scaffold(
         backgroundColor: backgroundColor,
-        elevation: 0,
-        title: Text(
-          'Chats',
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: textColor,
-            fontWeight: FontWeight.w700,
-          ),
+        appBar: ridesState.when(
+          data: (rides) {
+            final activeChats = rides.where((r) {
+              final status = r.displayStatus;
+              return status == 'active' ||
+                  status == 'joined' ||
+                  status == 'completed';
+            }).toList();
+
+            if (_isSelectionMode) {
+              final allIds = activeChats.map((r) => r.ride.id).toList();
+              return _buildSelectionAppBar(context, ref, allIds, textColor);
+            }
+            return _buildNormalAppBar(context, textColor);
+          },
+          loading: () => _buildNormalAppBar(context, textColor),
+          error: (_, __) => _buildNormalAppBar(context, textColor),
         ),
-      ),
-      body: ridesState.when(
-        data: (rides) {
-          final activeChats = rides.where((r) {
-            final status = r.displayStatus;
-            return status == 'active' ||
-                status == 'joined' ||
-                status == 'completed';
-          }).toList();
+        body: ridesState.when(
+          data: (rides) {
+            final activeRides = rides.where((r) {
+              final status = r.displayStatus;
+              return status == 'active' ||
+                  status == 'joined' ||
+                  status == 'completed';
+            }).toList();
 
-          if (activeChats.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.chat_bubble_outline,
-                    size: 64,
-                    color: theme.brightness == Brightness.dark
-                        ? Colors.white24
-                        : Colors.grey,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No active chats yet',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+            final activeChats = <MyRideData>[];
+            for (final r in activeRides) {
+              final chatRoomAsync = ref.watch(chatRoomProvider(r.ride.id));
+              if (chatRoomAsync is AsyncData && chatRoomAsync.value != null) {
+                activeChats.add(r);
+              }
+            }
+
+            if (activeChats.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.chat_bubble_outline,
+                      size: 64,
+                      color: theme.brightness == Brightness.dark
+                          ? Colors.white24
+                          : Colors.grey,
                     ),
-                  ),
-                ],
-              ),
-            );
-          }
+                    const SizedBox(height: 16),
+                    Text(
+                      'No active chats yet',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
 
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: activeChats.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final rideData = activeChats[index];
-              return _ChatCard(data: rideData);
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error loading chats: $err')),
+            return ListView.separated(
+              padding: const EdgeInsets.only(bottom: 24),
+              itemCount: activeChats.length,
+              separatorBuilder: (context, index) => Divider(
+                height: 1, 
+                thickness: 1, 
+                color: theme.brightness == Brightness.dark
+                    ? const Color(0xFF2A2A2A)
+                    : const Color(0xFFF3F3F3),
+              ),
+              itemBuilder: (context, index) {
+                final rideData = activeChats[index];
+                final rideId = rideData.ride.id;
+                return _ChatCard(
+                  data: rideData,
+                  isSelectionMode: _isSelectionMode,
+                  isSelected: _selectedIds.contains(rideId),
+                  onTap: () {
+                    if (_isSelectionMode) {
+                      _toggleSelection(rideId);
+                    } else {
+                      _handleNormalTap(rideData);
+                    }
+                  },
+                  onLongPress: () {
+                    if (!_isSelectionMode) {
+                      _toggleSelection(rideId);
+                    }
+                  },
+                );
+              },
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => Center(child: Text('Error loading chats: $err')),
+        ),
       ),
     );
   }
-}
 
-class _ChatCard extends StatelessWidget {
-  final MyRideData data;
+  void _handleNormalTap(MyRideData data) {
+    final currentUid = ref.read(authControllerProvider).value?.uid ?? '';
+    final rideId = data.ride.id;
+    final chatRoom = ref.read(chatRoomProvider(rideId)).value;
+    
+    String otherUid = '';
+    if (chatRoom != null && chatRoom.participants.length > 1) {
+      otherUid = chatRoom.participants.firstWhere((p) => p != currentUid, orElse: () => '');
+    } else {
+      otherUid = data.role == 'driver' 
+          ? (data.request?.requesterUid ?? '') 
+          : data.ride.driverId;
+    }
 
-  const _ChatCard({required this.data});
+    // We pass an empty name here, ChatPage will fetch the real one.
+    context.push(
+      '/chat',
+      extra: ChatPageArgs(
+        ride: data.ride,
+        otherParticipantUid: otherUid,
+        otherParticipantName: '',
+      ),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cardBg =
-        theme.cardTheme.color ??
-        (isDark ? const Color(0xFF1E1E1E) : Colors.white);
-    final borderColor = isDark
-        ? const Color(0xFF333333)
-        : const Color(0xFFEAE5DD);
-    final textColor = theme.colorScheme.onSurface;
-    final subtextColor = isDark ? Colors.white60 : Colors.grey[600];
-
-    final isDriver = data.role == 'driver';
-    // Ideally we should know the exact participant, but for now we link to the ride chat
-    // If driver, we don't know the exact passenger here unless we query the requests.
-    // For simplicity, we just pass the ride owner id.
-    final participantUid = isDriver
-        ? data.ride.driverId
-        : (data.request?.requesterUid ?? '');
-    final participantName = isDriver ? data.ride.driverName : 'Driver';
-
-    return InkWell(
-      onTap: () {
-        context.push(
-          '/chat',
-          extra: ChatPageArgs(
-            ride: data.ride,
-            otherParticipantUid: participantUid,
-            otherParticipantName: participantName,
-          ),
-        );
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(16),
-          border: isDark ? Border.all(color: borderColor, width: 1.1) : null,
-          boxShadow: isDark
-              ? []
-              : const [
-                  BoxShadow(
-                    color: Color(0x05000000),
-                    blurRadius: 8,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
-              child: Icon(
-                Icons.person,
-                color: isDark ? Colors.white : const Color(0xFF121212),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${data.ride.boardingLocation} → ${data.ride.destination}',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: textColor,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    isDriver
-                        ? 'Your Ride'
-                        : 'Ride with ${data.ride.driverName}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: subtextColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right,
-              color: isDark ? Colors.white54 : Colors.grey,
-            ),
-          ],
+  PreferredSizeWidget _buildNormalAppBar(
+    BuildContext context,
+    Color textColor,
+  ) {
+    return AppBar(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      scrolledUnderElevation: 0,
+      elevation: 0,
+      title: Text(
+        'Chats',
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+          color: textColor,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
+  }
+
+  PreferredSizeWidget _buildSelectionAppBar(
+    BuildContext context,
+    WidgetRef ref,
+    List<String> allIds,
+    Color blackColor,
+  ) {
+    final allSelected = allIds.isNotEmpty && _selectedIds.length == allIds.length;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final menuColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final iconColor = isDark ? Colors.white70 : const Color(0xFF6F6F72);
+    final textStyle = GoogleFonts.inter(
+      fontSize: 15,
+      fontWeight: FontWeight.w500,
+      color: blackColor,
+    );
+
+    return AppBar(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      scrolledUnderElevation: 0,
+      elevation: 0,
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back, color: blackColor),
+        onPressed: _clearSelection,
+      ),
+      title: Text(
+        '${_selectedIds.length} selected',
+        style: GoogleFonts.inter(
+          fontSize: 18,
+          fontWeight: FontWeight.w500,
+          color: blackColor,
+        ),
+      ),
+      actions: [
+        IconButton(
+          icon: Icon(allSelected ? Icons.deselect : Icons.select_all, color: blackColor),
+          tooltip: allSelected ? 'Deselect all' : 'Select all',
+          onPressed: () => _selectAll(allIds),
+        ),
+        IconButton(
+          icon: Icon(Icons.delete_outline, color: blackColor),
+          tooltip: 'Delete',
+          onPressed: () => _confirmDelete(),
+        ),
+        PopupMenuButton<String>(
+          icon: Icon(Icons.more_vert, color: blackColor),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 4,
+          color: menuColor,
+          offset: const Offset(0, 48),
+          onSelected: (val) {
+            if (val == 'select_all') {
+              _selectAll(allIds);
+            } else if (val == 'mark_read') {
+              ref.read(chatsListActionsProvider.notifier).markMultipleAsRead(_selectedIds.toList());
+              _clearSelection();
+            } else if (val == 'mark_unread') {
+              ref.read(chatsListActionsProvider.notifier).markMultipleAsUnread(_selectedIds.toList());
+              _clearSelection();
+            } else if (val == 'delete') {
+              _confirmDelete();
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'select_all',
+              height: 48,
+              child: Row(
+                children: [
+                  Icon(
+                    allSelected ? Icons.deselect : Icons.select_all,
+                    color: iconColor,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    allSelected ? 'Deselect all' : 'Select all',
+                    style: textStyle,
+                  ),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'mark_read',
+              height: 48,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.mark_email_read_outlined,
+                    color: iconColor,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text('Mark as read', style: textStyle),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'mark_unread',
+              height: 48,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.mark_email_unread_outlined,
+                    color: iconColor,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text('Mark as unread', style: textStyle),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'delete',
+              height: 48,
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.delete_outline,
+                    color: Color(0xFFD32F2F),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Delete',
+                    style: textStyle.copyWith(color: const Color(0xFFD32F2F)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _confirmDelete() async {
+    final count = _selectedIds.length;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Delete conversations?',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'Delete $count selected conversation${count > 1 ? 's' : ''}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white60 : const Color(0xFF6F6F72),
+              ),
+            ),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFD32F2F),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      try {
+        await ref.read(chatsListActionsProvider.notifier).deleteMultiple(_selectedIds.toList());
+        _clearSelection();
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Couldn't delete conversation. Please try again.")),
+          );
+        }
+      }
+    }
+  }
+}
+
+class _ChatCard extends ConsumerWidget {
+  final MyRideData data;
+  final bool isSelectionMode;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  const _ChatCard({
+    required this.data,
+    required this.isSelectionMode,
+    required this.isSelected,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final currentUid = ref.watch(authControllerProvider).value?.uid ?? '';
+    final rideId = data.ride.id;
+    
+    final chatRoomAsync = ref.watch(chatRoomProvider(rideId));
+    final chatRoom = chatRoomAsync.value;
+    
+    String otherUid = '';
+    if (chatRoom != null && chatRoom.participants.length > 1) {
+      otherUid = chatRoom.participants.firstWhere((p) => p != currentUid, orElse: () => '');
+    } else {
+      otherUid = data.role == 'driver' 
+          ? (data.request?.requesterUid ?? '') 
+          : data.ride.driverId;
+    }
+
+    final otherUserAsync = ref.watch(chatUserProvider(otherUid));
+    
+    final participantName = otherUserAsync.when(
+      data: (user) {
+        if (user != null && user.name.isNotEmpty) return user.name;
+        return 'Unknown User';
+      },
+      loading: () => 'Loading...',
+      error: (_, __) => 'Unknown User',
+    );
+    final participantAvatar = otherUserAsync.value?.profileImage;
+
+    final messagesAsync = ref.watch(chatMessagesProvider(rideId));
+    final unreadCount = messagesAsync.value?.where((m) => m.senderId != currentUid && !m.isReadBy(currentUid)).length ?? 0;
+
+    final lastMessageText = chatRoom?.lastMessageText ?? '';
+    final lastMessageAt = chatRoom?.lastMessageAt;
+
+    final selectedBg = isDark ? const Color(0xFF332D19) : const Color(0xFFFFFBE6);
+    final cardBg = isSelected ? selectedBg : Colors.transparent;
+
+    final primaryColor = theme.colorScheme.primary;
+    final textColor = theme.colorScheme.onSurface;
+    final subtextColor = isDark ? Colors.white60 : Colors.grey[600];
+
+    return Material(
+      color: cardBg,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              if (isSelectionMode)
+                Padding(
+                  padding: const EdgeInsets.only(right: 14),
+                  child: Icon(
+                    isSelected
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: isSelected
+                        ? const Color(0xFFFFC400)
+                        : (isDark ? Colors.white30 : Colors.black26),
+                    size: 20,
+                  ),
+                ),
+              CircleAvatar(
+                radius: 26,
+                backgroundColor: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFEAE5DD),
+                backgroundImage: participantAvatar != null && participantAvatar.isNotEmpty
+                    ? NetworkImage(participantAvatar)
+                    : null,
+                child: participantAvatar == null || participantAvatar.isEmpty
+                    ? Text(
+                        participantName.isNotEmpty ? participantName[0].toUpperCase() : '?',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: textColor,
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            participantName,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: unreadCount > 0 ? FontWeight.w700 : FontWeight.w600,
+                              color: textColor,
+                              fontSize: 16,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (lastMessageAt != null)
+                          Text(
+                            _formatTime(lastMessageAt),
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: unreadCount > 0 ? primaryColor : subtextColor,
+                              fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.w400,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            lastMessageText.isNotEmpty 
+                                ? lastMessageText 
+                                : '${data.ride.boardingLocation} → ${data.ride.destination}',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: unreadCount > 0 ? textColor : subtextColor,
+                              fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.w400,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (unreadCount > 0 && !isSelected)
+                          Container(
+                            margin: const EdgeInsets.only(left: 8),
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: primaryColor,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              unreadCount.toString(),
+                              style: const TextStyle(
+                                color: Color(0xFF121212),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatTime(DateTime time) {
+    final now = DateTime.now();
+    if (time.year == now.year && time.month == now.month && time.day == now.day) {
+      return DateFormat('h:mm a').format(time);
+    } else if (time.year == now.year && time.month == now.month && time.day == now.day - 1) {
+      return 'Yesterday';
+    } else {
+      return DateFormat('MMM d').format(time);
+    }
   }
 }
