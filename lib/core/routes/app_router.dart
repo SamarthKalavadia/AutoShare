@@ -92,7 +92,8 @@ class AppRouter {
         path: '/ride-details',
         builder: (context, state) {
           final ride = state.extra as RideModel;
-          return RideDetailsPage(ride: ride);
+          final isFromChat = state.uri.queryParameters['fromChat'] == 'true';
+          return RideDetailsPage(ride: ride, isFromChat: isFromChat);
         },
       ),
       GoRoute(

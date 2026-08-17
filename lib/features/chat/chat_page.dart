@@ -24,6 +24,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
+  bool _showScrollBtn = false;
 
   late final String _rideId;
 
@@ -56,6 +57,15 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         });
       }
     });
+
+    _scrollController.addListener(() {
+      if (!_scrollController.hasClients) return;
+      final position = _scrollController.position;
+      final show = position.maxScrollExtent - position.pixels > 150;
+      if (show != _showScrollBtn) {
+        setState(() => _showScrollBtn = show);
+      }
+    });
   }
 
   @override
@@ -66,10 +76,17 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     super.dispose();
   }
 
-  void _scrollToBottom({bool animated = true}) {
+  void _scrollToBottom({bool animated = true, bool force = false}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
-        final max = _scrollController.position.maxScrollExtent;
+        final position = _scrollController.position;
+        
+        // If user is scrolled up significantly, don't auto-scroll unless forced
+        if (!force && position.maxScrollExtent - position.pixels > 150) {
+          return;
+        }
+
+        final max = position.maxScrollExtent;
         if (animated) {
           _scrollController.animateTo(
             max,
@@ -102,7 +119,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final sent = await ref.read(chatProvider.notifier).sendMessage();
     
     if (sent) {
-      _scrollToBottom();
+      _scrollToBottom(force: true);
     } else {
       if (mounted) {
         _controller.text = text;
@@ -170,17 +187,30 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back_rounded, color: blackColor, size: 24),
           onPressed: () => Navigator.pop(context),
+          padding: const EdgeInsets.only(left: 8),
         ),
         title: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             () {
               final avatarProvider = getAvatarImageProvider(participantAvatar);
               return Container(
-                width: 36,
-                height: 36,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFEAE5DD),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF333333) : Colors.white,
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(isDark ? 30 : 15),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                   image: avatarProvider != null
                       ? DecorationImage(
                           image: avatarProvider,
@@ -201,32 +231,46 @@ class _ChatPageState extends ConsumerState<ChatPage> {
               );
             }(),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  participantName,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: blackColor,
-                    fontSize: 16,
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    participantName,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: blackColor,
+                      fontSize: 16,
+                      letterSpacing: -0.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                Text(
-                  typingUids.isNotEmpty ? 'typing...' : 'Ride participant',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: typingUids.isNotEmpty ? primaryColor : mutedText,
-                    fontStyle: typingUids.isNotEmpty ? FontStyle.italic : FontStyle.normal,
-                    fontWeight: typingUids.isNotEmpty ? FontWeight.w600 : FontWeight.w400,
+                  const SizedBox(height: 1),
+                  Text(
+                    typingUids.isNotEmpty ? 'typing...' : 'Ride partner',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: typingUids.isNotEmpty ? primaryColor : (isDark ? Colors.white54 : const Color(0xFF8E8E93)),
+                      fontStyle: typingUids.isNotEmpty ? FontStyle.italic : FontStyle.normal,
+                      fontWeight: typingUids.isNotEmpty ? FontWeight.w600 : FontWeight.w500,
+                      fontSize: 11,
+                      letterSpacing: 0.1,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: isDark ? Colors.white10 : borderColor),
+          child: Container(
+            height: 1, 
+            color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFEFEFEF),
+          ),
         ),
       ),
       body: Column(
@@ -243,13 +287,38 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        () {
+                          final avatarProvider = getAvatarImageProvider(participantAvatar);
+                          return Container(
+                            width: 80,
+                            height: 80,
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFEAE5DD),
+                              image: avatarProvider != null
+                                  ? DecorationImage(image: avatarProvider, fit: BoxFit.cover)
+                                  : null,
+                            ),
+                            alignment: Alignment.center,
+                            child: avatarProvider == null
+                                ? Text(
+                                    participantName.isNotEmpty ? participantName[0].toUpperCase() : '?',
+                                    style: theme.textTheme.headlineMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: blackColor,
+                                    ),
+                                  )
+                                : null,
+                          );
+                        }(),
                         Text(
-                          'No messages yet',
+                          'Start a conversation with $participantName',
                           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         Text(
-                          'Start the conversation with $participantName.',
+                          'Send a message about your ride.',
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyMedium?.copyWith(color: mutedText),
                         ),
@@ -324,6 +393,43 @@ class _ChatPageState extends ConsumerState<ChatPage> {
             ),
           ),
           if (typingUids.isNotEmpty) const _TypingIndicator(),
+          if (_showScrollBtn)
+            GestureDetector(
+              onTap: () => _scrollToBottom(force: true),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF2C2C2E) : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(isDark ? 50 : 20),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'New message',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : primaryColor,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.arrow_downward_rounded,
+                      size: 14,
+                      color: isDark ? Colors.white : primaryColor,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           _ChatInputBar(
             controller: _controller,
             focusNode: _focusNode,
@@ -363,10 +469,10 @@ class _DateSeparator extends StatelessWidget {
     }
     
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       child: Row(
         children: [
-          Expanded(child: Divider(color: dividerColor)),
+          Expanded(child: Divider(color: dividerColor, thickness: 0.5)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
@@ -375,10 +481,11 @@ class _DateSeparator extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 color: mutedText,
                 letterSpacing: 0.5,
+                fontSize: 10,
               ),
             ),
           ),
-          Expanded(child: Divider(color: dividerColor)),
+          Expanded(child: Divider(color: dividerColor, thickness: 0.5)),
         ],
       ),
     );
@@ -484,86 +591,97 @@ class _ChatInputBar extends StatelessWidget {
 
     final primaryColor = theme.colorScheme.primary;
     final blackColor = theme.colorScheme.onSurface;
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
-    final backgroundColor = theme.scaffoldBackgroundColor;
-    
+    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE5E5EA);
+    final inputBg = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final shadowColor = isDark ? Colors.transparent : Colors.black.withAlpha(8);
+
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
         final hasText = controller.text.trim().isNotEmpty;
         
-        return Container(
-          color: backgroundColor,
+        return Padding(
           padding: EdgeInsets.only(
             left: 16,
             right: 16,
-            top: 12,
+            top: 8,
             bottom: MediaQuery.of(context).viewInsets.bottom > 0 ? 12 : 24,
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: borderColor,
-                      width: 1.0,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: shadowColor,
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: controller,
+              focusNode: focusNode,
+              onChanged: onChanged,
+              maxLines: 5,
+              minLines: 1,
+              textCapitalization: TextCapitalization.sentences,
+              style: theme.textTheme.bodyLarge?.copyWith(color: blackColor, fontSize: 16),
+              decoration: InputDecoration(
+                hintText: 'Type a message...',
+                hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                  color: isDark ? Colors.white38 : const Color(0xFF9E9E9E),
+                  fontSize: 16,
+                ),
+                filled: true,
+                fillColor: inputBg,
+                contentPadding: const EdgeInsets.only(left: 20, right: 12, top: 14, bottom: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(28),
+                  borderSide: BorderSide(color: borderColor, width: 1.0),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(28),
+                  borderSide: BorderSide(color: borderColor, width: 1.0),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(28),
+                  borderSide: BorderSide(color: primaryColor, width: 1.0),
+                ),
+                suffixIcon: Padding(
+                  padding: const EdgeInsets.only(right: 6, bottom: 6, top: 6),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: hasText || isSending 
+                          ? primaryColor 
+                          : (isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7)),
+                      shape: BoxShape.circle,
                     ),
-                  ),
-                  child: TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    onChanged: onChanged,
-                    maxLines: 5,
-                    minLines: 1,
-                    textCapitalization: TextCapitalization.sentences,
-                    style: theme.textTheme.bodyLarge?.copyWith(color: blackColor),
-                    decoration: InputDecoration(
-                      hintText: 'Type a message...',
-                      hintStyle: theme.textTheme.bodyLarge?.copyWith(
-                        color: isDark ? Colors.white38 : const Color(0xFFAAAAAA),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                      border: InputBorder.none,
-                    ),
+                    child: isSending
+                        ? const Padding(
+                            padding: EdgeInsets.all(10),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Color(0xFF121212),
+                            ),
+                          )
+                        : IconButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: hasText && !isSending ? onSend : null,
+                            icon: Icon(
+                              Icons.send_rounded,
+                              color: hasText || isSending 
+                                  ? const Color(0xFF121212) 
+                                  : (isDark ? Colors.white38 : const Color(0xFF9E9E9E)),
+                              size: 20,
+                            ),
+                          ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              AnimatedOpacity(
-                opacity: hasText || isSending ? 1.0 : 0.5,
-                duration: const Duration(milliseconds: 200),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 48,
-                  height: 48,
-                  margin: const EdgeInsets.only(bottom: 2), // Align visually with input
-                  decoration: BoxDecoration(
-                    color: primaryColor,
-                    shape: BoxShape.circle,
-                  ),
-                  child: isSending
-                      ? Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: const Color(0xFF121212),
-                          ),
-                        )
-                      : IconButton(
-                          onPressed: hasText && !isSending ? onSend : null,
-                          icon: const Icon(
-                            Icons.send_rounded,
-                            color: Color(0xFF121212),
-                            size: 22,
-                          ),
-                        ),
-                ),
-              ),
-            ],
+            ),
           ),
         );
       }

@@ -18,8 +18,13 @@ import 'widgets/security_info_card.dart';
 
 class RideDetailsPage extends ConsumerStatefulWidget {
   final RideModel ride;
+  final bool isFromChat;
 
-  const RideDetailsPage({super.key, required this.ride});
+  const RideDetailsPage({
+    super.key, 
+    required this.ride,
+    this.isFromChat = false,
+  });
 
   @override
   ConsumerState<RideDetailsPage> createState() => _RideDetailsPageState();
@@ -219,11 +224,11 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
                                     );
                                   }
 
-                                  return _PrivacyNoticeCard();
-                                },
-                                loading: () => _PrivacyNoticeCard(),
-                                error: (err, stack) => _PrivacyNoticeCard(),
-                              );
+                                      return widget.isFromChat ? const SizedBox.shrink() : _PrivacyNoticeCard();
+                                    },
+                                    loading: () => widget.isFromChat ? const SizedBox.shrink() : _PrivacyNoticeCard(),
+                                    error: (err, stack) => widget.isFromChat ? const SizedBox.shrink() : _PrivacyNoticeCard(),
+                                  );
                             },
                           ),
                         ],
@@ -237,14 +242,16 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
         ),
 
         // Sticky bottom button
-        bottomSheet: _buildBottomButton(
-          context: context,
-          canRequest: canRequest,
-          disabledReason: disabledReason,
-          existingReq: existingReq,
-          isLoading: state.isLoading,
-          backgroundColor: backgroundColor,
-        ),
+        bottomSheet: widget.isFromChat 
+            ? null 
+            : _buildBottomButton(
+                context: context,
+                canRequest: canRequest,
+                disabledReason: disabledReason,
+                existingReq: existingReq,
+                isLoading: state.isLoading,
+                backgroundColor: backgroundColor,
+              ),
       ),
     );
   }
@@ -253,51 +260,14 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
 
   Widget _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final backgroundColor = theme.scaffoldBackgroundColor;
-    final iconBg = isDark ? const Color(0xFF28282A) : Colors.white;
-    final borderColor = isDark
-        ? const Color(0xFF333333)
-        : const Color(0xFFEAE5DD);
-    final iconColor = theme.colorScheme.onSurface;
 
     return SliverAppBar(
       backgroundColor: backgroundColor,
       scrolledUnderElevation: 0,
       pinned: true,
       elevation: 0,
-      leading: IconButton(
-        icon: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: iconBg,
-            shape: BoxShape.circle,
-            border: Border.all(color: borderColor),
-            boxShadow: isDark
-                ? []
-                : const [
-                    BoxShadow(
-                      color: Color(0x0A121212),
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-          ),
-          child: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            size: 16,
-            color: iconColor,
-          ),
-        ),
-        onPressed: () {
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/home');
-          }
-        },
-      ),
+      automaticallyImplyLeading: false,
       title: Text(
         'Ride Details',
         style: theme.textTheme.titleMedium?.copyWith(
@@ -305,34 +275,6 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
         ),
       ),
       centerTitle: true,
-      actions: [
-        IconButton(
-          icon: Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: iconBg,
-              shape: BoxShape.circle,
-              border: Border.all(color: borderColor),
-              boxShadow: isDark
-                  ? []
-                  : const [
-                      BoxShadow(
-                        color: Color(0x0A121212),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-            ),
-            child: Icon(Icons.share_rounded, size: 18, color: iconColor),
-          ),
-          onPressed: () {
-            // Share functionality can be wired to share_plus package later.
-            HapticFeedback.selectionClick();
-          },
-        ),
-        const SizedBox(width: 8),
-      ],
     );
   }
 

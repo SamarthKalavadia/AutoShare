@@ -86,24 +86,24 @@ class MessageBubble extends ConsumerWidget {
           alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
           child: Container(
             constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.75,
+              maxWidth: MediaQuery.of(context).size.width * 0.78,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               color: isMe ? bubbleBgMy : bubbleBgOther,
               borderRadius: BorderRadius.only(
                 topLeft: const Radius.circular(20),
                 topRight: const Radius.circular(20),
-                bottomLeft: isMe ? const Radius.circular(20) : const Radius.circular(4),
-                bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(20),
+                bottomLeft: Radius.circular(isMe || isGrouped ? 20 : 4),
+                bottomRight: Radius.circular(!isMe || isGrouped ? 20 : 4),
               ),
-              boxShadow: isDark || isMe
+              boxShadow: isDark
                   ? []
                   : [
                       BoxShadow(
-                        color: const Color(0xFF121212).withAlpha(10),
+                        color: Colors.black.withAlpha(isMe ? 12 : 6),
                         blurRadius: 4,
-                        offset: const Offset(0, 2),
+                        offset: const Offset(0, 1),
                       ),
                     ],
             ),
@@ -112,14 +112,15 @@ class MessageBubble extends ConsumerWidget {
               children: [
                 if (!isMe && showSenderName)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.only(bottom: 2),
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
                         message.senderName,
                         style: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w600,
                           color: isDark ? primaryColor : const Color(0xFFDB9900),
+                          fontSize: 11,
                         ),
                       ),
                     ),
@@ -131,11 +132,11 @@ class MessageBubble extends ConsumerWidget {
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: isMe ? const Color(0xFF121212) : blackColor,
                       fontSize: 15,
-                      height: 1.3,
+                      height: 1.35,
                     ),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -143,7 +144,7 @@ class MessageBubble extends ConsumerWidget {
                       DateFormat('h:mm a').format(message.sentAt),
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontSize: 10,
-                        color: isMe ? const Color(0xFF121212).withAlpha(150) : mutedText,
+                        color: isMe ? const Color(0xFF121212).withAlpha(140) : mutedText,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -154,7 +155,7 @@ class MessageBubble extends ConsumerWidget {
                         size: 14,
                         color: isRead
                             ? Colors.blue.shade700
-                            : const Color(0xFF121212).withAlpha(150),
+                            : const Color(0xFF121212).withAlpha(140),
                       ),
                     ],
                   ],

@@ -115,15 +115,9 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
             }
 
             return ListView.separated(
-              padding: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16).copyWith(bottom: 24),
               itemCount: chatRooms.length,
-              separatorBuilder: (context, index) => Divider(
-                height: 1,
-                thickness: 1,
-                color: theme.brightness == Brightness.dark
-                    ? const Color(0xFF2A2A2A)
-                    : const Color(0xFFF3F3F3),
-              ),
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final room = chatRooms[index];
                 final chatId = room.chatId;
@@ -168,15 +162,9 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
             }
 
             return ListView.separated(
-              padding: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16).copyWith(bottom: 24),
               itemCount: activeRides.length,
-              separatorBuilder: (context, index) => Divider(
-                height: 1,
-                thickness: 1,
-                color: theme.brightness == Brightness.dark
-                    ? const Color(0xFF2A2A2A)
-                    : const Color(0xFFF3F3F3),
-              ),
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final r = activeRides[index];
                 final otherUid = r.role == 'driver'
@@ -187,7 +175,7 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
                     chatId: r.ride.id,
                     rideId: r.ride.id,
                     participants: [otherUid],
-                    lastMessageText: '${r.ride.boardingLocation} → ${r.ride.destination}',
+                    lastMessageText: '',
                     lastMessageAt: r.ride.departureTime,
                   ),
                   isSelectionMode: false,
@@ -259,13 +247,19 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       scrolledUnderElevation: 0,
       elevation: 0,
-      title: Text(
-        'Chats',
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-          color: textColor,
-          fontWeight: FontWeight.w700,
+      toolbarHeight: 70,
+      title: Padding(
+        padding: const EdgeInsets.only(top: 8.0, left: 8.0),
+        child: Text(
+          'Chats',
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            color: textColor,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+          ),
         ),
       ),
+      centerTitle: false,
     );
   }
 
@@ -530,26 +524,54 @@ class _ChatCard extends ConsumerWidget {
             .length ??
         0;
 
-    final lastMessageText = chatRoom.lastMessageText;
+    final messagesList = messagesAsync.value ?? [];
+    String realLastMessageText = chatRoom.lastMessageText;
+    
+    if (messagesList.isNotEmpty) {
+      final latestMsg = messagesList.reduce((a, b) => a.sentAt.isAfter(b.sentAt) ? a : b);
+      realLastMessageText = latestMsg.text;
+    }
+
     final lastMessageAt = chatRoom.lastMessageAt;
 
     final isTyping = chatRoom.typing.entries.any((e) => e.key == otherUid && e.value);
 
     final selectedBg = isDark ? const Color(0xFF332D19) : const Color(0xFFFFFBE6);
-    final cardBg = isSelected ? selectedBg : Colors.transparent;
+    final cardBg = isSelected 
+        ? selectedBg 
+        : (isDark ? const Color(0xFF1E1E1E) : Colors.white);
 
     final primaryColor = theme.colorScheme.primary;
     final textColor = theme.colorScheme.onSurface;
-    final subtextColor = isDark ? Colors.white60 : Colors.grey[600];
+    final subtextColor = isDark ? Colors.white60 : const Color(0xFF6F6F72);
 
     return Material(
-      color: cardBg,
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
+        borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelectionMode && isSelected 
+                  ? primaryColor 
+                  : (isDark ? const Color(0xFF2C2C2E) : const Color(0xFFEFEFEF)),
+              width: isSelectionMode && isSelected ? 1.5 : 1.0,
+            ),
+            boxShadow: isDark ? [] : [
+              BoxShadow(
+                color: Colors.black.withAlpha(8),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               if (isSelectionMode)
                 Padding(
@@ -567,7 +589,7 @@ class _ChatCard extends ConsumerWidget {
               _UserAvatar(
                 imageUrl: participantAvatar,
                 name: participantName,
-                radius: 26,
+                radius: 27,
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -589,57 +611,42 @@ class _ChatCard extends ConsumerWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (lastMessageAt != null)
-                          Text(
-                            _formatTime(lastMessageAt),
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: unreadCount > 0 ? primaryColor : subtextColor,
-                              fontWeight: unreadCount > 0 ? FontWeight.w600 : FontWeight.w400,
-                            ),
+                        if (unreadCount > 0 && !isSelected)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.circle, size: 8, color: primaryColor),
+                              const SizedBox(width: 4),
+                              Text(
+                                unreadCount.toString(),
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            isTyping
-                                ? 'typing...'
-                                : (lastMessageText.isNotEmpty
-                                    ? lastMessageText
-                                    : 'Tap to chat'),
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: isTyping
-                                  ? primaryColor
-                                  : (unreadCount > 0 ? textColor : subtextColor),
-                              fontWeight: (isTyping || unreadCount > 0)
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
-                              fontStyle: isTyping ? FontStyle.italic : FontStyle.normal,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (unreadCount > 0 && !isSelected)
-                          Container(
-                            margin: const EdgeInsets.only(left: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: primaryColor,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              unreadCount.toString(),
-                              style: const TextStyle(
-                                color: Color(0xFF121212),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                      ],
+                    Text(
+                      isTyping
+                          ? 'typing...'
+                          : (realLastMessageText.isNotEmpty
+                              ? realLastMessageText
+                              : 'Start a conversation'),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isTyping
+                            ? primaryColor
+                            : (unreadCount > 0 ? textColor : subtextColor),
+                        fontWeight: (isTyping || unreadCount > 0)
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        fontStyle: isTyping ? FontStyle.italic : FontStyle.normal,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
