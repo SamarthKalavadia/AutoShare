@@ -189,10 +189,18 @@ class _SplashPageState extends ConsumerState<SplashPage>
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(24),
                       child: Image.asset(
-                        'assets/appicon.png',
+                        'assets/images/logo.png',
                         width: 100,
                         height: 100,
                         fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Image.asset(
+                            'assets/appicon.png',
+                            width: 100,
+                            height: 100,
+                            fit: BoxFit.cover,
+                          );
+                        },
                       ),
                     ),
                   ),

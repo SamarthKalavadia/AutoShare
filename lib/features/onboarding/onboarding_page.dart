@@ -81,7 +81,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const AppLogo(size: 26),
+                  const AppLogo(size: 32),
                   if (_currentIndex < _items.length - 1)
                     TextButton(
                       onPressed: _finishOnboarding,

@@ -73,6 +73,14 @@ class HomeTab extends ConsumerWidget {
                 width: 44,
                 height: 44,
                 fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Image.asset(
+                    'assets/appicon.png',
+                    width: 44,
+                    height: 44,
+                    fit: BoxFit.cover,
+                  );
+                },
               ),
             ),
             const SizedBox(width: 12),

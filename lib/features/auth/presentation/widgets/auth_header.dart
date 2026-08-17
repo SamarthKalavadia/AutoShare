@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../shared/widgets/app_logo.dart';
 
 /// Reusable Header for Auth screens with title, subtitle, and optional logo.
 class AuthHeader extends StatelessWidget {
@@ -21,28 +22,7 @@ class AuthHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (showLogo) ...[
-          Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  'assets/appicon.png',
-                  width: 32,
-                  height: 32,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'AutoShare',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
+          const AppLogo(size: 32),
           const SizedBox(height: 16),
         ],
         Text(

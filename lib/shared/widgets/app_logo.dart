@@ -6,6 +6,7 @@ class AppLogo extends StatelessWidget {
   final bool showText;
   final TextStyle? textStyle;
   final Color? iconColor;
+  final Color? textColor;
 
   const AppLogo({
     super.key,
@@ -13,28 +14,38 @@ class AppLogo extends StatelessWidget {
     this.showText = true,
     this.textStyle,
     this.iconColor,
+    this.textColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final primaryColor = iconColor ?? theme.colorScheme.primary;
+    final primaryColor = iconColor ?? const Color(0xFFF6C000);
+    final brandTextColor = textColor ?? primaryColor;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(size * 0.22),
+          borderRadius: BorderRadius.circular(size * 0.24),
           child: Image.asset(
-            'assets/appicon.png',
+            'assets/images/logo.png',
             width: size,
             height: size,
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
-              return Icon(
-                Icons.directions_car_rounded,
-                size: size,
-                color: primaryColor,
+              return Image.asset(
+                'assets/appicon.png',
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    Icons.directions_car_rounded,
+                    size: size,
+                    color: primaryColor,
+                  );
+                },
               );
             },
           ),
@@ -43,13 +54,12 @@ class AppLogo extends StatelessWidget {
           SizedBox(width: size * 0.3),
           Text(
             'AutoShare',
-            style:
-                textStyle ??
+            style: textStyle ??
                 GoogleFonts.inter(
                   fontSize: size * 0.65,
-                  fontWeight: FontWeight.w800,
-                  color: primaryColor,
-                  letterSpacing: -0.3,
+                  fontWeight: FontWeight.w600,
+                  color: brandTextColor,
+                  letterSpacing: -0.2,
                 ),
           ),
         ],
