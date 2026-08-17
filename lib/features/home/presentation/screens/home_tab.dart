@@ -162,36 +162,42 @@ class HomeTab extends ConsumerWidget {
               ],
             ),
           ),
-          GestureDetector(
-            onTap: () => context.push('/profile'),
-            child: Container(
-              width: 40,
-              height: 40,
-              margin: const EdgeInsets.only(right: 18),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF202020)
-                    : const Color(0xFFF7F4EE),
-                shape: BoxShape.circle,
-                border: Border.all(color: borderColor),
+          Padding(
+            padding: const EdgeInsets.only(right: 20.0),
+            child: Center(
+              child: GestureDetector(
+                onTap: () => context.push('/profile'),
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF202020)
+                        : const Color(0xFFF7F4EE),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: borderColor, width: 1.0),
+                  ),
+                  child: ClipOval(
+                    child: getAvatarImageProvider(user?.profileImage) != null
+                        ? Image(
+                            image: getAvatarImageProvider(user!.profileImage)!,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                          )
+                        : Center(
+                            child: Text(
+                              user?.name.isNotEmpty == true
+                                  ? user!.name[0].toUpperCase()
+                                  : '?',
+                              style: GoogleFonts.inter(
+                                color: textPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
               ),
-              clipBehavior: Clip.antiAlias,
-              child: getAvatarImageProvider(user?.profileImage) != null
-                  ? Image(
-                      image: getAvatarImageProvider(user!.profileImage)!,
-                      fit: BoxFit.cover,
-                    )
-                  : Center(
-                      child: Text(
-                        user?.name.isNotEmpty == true
-                            ? user!.name[0].toUpperCase()
-                            : '?',
-                        style: GoogleFonts.inter(
-                          color: textPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
             ),
           ),
         ],
