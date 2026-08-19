@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'notification_service.dart';
@@ -16,10 +17,12 @@ class AuthService {
     FirebaseAuth? auth,
     GoogleSignIn? googleSignIn,
     required UserRepository userRepository,
+    String? serverClientId,
   }) : _auth = auth ?? FirebaseAuth.instance,
        _googleSignIn =
            googleSignIn ??
            GoogleSignIn(
+             serverClientId: serverClientId,
              scopes: const <String>['email', 'profile'],
            ),
        // ignore: prefer_initializing_formals
@@ -238,6 +241,11 @@ class AuthService {
       NotificationService().startListening(user.uid);
 
       return Success(userModel);
+    } on PlatformException catch (e) {
+      debugPrint(
+        'AuthService.googleLogin PlatformException: code=${e.code}, message=${e.message}, details=${e.details}',
+      );
+      return Failure(_mapGenericErrorMessage(e), AuthException(e.code));
     } on FirebaseAuthException catch (e) {
       debugPrint(
         'AuthService.googleLogin FirebaseAuthException: ${e.code} - ${e.message}',
@@ -246,8 +254,9 @@ class AuthService {
         _mapAuthErrorCode(e.code, defaultMessage: e.message),
         AuthException(e.code),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('AuthService.googleLogin Unknown Error: $e');
+      debugPrint('Stack trace: $stackTrace');
       return Failure(_mapGenericErrorMessage(e), Exception(e.toString()));
     }
   }
@@ -387,13 +396,39 @@ class AuthService {
 
   /// Maps generic exception objects to user-friendly error messages.
   String _mapGenericErrorMessage(dynamic e) {
+    if (e is PlatformException) {
+      final details = e.details?.toString().toLowerCase() ?? '';
+      final message = e.message?.toString().toLowerCase() ?? '';
+      final code = e.code.toLowerCase();
+
+      if (code == 'sign_in_canceled' ||
+          message.contains('canceled') ||
+          message.contains('cancelled') ||
+          message.contains('aborted')) {
+        return 'Google Sign-In was cancelled.';
+      }
+      if (details.contains('10') ||
+          message.contains('10') ||
+          code.contains('10') ||
+          details.contains('developer_error')) {
+        return 'Google Sign-In failed (Developer Error 10).\n\nAction Required:\n1. Ensure your debug SHA-1 fingerprint is added in Firebase Console.\n2. Re-download google-services.json from Firebase and replace android/app/google-services.json.\n3. Make sure Project Support Email is selected in Firebase Project Settings.';
+      }
+      if (details.contains('12500') || message.contains('12500')) {
+        return 'Google Sign-In failed (Error 12500). Please ensure a Project Support Email is selected in Firebase Console Settings and Google Play Services is active.';
+      }
+      if (message.contains('network') || details.contains('network')) {
+        return 'Network error occurred during Google Sign-In. Please check your internet connection.';
+      }
+      return 'Google Sign-In error (${e.code}): ${e.message ?? 'Unknown platform error'}';
+    }
+
     final errString = e.toString().toLowerCase();
     if (errString.contains('sign_in_failed') ||
         errString.contains('api_exception: 10') ||
         errString.contains('apiexception: 10') ||
         errString.contains('code: 10') ||
         errString.contains('developer_error')) {
-      return 'Google Sign-In failed (Developer Error 10). Please ensure your SHA-1 fingerprint is added in Firebase Console and Google Sign-In is enabled in Authentication.';
+      return 'Google Sign-In failed (Developer Error 10).\n\nAction Required:\n1. Ensure your debug SHA-1 fingerprint is added in Firebase Console.\n2. Re-download google-services.json from Firebase and replace android/app/google-services.json.\n3. Make sure Project Support Email is selected in Firebase Project Settings.';
     } else if (errString.contains('12500')) {
       return 'Google Sign-In failed (Error 12500). Please check Google Play Services and ensure a project support email is set in Firebase Console Settings.';
     } else if (errString.contains('canceled') ||
