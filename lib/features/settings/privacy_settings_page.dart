@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../auth/presentation/controllers/auth_controller.dart';
+import 'privacy_policy_page.dart';
 
 class PrivacySettingsPage extends ConsumerWidget {
   const PrivacySettingsPage({super.key});
@@ -180,7 +181,7 @@ class PrivacySettingsPage extends ConsumerWidget {
               ),
             ),
             trailing: Icon(Icons.chevron_right, color: mutedText),
-            onTap: () => context.push('/privacy-policy'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage())),
           ),
           const Divider(),
           ListTile(

@@ -65,7 +65,7 @@ class LanguageSettingsPage extends ConsumerWidget {
                     InkWell(
                       onTap: () {
                         // Persist the selected language using the existing settings provider
-                        settingsNotifier.updateLanguage(lang['name']!);
+                        settingsNotifier.setLanguage(lang['name']!);
                         
                         // NOTE: Proper localization architecture (e.g. flutter_localizations)
                         // should be implemented to reload the app language strings. 

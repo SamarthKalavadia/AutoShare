@@ -1,27 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-
 class HelpSupportPage extends StatelessWidget {
   const HelpSupportPage({super.key});
-
-  static const _supportEmail = 'support@autoshare.com';
-
-  Future<void> _launchEmail() async {
-    final Uri emailLaunchUri = Uri(
-      scheme: 'mailto',
-      path: _supportEmail,
-      queryParameters: {
-        'subject': 'AutoShare Support Request',
-      },
-    );
-    try {
-      if (await canLaunchUrl(emailLaunchUri)) {
-        await launchUrl(emailLaunchUri);
-      }
-    } catch (e) {
-      debugPrint('Could not launch email: $e');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,10 +50,6 @@ class HelpSupportPage extends StatelessWidget {
         'q': 'How do I change my profile information?',
         'a': 'Go to the Profile tab and tap "Edit Profile". Here you can update your name, gender, bio, and profile picture.'
       },
-      {
-        'q': 'What should I do if I face a problem?',
-        'a': 'If you experience an issue with a ride or user, you can use the Report feature on their profile. For technical issues or general assistance, please use the Contact Support button below.'
-      },
     ];
 
     return Scaffold(
@@ -93,15 +68,6 @@ class HelpSupportPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'How can we help?',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: textColor,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  
                   // FAQs
                   Container(
                     decoration: BoxDecoration(
@@ -157,42 +123,7 @@ class HelpSupportPage extends StatelessWidget {
                     ),
                   ),
                   
-                  const SizedBox(height: 32),
-                  
-                  // Support Section
-                  Text(
-                    'CONTACT SUPPORT',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: mutedText,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: _launchEmail,
-                      icon: const Icon(Icons.email_outlined),
-                      label: const Text('Email Support'),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: Text(
-                      _supportEmail,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: mutedText,
-                      ),
-                    ),
-                  ),
+
                   const SizedBox(height: 40),
                 ],
               ),

@@ -9,6 +9,12 @@ import 'providers/profile_stats_provider.dart';
 import 'edit_profile_page.dart';
 import '../settings/providers/settings_provider.dart';
 import '../settings/security_settings_page.dart';
+import '../settings/privacy_settings_page.dart';
+import '../settings/language_settings_page.dart';
+import '../settings/about_page.dart';
+import '../settings/help_support_page.dart';
+import '../settings/terms_conditions_page.dart';
+import '../settings/privacy_policy_page.dart';
 import '../../data/models/user_model.dart';
 import '../../data/models/rating_model.dart';
 import '../../data/repositories/rating_repository.dart';
@@ -287,14 +293,24 @@ class _ProfileBody extends ConsumerWidget {
                           context,
                           icon: Icons.privacy_tip_outlined,
                           title: 'Privacy',
-                          onTap: () {},
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const PrivacySettingsPage(),
+                            ),
+                          ),
                         ),
                         _buildProfileTile(
                           context,
                           icon: Icons.language,
                           title: 'Language',
                           trailingText: settings.language,
-                          onTap: () {},
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const LanguageSettingsPage(),
+                            ),
+                          ),
                         ),
 
                         const SizedBox(height: 32),
@@ -303,25 +319,45 @@ class _ProfileBody extends ConsumerWidget {
                           context,
                           icon: Icons.info_outline,
                           title: 'About AutoShare',
-                          onTap: () {},
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AboutPage(),
+                            ),
+                          ),
                         ),
                         _buildProfileTile(
                           context,
                           icon: Icons.help_outline,
                           title: 'Help & Support',
-                          onTap: () {},
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const HelpSupportPage(),
+                            ),
+                          ),
                         ),
                         _buildProfileTile(
                           context,
                           icon: Icons.description_outlined,
                           title: 'Terms & Conditions',
-                          onTap: () {},
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const TermsConditionsPage(),
+                            ),
+                          ),
                         ),
                         _buildProfileTile(
                           context,
                           icon: Icons.gavel_outlined,
                           title: 'Privacy Policy',
-                          onTap: () {},
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const PrivacyPolicyPage(),
+                            ),
+                          ),
                         ),
 
                         const SizedBox(height: 40),
