@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../core/services/notification_service.dart';
 import '../../core/utils/result.dart';
 import '../../core/services/firestore_service.dart';
 import '../models/notification_model.dart';
@@ -33,12 +34,22 @@ class NotificationRepository {
         .handleError((error) => <NotificationModel>[]);
   }
 
-  /// Creates a new notification document.
+  /// Creates a new notification document and dispatches push notification.
   Future<Result<void>> createNotification(
     NotificationModel notification,
   ) async {
     try {
       await _notifCollection.add(notification.toMap());
+
+      // Trigger push notification to recipient's devices
+      NotificationService().sendPushNotification(
+        recipientUid: notification.userId,
+        title: notification.title,
+        body: notification.body,
+        type: notification.type,
+        relatedId: notification.relatedId,
+      );
+
       return const Success(null);
     } on FirebaseException catch (e) {
       return Failure(

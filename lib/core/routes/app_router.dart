@@ -91,7 +91,9 @@ class AppRouter {
       GoRoute(
         path: '/ride-details',
         builder: (context, state) {
-          final ride = state.extra as RideModel;
+          final ride = state.extra is RideModel
+              ? state.extra as RideModel
+              : RideModel.empty();
           final isFromChat = state.uri.queryParameters['fromChat'] == 'true';
           return RideDetailsPage(ride: ride, isFromChat: isFromChat);
         },
@@ -103,7 +105,7 @@ class AppRouter {
       GoRoute(
         path: '/public-profile',
         builder: (context, state) {
-          final userId = state.extra as String;
+          final userId = state.extra as String? ?? '';
           return PublicProfilePage(userId: userId);
         },
       ),
@@ -130,8 +132,43 @@ class AppRouter {
       GoRoute(
         path: '/chat',
         builder: (context, state) {
-          final args = state.extra as ChatPageArgs;
-          return ChatPage(args: args);
+          if (state.extra is ChatPageArgs) {
+            return ChatPage(args: state.extra as ChatPageArgs);
+          } else if (state.extra is RideModel) {
+            final ride = state.extra as RideModel;
+            return ChatPage(
+              args: ChatPageArgs(
+                ride: ride,
+                otherParticipantUid: '',
+                otherParticipantName: '',
+              ),
+            );
+          } else if (state.extra is String) {
+            final rideId = state.extra as String;
+            final placeholderRide = RideModel.empty().copyWith(
+              id: rideId,
+              boardingLocation: 'Ride Chat',
+            );
+            return ChatPage(
+              args: ChatPageArgs(
+                ride: placeholderRide,
+                otherParticipantUid: '',
+                otherParticipantName: '',
+              ),
+            );
+          }
+          final rideId = state.uri.queryParameters['rideId'] ?? '';
+          final placeholderRide = RideModel.empty().copyWith(
+            id: rideId,
+            boardingLocation: 'Ride Chat',
+          );
+          return ChatPage(
+            args: ChatPageArgs(
+              ride: placeholderRide,
+              otherParticipantUid: '',
+              otherParticipantName: '',
+            ),
+          );
         },
       ),
     ],

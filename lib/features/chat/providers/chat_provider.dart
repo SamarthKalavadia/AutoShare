@@ -153,9 +153,23 @@ class ChatNotifier extends Notifier<ChatInputState> {
         final chatRoom = ref.read(chatRoomProvider(_rideId!)).value;
         if (chatRoom != null && chatRoom.participants.isNotEmpty) {
           targetReceiverUid = chatRoom.participants.firstWhere(
-            (p) => p != currentUid,
+            (p) => p != currentUid && p.isNotEmpty,
             orElse: () => '',
           );
+        }
+      }
+
+      if (targetReceiverUid.isEmpty) {
+        final msgs = ref.read(chatMessagesProvider(_rideId!)).value ?? [];
+        for (final m in msgs) {
+          if (m.senderId.isNotEmpty && m.senderId != currentUid) {
+            targetReceiverUid = m.senderId;
+            break;
+          }
+          if (m.receiverUid.isNotEmpty && m.receiverUid != currentUid) {
+            targetReceiverUid = m.receiverUid;
+            break;
+          }
         }
       }
       

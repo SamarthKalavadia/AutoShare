@@ -208,8 +208,8 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
 
   void _handleNormalTap(ChatRoom room) {
     final currentUid = ref.read(authControllerProvider).value?.uid ?? '';
-    final otherUid = room.participants.firstWhere(
-      (p) => p != currentUid,
+    var otherUid = room.participants.firstWhere(
+      (p) => p.isNotEmpty && p != currentUid,
       orElse: () => '',
     );
 
@@ -217,10 +217,30 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
     final myRides = ref.read(myRidesProvider).value ?? [];
     final matchingRide = myRides.where((r) => r.ride.id == room.rideId).firstOrNull;
 
+    if (otherUid.isEmpty && matchingRide != null) {
+      otherUid = matchingRide.role == 'driver'
+          ? (matchingRide.request?.requesterUid ?? '')
+          : matchingRide.ride.driverId;
+    }
+
+    if (otherUid.isEmpty) {
+      final msgs = ref.read(chatMessagesProvider(room.rideId)).value ?? [];
+      for (final m in msgs) {
+        if (m.senderId.isNotEmpty && m.senderId != currentUid) {
+          otherUid = m.senderId;
+          break;
+        }
+        if (m.receiverUid.isNotEmpty && m.receiverUid != currentUid) {
+          otherUid = m.receiverUid;
+          break;
+        }
+      }
+    }
+
     final ride = matchingRide?.ride ??
         RideModel(
           id: room.rideId,
-          driverId: otherUid,
+          driverId: otherUid.isNotEmpty ? otherUid : currentUid,
           boardingLocation: 'Shared Route',
           destination: 'Destination',
           farePerSeat: 0,
@@ -626,6 +646,14 @@ class _ChatCard extends ConsumerWidget {
                                 ),
                               ),
                             ],
+                          )
+                        else if (lastMessageAt != null && !isSelected)
+                          Text(
+                            _formatTime(lastMessageAt),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: subtextColor,
+                              fontSize: 12,
+                            ),
                           ),
                       ],
                     ),

@@ -140,17 +140,55 @@ class ChatRepository {
 
       debugPrint('[CHAT SEND] Message sent successfully: ${rootDocRef.id}');
 
-      // 4. Fire-and-forget push notification
+      // 4. Resolve all recipients (all participants in the conversation except sender)
+      final recipients = <String>{};
       if (message.receiverUid.isNotEmpty && message.receiverUid != message.senderId) {
+        recipients.add(message.receiverUid);
+      }
+
+      try {
+        final chatDoc = await _fs.chatsCollection.doc(message.rideId).get();
+        if (chatDoc.exists) {
+          final data = chatDoc.data() as Map<String, dynamic>?;
+          final participants = List<String>.from(data?['participants'] ?? []);
+          for (final p in participants) {
+            if (p.isNotEmpty && p != message.senderId) {
+              recipients.add(p);
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('[CHAT PARTICIPANTS LOOKUP ERROR]: $e');
+      }
+
+      // If still empty, check the ride document
+      if (recipients.isEmpty) {
+        try {
+          final rideDoc = await _fs.ridesCollection.doc(message.rideId).get();
+          if (rideDoc.exists) {
+            final data = rideDoc.data() as Map<String, dynamic>?;
+            final driverId = data?['driverId'] as String? ?? '';
+            if (driverId.isNotEmpty && driverId != message.senderId) {
+              recipients.add(driverId);
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 5. Fire-and-forget push notification to each recipient
+      final notifTitle = message.senderName.isNotEmpty ? message.senderName : 'New Message';
+      final notifBody = message.text.length > 80
+          ? '${message.text.substring(0, 80)}...'
+          : message.text;
+
+      for (final recipientUid in recipients) {
         unawaited(
           _notificationRepo.createNotification(
             NotificationModel(
               id: '',
-              userId: message.receiverUid,
-              title: message.senderName.isNotEmpty ? message.senderName : 'New Message',
-              body: message.text.length > 60
-                  ? '${message.text.substring(0, 60)}...'
-                  : message.text,
+              userId: recipientUid,
+              title: notifTitle,
+              body: notifBody,
               type: 'chat',
               isRead: false,
               createdAt: DateTime.now(),

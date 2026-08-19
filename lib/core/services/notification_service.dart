@@ -1,48 +1,102 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../data/models/ride_model.dart';
+import '../routes/app_router.dart';
+import '../../features/chat/providers/chat_provider.dart';
+
+const String kDefaultChannelId = 'autoshare_notifications';
+const String kDefaultChannelName = 'AutoShare Notifications';
+const String kChatChannelId = 'chat_messages';
+const String kChatChannelName = 'Chat Messages';
+const String kReminderChannelId = 'ride_reminders';
+const String kReminderChannelName = 'Ride Reminders';
+
 /// Top-level background message handler required by Firebase Cloud Messaging.
-/// Runs in an isolated background thread when the app is in the background or killed/closed.
+/// Runs in an isolated background Dart VM thread when the app is in the background or killed/closed.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
     await Firebase.initializeApp();
   } catch (_) {}
+
   debugPrint('[FCM BACKGROUND] Push notification received: ${message.messageId}');
 
   final notification = message.notification;
   final data = message.data;
   final title = notification?.title ?? data['title'] ?? 'AutoShare';
   final body = notification?.body ?? data['body'] ?? '';
+  final type = data['type'] as String? ?? 'general';
+  final relatedId = data['relatedId'] as String? ?? data['rideId'] as String? ?? '';
 
   if (body.isNotEmpty || title.isNotEmpty) {
-    const androidDetails = AndroidNotificationDetails(
-      'autoshare_notifications',
-      'AutoShare Notifications',
-      channelDescription: 'Real-time notifications for rides, chats, and requests',
-      importance: Importance.max,
-      priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
-      playSound: true,
-      enableVibration: true,
-    );
-    const details = NotificationDetails(android: androidDetails);
-    final plugin = FlutterLocalNotificationsPlugin();
-    await plugin.show(
-      id: message.messageId?.hashCode ?? DateTime.now().millisecondsSinceEpoch.remainder(100000),
-      title: title,
-      body: body,
-      notificationDetails: details,
-      payload: data['relatedId'] ?? data['rideId'],
-    );
+    try {
+      final plugin = FlutterLocalNotificationsPlugin();
+      const initializationSettingsAndroid =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const initializationSettings =
+          InitializationSettings(android: initializationSettingsAndroid);
+
+      await plugin.initialize(settings: initializationSettings);
+
+      final isChat = type == 'chat';
+      final channelId = isChat ? kChatChannelId : kDefaultChannelId;
+      final channelName = isChat ? kChatChannelName : kDefaultChannelName;
+
+      final bigTextStyle = BigTextStyleInformation(
+        body,
+        htmlFormatBigText: false,
+        contentTitle: title,
+        htmlFormatContentTitle: false,
+        summaryText: isChat ? 'New Chat Message' : 'AutoShare',
+        htmlFormatSummaryText: false,
+      );
+
+      final androidDetails = AndroidNotificationDetails(
+        channelId,
+        channelName,
+        channelDescription: isChat
+            ? 'Real-time chat messages and conversations'
+            : 'Real-time notifications for rides, bookings, and alerts',
+        importance: Importance.max,
+        priority: Priority.max,
+        icon: '@mipmap/ic_launcher',
+        color: const Color(0xFFFFC400),
+        playSound: true,
+        enableVibration: true,
+        vibrationPattern: Int64List.fromList([0, 250, 250, 250]),
+        styleInformation: bigTextStyle,
+        category: isChat ? AndroidNotificationCategory.message : AndroidNotificationCategory.event,
+        visibility: NotificationVisibility.public,
+      );
+
+      final details = NotificationDetails(android: androidDetails);
+      final payloadJson = jsonEncode({
+        'type': type,
+        'relatedId': relatedId,
+        'rideId': relatedId,
+      });
+
+      await plugin.show(
+        id: message.messageId?.hashCode ??
+            DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        title: title,
+        body: body,
+        notificationDetails: details,
+        payload: payloadJson,
+      );
+    } catch (e) {
+      debugPrint('[FCM BACKGROUND SHOW ERROR] $e');
+    }
   }
 }
 
@@ -54,10 +108,10 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  static const String defaultChannelId = 'autoshare_notifications';
-  static const String defaultChannelName = 'AutoShare Notifications';
-  static const String chatChannelId = 'chat_messages';
-  static const String chatChannelName = 'Chat Messages';
+  static const String defaultChannelId = kDefaultChannelId;
+  static const String defaultChannelName = kDefaultChannelName;
+  static const String chatChannelId = kChatChannelId;
+  static const String chatChannelName = kChatChannelName;
 
   StreamSubscription<QuerySnapshot>? _notifSubscription;
   final Set<String> _seenNotificationIds = {};
@@ -77,19 +131,22 @@ class NotificationService {
       settings: initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         debugPrint('[NOTIFICATION TAP] payload: ${response.payload}');
+        _handleNotificationTap(payload: response.payload);
       },
     );
 
     // 2. Create High Importance Android Notification Channels (Heads-up popups)
     final androidPlugin = _flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
 
     if (androidPlugin != null) {
       await androidPlugin.createNotificationChannel(
         const AndroidNotificationChannel(
           defaultChannelId,
           defaultChannelName,
-          description: 'Real-time notifications for rides, bookings, and alerts',
+          description:
+              'Real-time notifications for rides, bookings, and alerts',
           importance: Importance.max,
           enableVibration: true,
           playSound: true,
@@ -111,8 +168,8 @@ class NotificationService {
 
       await androidPlugin.createNotificationChannel(
         const AndroidNotificationChannel(
-          'ride_reminders',
-          'Ride Reminders',
+          kReminderChannelId,
+          kReminderChannelName,
           description: 'Notifications before a ride starts',
           importance: Importance.high,
           enableVibration: true,
@@ -152,29 +209,44 @@ class NotificationService {
         final data = message.data;
         final title = notification?.title ?? data['title'] ?? 'AutoShare';
         final body = notification?.body ?? data['body'] ?? '';
+        final type = data['type'] as String? ?? 'general';
+        final relatedId = data['relatedId'] as String? ?? data['rideId'] as String? ?? '';
 
         if (body.isNotEmpty || title.isNotEmpty) {
+          final payloadJson = jsonEncode({
+            'type': type,
+            'relatedId': relatedId,
+            'rideId': relatedId,
+          });
+
           showNotification(
             title: title,
             body: body,
-            payload: data['relatedId'] ?? data['rideId'],
-            channelId: data['type'] == 'chat' ? chatChannelId : defaultChannelId,
-            channelName: data['type'] == 'chat' ? chatChannelName : defaultChannelName,
+            payload: payloadJson,
+            channelId: type == 'chat' ? chatChannelId : defaultChannelId,
+            channelName: type == 'chat' ? chatChannelName : defaultChannelName,
           );
         }
       });
 
-      // 6. Handle App Opened from Notification
+      // 6. Handle App Opened from Notification in background
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         debugPrint('[FCM OPENED] App opened via notification: ${message.data}');
+        _handleNotificationTap(data: message.data);
       });
 
+      // 7. Handle App Launched from terminated state via notification
       final initialMessage = await messaging.getInitialMessage();
       if (initialMessage != null) {
-        debugPrint('[FCM INITIAL] App launched from terminated state via notification: ${initialMessage.data}');
+        debugPrint(
+            '[FCM INITIAL] App launched from terminated state via notification: ${initialMessage.data}');
+        // Delay slightly to let the router and root widgets mount
+        Future.delayed(const Duration(milliseconds: 600), () {
+          _handleNotificationTap(data: initialMessage.data);
+        });
       }
 
-      // 7. Auto-sync FCM Token and start real-time listener if user is authenticated
+      // 8. Auto-sync FCM Token and start real-time listener if user is authenticated
       final currentUid = FirebaseAuth.instance.currentUser?.uid;
       if (currentUid != null && currentUid.isNotEmpty) {
         await syncFcmToken(currentUid);
@@ -218,13 +290,20 @@ class NotificationService {
               final relatedId = (data['relatedId'] as String?) ?? '';
 
               if (body.isNotEmpty || title.isNotEmpty) {
+                final payloadJson = jsonEncode({
+                  'type': type,
+                  'relatedId': relatedId,
+                  'rideId': relatedId,
+                });
+
                 showNotification(
                   id: docId.hashCode,
                   title: title,
                   body: body,
-                  payload: relatedId,
+                  payload: payloadJson,
                   channelId: type == 'chat' ? chatChannelId : defaultChannelId,
-                  channelName: type == 'chat' ? chatChannelName : defaultChannelName,
+                  channelName:
+                      type == 'chat' ? chatChannelName : defaultChannelName,
                 );
               }
             }
@@ -246,26 +325,33 @@ class NotificationService {
     String channelName = defaultChannelName,
   }) async {
     try {
+      final isChat = channelId == chatChannelId;
       final bigTextStyleInformation = BigTextStyleInformation(
         body,
         htmlFormatBigText: false,
         contentTitle: title,
         htmlFormatContentTitle: false,
-        summaryText: 'AutoShare',
+        summaryText: isChat ? 'New Message' : 'AutoShare',
         htmlFormatSummaryText: false,
       );
 
       final androidDetails = AndroidNotificationDetails(
         channelId,
         channelName,
-        channelDescription: 'Real-time notifications for rides, chats, and requests',
+        channelDescription: isChat
+            ? 'Real-time chat messages and conversations'
+            : 'Real-time notifications for rides, chats, and requests',
         importance: Importance.max,
         priority: Priority.max,
         icon: '@mipmap/ic_launcher',
         color: const Color(0xFFFFC400),
         playSound: true,
         enableVibration: true,
+        vibrationPattern: Int64List.fromList([0, 250, 250, 250]),
         styleInformation: bigTextStyleInformation,
+        category: isChat
+            ? AndroidNotificationCategory.message
+            : AndroidNotificationCategory.event,
         visibility: NotificationVisibility.public,
       );
       final details = NotificationDetails(android: androidDetails);
@@ -295,6 +381,10 @@ class NotificationService {
         debugPrint('[FCM TOKEN] Successfully synced token for $uid');
       }
 
+      try {
+        await FirebaseMessaging.instance.subscribeToTopic('user_$uid');
+      } catch (_) {}
+
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
         await FirebaseFirestore.instance.collection('users').doc(uid).set({
           'fcmToken': newToken,
@@ -305,6 +395,138 @@ class NotificationService {
       });
     } catch (e) {
       debugPrint('[FCM TOKEN SYNC ERROR] $e');
+    }
+  }
+
+  /// Sends a push notification payload to the recipient's FCM tokens.
+  Future<void> sendPushNotification({
+    required String recipientUid,
+    required String title,
+    required String body,
+    required String type,
+    String? relatedId,
+  }) async {
+    if (recipientUid.isEmpty) return;
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(recipientUid)
+          .get();
+
+      if (!userDoc.exists) return;
+      final userData = userDoc.data();
+      final tokens = <String>{};
+
+      final singleToken = userData?['fcmToken'] as String?;
+      if (singleToken != null && singleToken.isNotEmpty) {
+        tokens.add(singleToken);
+      }
+
+      final multiTokens = userData?['fcmTokens'];
+      if (multiTokens is List) {
+        for (final t in multiTokens) {
+          if (t is String && t.isNotEmpty) {
+            tokens.add(t);
+          }
+        }
+      }
+
+      debugPrint(
+          '[FCM PUSH DISPATCH] Recipient: $recipientUid, Title: "$title", Tokens found: ${tokens.length}');
+
+      // Save push delivery record in Firestore to ensure reliable delivery queue
+      try {
+        await FirebaseFirestore.instance.collection('push_notifications').add({
+          'recipientUid': recipientUid,
+          'tokens': tokens.toList(),
+          'title': title,
+          'body': body,
+          'type': type,
+          'relatedId': relatedId ?? '',
+          'createdAt': FieldValue.serverTimestamp(),
+          'status': 'queued',
+        });
+      } catch (_) {}
+    } catch (e) {
+      debugPrint('[FCM PUSH DISPATCH ERROR] $e');
+    }
+  }
+
+  /// Automatically deep-links and routes the user when tapping on a notification.
+  Future<void> _handleNotificationTap({
+    String? payload,
+    Map<String, dynamic>? data,
+  }) async {
+    try {
+      String? type = data?['type'];
+      String? relatedId = data?['relatedId'] ?? data?['rideId'];
+
+      if (payload != null && payload.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(payload);
+          if (decoded is Map<String, dynamic>) {
+            type ??= decoded['type'];
+            relatedId ??= decoded['relatedId'] ?? decoded['rideId'];
+          }
+        } catch (_) {
+          relatedId ??= payload;
+        }
+      }
+
+      debugPrint('[NOTIFICATION ROUTER] type: $type, relatedId: $relatedId');
+
+      if (type == 'chat' && relatedId != null && relatedId.isNotEmpty) {
+        // Fetch ride or pass rideId to open chat screen
+        try {
+          final rideDoc = await FirebaseFirestore.instance
+              .collection('rides')
+              .doc(relatedId)
+              .get();
+
+          if (rideDoc.exists && rideDoc.data() != null) {
+            final ride = RideModel.fromMap(rideDoc.data()!, rideDoc.id);
+            final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+            final otherUid = ride.driverId == currentUid ? '' : ride.driverId;
+            AppRouter.router.push(
+              '/chat',
+              extra: ChatPageArgs(
+                ride: ride,
+                otherParticipantUid: otherUid,
+                otherParticipantName: '',
+              ),
+            );
+            return;
+          }
+        } catch (_) {}
+
+        AppRouter.router.push('/chat', extra: relatedId);
+      } else if ((type == 'new_request' || type == 'request') &&
+          relatedId != null &&
+          relatedId.isNotEmpty) {
+        AppRouter.router.push('/incoming-requests');
+      } else if (type == 'accepted' ||
+          type == 'rejected' ||
+          type == 'cancelled') {
+        AppRouter.router.push('/my-rides');
+      } else if (type == 'ride' && relatedId != null && relatedId.isNotEmpty) {
+        try {
+          final rideDoc = await FirebaseFirestore.instance
+              .collection('rides')
+              .doc(relatedId)
+              .get();
+
+          if (rideDoc.exists && rideDoc.data() != null) {
+            final ride = RideModel.fromMap(rideDoc.data()!, rideDoc.id);
+            AppRouter.router.push('/ride-details', extra: ride);
+            return;
+          }
+        } catch (_) {}
+        AppRouter.router.push('/my-rides');
+      } else {
+        AppRouter.router.push('/notifications');
+      }
+    } catch (e) {
+      debugPrint('[NOTIFICATION ROUTE ERROR] $e');
     }
   }
 
@@ -330,8 +552,8 @@ class NotificationService {
               scheduledDate: tz.TZDateTime.from(entry.value, tz.local),
               notificationDetails: const NotificationDetails(
                 android: AndroidNotificationDetails(
-                  'ride_reminders',
-                  'Ride Reminders',
+                  kReminderChannelId,
+                  kReminderChannelName,
                   channelDescription: 'Notifications before a ride starts',
                   importance: Importance.high,
                   priority: Priority.high,
@@ -348,8 +570,8 @@ class NotificationService {
               scheduledDate: tz.TZDateTime.from(entry.value, tz.local),
               notificationDetails: const NotificationDetails(
                 android: AndroidNotificationDetails(
-                  'ride_reminders',
-                  'Ride Reminders',
+                  kReminderChannelId,
+                  kReminderChannelName,
                   channelDescription: 'Notifications before a ride starts',
                   importance: Importance.high,
                   priority: Priority.high,
@@ -366,3 +588,4 @@ class NotificationService {
     }
   }
 }
+
