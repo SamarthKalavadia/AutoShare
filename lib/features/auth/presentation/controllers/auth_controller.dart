@@ -6,6 +6,7 @@ import '../../../../core/utils/result.dart';
 import '../../../../data/models/user_model.dart';
 import '../../../../data/repositories/profile_repository.dart';
 import '../../../../data/repositories/user_repository.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../shared/providers.dart';
 
 /// Riverpod Notifier handling Authentication UI state transitions and operations.
@@ -25,10 +26,13 @@ class AuthController extends Notifier<AsyncValue<UserModel?>> {
       _fetchUserModel(firebaseUser.uid);
       return const AsyncValue.loading();
     }
+
     return const AsyncValue.data(null);
   }
 
   Future<void> _fetchUserModel(String uid) async {
+    NotificationService().syncFcmToken(uid);
+    NotificationService().startListening(uid);
     final result = await _userRepository.getUser(uid);
     if (result is Success<UserModel>) {
       UserModel user = result.data;

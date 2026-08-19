@@ -81,6 +81,14 @@ class _SplashPageState extends ConsumerState<SplashPage>
 
     _animCtrl.forward();
 
+    // Safety fallback: Never allow splash to hang on physical devices
+    Future.delayed(const Duration(milliseconds: 2800), () {
+      if (mounted && !_hasNavigated) {
+        _isAnimationComplete = true;
+        _forceNavigate();
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkProvidersAndNavigate();
     });
@@ -124,13 +132,20 @@ class _SplashPageState extends ConsumerState<SplashPage>
 
     if (authAsync.isLoading ||
         onboardingAsync.isLoading ||
-        authControllerAsync.isLoading)
+        authControllerAsync.isLoading) {
       return;
+    }
 
+    _forceNavigate();
+  }
+
+  void _forceNavigate() {
+    if (!mounted || _hasNavigated) return;
     _hasNavigated = true;
 
-    final User? user = authAsync.value;
-    final bool onboardingDone = onboardingAsync.value ?? false;
+    final User? user = FirebaseAuth.instance.currentUser;
+    final bool onboardingDone =
+        ref.read(onboardingCompletedProvider).value ?? false;
 
     if (user == null) {
       if (onboardingDone) {
