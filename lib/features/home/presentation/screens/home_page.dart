@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'home_tab.dart';
 import '../../../search/search_page.dart';
@@ -38,7 +39,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     const HomeTab(),
     const SearchPage(),
     const ChatsListPage(),
-    const NotificationsPage(showBackButton: false),
+    const NotificationsPage(),
     const ProfilePage(),
   ];
 

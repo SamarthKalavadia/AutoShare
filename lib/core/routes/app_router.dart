@@ -113,7 +113,7 @@ class AppRouter {
       ),
       GoRoute(
         path: '/notifications',
-        builder: (context, state) => const NotificationsPage(showBackButton: true),
+        builder: (context, state) => const NotificationsPage(),
       ),
       GoRoute(
         path: '/settings',

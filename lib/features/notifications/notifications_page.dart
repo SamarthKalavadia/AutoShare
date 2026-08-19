@@ -9,9 +9,7 @@ import '../auth/presentation/controllers/auth_controller.dart';
 import 'providers/notification_provider.dart';
 
 class NotificationsPage extends ConsumerStatefulWidget {
-  final bool? showBackButton;
-
-  const NotificationsPage({super.key, this.showBackButton});
+  const NotificationsPage({super.key});
 
   @override
   ConsumerState<NotificationsPage> createState() => _NotificationsPageState();
@@ -166,26 +164,11 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     BuildContext context,
     Color blackColor,
   ) {
-    final showBack = widget.showBackButton ??
-        (context.canPop() || Navigator.of(context).canPop());
-
     return AppBar(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       scrolledUnderElevation: 0,
       elevation: 0,
       automaticallyImplyLeading: false,
-      leading: showBack
-          ? IconButton(
-              icon: Icon(Icons.arrow_back_rounded, color: blackColor),
-              onPressed: () {
-                if (context.canPop()) {
-                  context.pop();
-                } else {
-                  context.go('/home');
-                }
-              },
-            )
-          : null,
       title: Text(
         'Notifications',
         style: GoogleFonts.inter(
