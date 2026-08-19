@@ -122,8 +122,8 @@ class CreateRideState {
     )) {
       return 'Departure time must be in the future';
     }
-    if (availableSeats < 1 || availableSeats > 4) {
-      return 'Available seats must be between 1 and 4';
+    if (availableSeats < 1 || availableSeats > 3) {
+      return 'Available seats must be between 1 and 3';
     }
     if (farePerSeat < 0) {
       return 'Fare per seat cannot be negative';

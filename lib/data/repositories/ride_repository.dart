@@ -119,6 +119,19 @@ class RideRepository {
         });
   }
 
+  /// Streams real-time updates for a specific ride
+  Stream<RideModel> streamRide(String rideId) {
+    return _firestoreService.ridesCollection
+        .doc(rideId)
+        .snapshots()
+        .map((doc) {
+      if (!doc.exists) {
+        throw Exception('Ride not found');
+      }
+      return RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+    });
+  }
+
   // ---------------------------------------------------------------------------
   // CANCEL (status update)
   // ---------------------------------------------------------------------------

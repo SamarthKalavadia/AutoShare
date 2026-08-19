@@ -7,6 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../chat/providers/chat_provider.dart';
+import '../../../shared/providers.dart';
+import '../../ride_details/providers/ride_request_provider.dart';
 import '../../ride_details/providers/driver_profile_provider.dart';
 import '../providers/my_rides_provider.dart';
 
@@ -172,39 +174,46 @@ class MyRideCard extends ConsumerWidget {
           ),
 
           // ── Bottom: Fare & Seats ──
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+          Consumer(
+            builder: (context, ref, _) {
+              final dynamicFare = ref.watch(dynamicFareProvider(ride));
+              final liveSeats = ref.watch(liveAvailableSeatsProvider(ride));
+              
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(Icons.currency_rupee, size: 16, color: blackColor),
-                  Text(
-                    '${ride.farePerSeat.toInt()} / seat',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: blackColor,
-                    ),
+                  Row(
+                    children: [
+                      Icon(Icons.currency_rupee, size: 16, color: blackColor),
+                      Text(
+                        '${dynamicFare.toStringAsFixed(0)} / seat',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: blackColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Icon(Icons.event_seat, size: 16, color: mutedText),
+                      const SizedBox(width: 4),
+                      Text(
+                        data.role == 'passenger'
+                            ? '${data.request?.requestedSeats ?? 1} requested'
+                            : '$liveSeats available',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: mutedText,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
-              ),
-              Row(
-                children: [
-                  Icon(Icons.event_seat, size: 16, color: mutedText),
-                  const SizedBox(width: 4),
-                  Text(
-                    data.role == 'passenger'
-                        ? '${data.request?.requestedSeats ?? 1} requested'
-                        : '${ride.availableSeats} available',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: mutedText,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              );
+            }
           ),
 
           // ── Actions ──

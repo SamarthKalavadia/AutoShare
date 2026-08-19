@@ -237,21 +237,8 @@ class RideRequestRepository {
         await reqRef
             .update({'status': RideRequestStatus.accepted.name})
             .timeout(const Duration(seconds: 3));
-
-        // Decrement ride available seats remotely if possible
-        final rideRef = _firestoreService.ridesCollection.doc(request.rideId);
-        final rideDoc = await rideRef.get().timeout(const Duration(seconds: 3));
-        if (rideDoc.exists) {
-          final currentSeats =
-              (rideDoc.data() as Map<String, dynamic>?)?['availableSeats']
-                  as int? ??
-              1;
-          if (currentSeats > 0) {
-            await rideRef.update({
-              'availableSeats': currentSeats - request.requestedSeats,
-            });
-          }
-        }
+            
+        // Removed rideRef.update availableSeats. Capacity will be calculated dynamically.
       } on FirebaseException catch (e) {
         debugPrint(
           'Firestore acceptRequest warning (${e.code}); accepted locally.',
@@ -422,5 +409,28 @@ class RideRequestRepository {
         .toList();
     list.sort((a, b) => b.requestedAt.compareTo(a.requestedAt));
     return list;
+  }
+
+  /// Streams real-time updates for ride requests by rideId
+  Stream<List<RideRequestModel>> streamRequestsByRide(String rideId) {
+    return _firestoreService.rideRequestsCollection
+        .where('rideId', isEqualTo: rideId)
+        .snapshots()
+        .map((snapshot) {
+      final Map<String, RideRequestModel> merged = Map.from(
+        _locallySubmittedRequests,
+      );
+
+      for (final doc in snapshot.docs) {
+        final req = RideRequestModel.fromMap(
+          doc.data() as Map<String, dynamic>,
+          doc.id,
+        );
+        merged[req.requestId] = req;
+      }
+
+      final list = merged.values.where((r) => r.rideId == rideId).toList();
+      return list;
+    });
   }
 }

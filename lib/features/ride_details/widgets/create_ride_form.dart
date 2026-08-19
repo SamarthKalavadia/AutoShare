@@ -219,17 +219,18 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _SectionTitle(title: 'Fare Per Seat'),
+                  _SectionTitle(title: 'Total Fare'),
                   const SizedBox(height: 8),
-                  _RideTextField(
-                    hint: '0',
-                    icon: Icons.currency_rupee_rounded,
-                    iconColor: blackColor,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  TextFormField(
+                    initialValue: state.farePerSeat > 0 ? '${state.farePerSeat}' : '',
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     onChanged: (val) {
                       notifier.updateFarePerSeat(double.tryParse(val) ?? 0.0);
                     },
+                    decoration: const InputDecoration(
+                      hintText: 'e.g., 500',
+                      prefixText: '₹ ',
+                    ),
                   ),
                 ],
               ),
@@ -708,7 +709,7 @@ class _SeatsStepper extends ConsumerWidget {
           ),
           _StepperButton(
             icon: Icons.add,
-            onTap: state.availableSeats < 4
+            onTap: state.availableSeats < 3
                 ? () => notifier.updateAvailableSeats(state.availableSeats + 1)
                 : null,
           ),

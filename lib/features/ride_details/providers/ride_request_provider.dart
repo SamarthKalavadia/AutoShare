@@ -48,7 +48,8 @@ class RideRequestNotifier extends Notifier<RideRequestState> {
 
   void incrementSeats(int maxSeats) {
     final current = state.requestedSeats;
-    if (current < maxSeats && current < 4) {
+    // Maximum 3 seats per requester (total capacity 4 - 1 creator = 3)
+    if (current < maxSeats && current < 3) {
       state = state.copyWith(requestedSeats: current + 1, clearError: true);
     }
   }
@@ -98,9 +99,33 @@ class RideRequestNotifier extends Notifier<RideRequestState> {
     }
 
     // ── Validation 4: Seats availability ──────────────────────────────
-    if (state.requestedSeats > ride.availableSeats) {
+    // Fetch live seats before submitting
+    final freshRideResult = await _repo.getRide(ride.id);
+    if (freshRideResult is Failure) {
       state = state.copyWith(
-        error: 'Only ${ride.availableSeats} seat(s) available.',
+        isLoading: false,
+        error: (freshRideResult as Failure).message,
+      );
+      return;
+    }
+
+    final freshRide = (freshRideResult as Success<RideModel>).data;
+    
+    // Calculate live available seats based on fresh ride and requests
+    int liveAvailableSeats = freshRide.availableSeats;
+    // We can just use the provider value!
+    final currentAvailable = ref.read(liveAvailableSeatsProvider(ride));
+
+    if (state.requestedSeats > currentAvailable) {
+      state = state.copyWith(
+        error: 'Only $currentAvailable seat(s) available.',
+      );
+      return;
+    }
+
+    if (state.requestedSeats > 3) {
+      state = state.copyWith(
+        error: 'You can request a maximum of 3 seats.',
       );
       return;
     }
@@ -129,26 +154,6 @@ class RideRequestNotifier extends Notifier<RideRequestState> {
       state = state.copyWith(
         isLoading: false,
         error: 'You already have a $statusLabel request for this ride.',
-      );
-      return;
-    }
-
-    // ── Fetch fresh ride snapshot to re-validate seats server-side ─────
-    final freshRideResult = await _repo.getRide(ride.id);
-    if (freshRideResult is Failure) {
-      state = state.copyWith(
-        isLoading: false,
-        error: (freshRideResult as Failure).message,
-      );
-      return;
-    }
-
-    final freshRide = (freshRideResult as Success<RideModel>).data;
-    if (state.requestedSeats > freshRide.availableSeats) {
-      state = state.copyWith(
-        isLoading: false,
-        error:
-            'Seats were just filled. Only ${freshRide.availableSeats} seat(s) remain.',
       );
       return;
     }
@@ -195,3 +200,48 @@ final currentRideRequestProvider = FutureProvider.autoDispose
       }
       return null;
     });
+
+final liveRideProvider = StreamProvider.autoDispose
+    .family<RideModel, String>((ref, rideId) {
+  final repo = ref.watch(rideRepositoryProvider);
+  return repo.streamRide(rideId);
+});
+
+final liveRideRequestsProvider = StreamProvider.autoDispose
+    .family<List<RideRequestModel>, String>((ref, rideId) {
+  final repo = ref.watch(rideRequestRepositoryProvider);
+  return repo.streamRequestsByRide(rideId);
+});
+
+final liveAvailableSeatsProvider = Provider.autoDispose
+    .family<int, RideModel>((ref, initialRide) {
+  final ride = ref.watch(liveRideProvider(initialRide.id)).value ?? initialRide;
+  final requests = ref.watch(liveRideRequestsProvider(initialRide.id)).value ?? [];
+  
+  int acceptedSeats = 0;
+  for (final req in requests) {
+    if (req.status == RideRequestStatus.accepted) {
+      acceptedSeats += req.requestedSeats;
+    }
+  }
+  
+  return (ride.availableSeats - acceptedSeats).clamp(0, 99);
+});
+
+final dynamicFareProvider = Provider.autoDispose
+    .family<double, RideModel>((ref, initialRide) {
+  final ride = ref.watch(liveRideProvider(initialRide.id)).value ?? initialRide;
+  final requests = ref.watch(liveRideRequestsProvider(initialRide.id)).value ?? [];
+  
+  // Total Confirmed Riders = 1 creator + accepted/confirmed requesters
+  int confirmedCount = 1;
+  for (final req in requests) {
+    if (req.status == RideRequestStatus.accepted) {
+      // Each requested seat is one passenger rider!
+      confirmedCount += req.requestedSeats;
+    }
+  }
+  
+  // farePerSeat actually holds the Total Fare in this design
+  return ride.farePerSeat / confirmedCount;
+});
