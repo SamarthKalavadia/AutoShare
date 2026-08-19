@@ -9,6 +9,7 @@ class NotificationModel {
   final bool isRead;
   final DateTime createdAt;
   final String? relatedId;
+  final String? senderId;
 
   const NotificationModel({
     required this.id,
@@ -19,6 +20,7 @@ class NotificationModel {
     required this.isRead,
     required this.createdAt,
     this.relatedId,
+    this.senderId,
   });
 
   factory NotificationModel.fromDocument(DocumentSnapshot doc) {
@@ -32,6 +34,7 @@ class NotificationModel {
       isRead: data['isRead'] ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       relatedId: data['relatedId'],
+      senderId: data['senderId'],
     );
   }
 
@@ -44,6 +47,7 @@ class NotificationModel {
       'isRead': isRead,
       'createdAt': Timestamp.fromDate(createdAt),
       'relatedId': relatedId,
+      'senderId': senderId,
     };
   }
 
@@ -56,6 +60,7 @@ class NotificationModel {
     bool? isRead,
     DateTime? createdAt,
     String? relatedId,
+    String? senderId,
   }) {
     return NotificationModel(
       id: id ?? this.id,
@@ -66,6 +71,7 @@ class NotificationModel {
       isRead: isRead ?? this.isRead,
       createdAt: createdAt ?? this.createdAt,
       relatedId: relatedId ?? this.relatedId,
+      senderId: senderId ?? this.senderId,
     );
   }
 }

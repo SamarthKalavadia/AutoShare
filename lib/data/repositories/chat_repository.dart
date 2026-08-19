@@ -193,6 +193,7 @@ class ChatRepository {
               isRead: false,
               createdAt: DateTime.now(),
               relatedId: message.rideId,
+              senderId: message.senderId,
             ),
           ),
         );

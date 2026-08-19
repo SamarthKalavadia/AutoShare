@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import '../../data/models/notification_model.dart';
 import '../auth/presentation/controllers/auth_controller.dart';
 import 'providers/notification_provider.dart';
+import '../chat/providers/chat_provider.dart';
+import '../../shared/utils/avatar_utils.dart';
 
 class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
@@ -468,6 +470,8 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         notification.type == 'rejected' ||
         notification.type == 'cancelled') {
       context.push('/my-rides');
+    } else if (notification.type == 'chat') {
+      context.push('/chat?rideId=${notification.relatedId}');
     }
   }
 
@@ -568,6 +572,30 @@ class _NotificationTile extends ConsumerWidget {
     final iconColor = _iconColorForType(notification.type, isDark);
     final icon = _iconForType(notification.type);
 
+    ImageProvider? avatarProvider;
+    String senderNameFallback = notification.title;
+    bool isChat = notification.type == 'chat';
+    bool isLoadingSender = false;
+
+    if (isChat) {
+      debugPrint('[NOTIF DEBUG] Notification title: ${notification.title}, body: ${notification.body}');
+      debugPrint('[NOTIF DEBUG] senderId: ${notification.senderId}');
+    }
+
+    if (isChat && notification.senderId != null && notification.senderId!.isNotEmpty) {
+      final senderAsync = ref.watch(chatUserProvider(notification.senderId!));
+      isLoadingSender = senderAsync.isLoading;
+      
+      debugPrint('[NOTIF DEBUG] senderAsync state: $senderAsync');
+      debugPrint('[NOTIF DEBUG] senderAsync.value: ${senderAsync.value}');
+      debugPrint('[NOTIF DEBUG] profileImage: ${senderAsync.value?.profileImage}');
+
+      avatarProvider = getAvatarImageProvider(senderAsync.value?.profileImage);
+      if (senderAsync.value != null && senderAsync.value!.name.isNotEmpty) {
+        senderNameFallback = senderAsync.value!.name;
+      }
+    }
+
     final unreadBg = isDark ? const Color(0xFF2A2820) : const Color(0xFFFFFDF5);
     final selectedBg = isDark
         ? const Color(0xFF332D19)
@@ -628,15 +656,57 @@ class _NotificationTile extends ConsumerWidget {
                       size: 20,
                     ),
                   ),
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: iconBg,
-                    shape: BoxShape.circle,
+                if (isChat)
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFEAE5DD),
+                      image: avatarProvider != null
+                          ? DecorationImage(
+                              image: avatarProvider,
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF333333) : Colors.white,
+                        width: 1.5,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: avatarProvider == null
+                        ? (isLoadingSender
+                            ? SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              )
+                            : Text(
+                                senderNameFallback.isNotEmpty
+                                    ? senderNameFallback[0].toUpperCase()
+                                    : '?',
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? Colors.white : Colors.black87,
+                                  fontSize: 16,
+                                ),
+                              ))
+                        : null,
+                  )
+                else
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: iconBg,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, size: 20, color: iconColor),
                   ),
-                  child: Icon(icon, size: 20, color: iconColor),
-                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(

@@ -150,15 +150,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                 hasChatBadge: true,
               ),
               _buildNavItem(
-                3,
-                'Notifications',
-                Icons.notifications_rounded,
-                Icons.notifications_none_rounded,
-                isDark,
-                currentIndex,
-                hasNotifBadge: true,
-              ),
-              _buildNavItem(
                 4,
                 'Profile',
                 Icons.person_rounded,
