@@ -55,92 +55,81 @@ class RideInfoCard extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
 
-          Consumer(
-            builder: (context, ref, _) {
-              final dynamicFare = ref.watch(dynamicFareProvider(ride));
-              final liveSeats = ref.watch(liveAvailableSeatsProvider(ride));
-              
-              return Column(
-                children: [
-                  // Fare + Available seats
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _InfoTile(
-                          icon: Icons.currency_rupee_rounded,
-                          label: 'Total Fare',
-                          value: '₹${dynamicFare.toStringAsFixed(0)}',
-                          highlight: true,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _InfoTile(
-                          icon: Icons.event_seat_rounded,
-                          label: 'Available Seats',
-                          value: '$liveSeats',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
+          // Fare + Available seats
+          Row(
+            children: [
+              Expanded(
+                child: _InfoTile(
+                  icon: Icons.currency_rupee_rounded,
+                  label: 'Fare / Seat',
+                  value: '₹${ride.farePerSeat.toStringAsFixed(0)}',
+                  highlight: true,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _InfoTile(
+                  icon: Icons.event_seat_rounded,
+                  label: 'Available Seats',
+                  value: '${ride.availableSeats}',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
 
-                  // Requested seats stepper
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3),
-                      borderRadius: BorderRadius.circular(16),
+          // Requested seats stepper
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.people_alt_rounded, size: 18, color: mutedText),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Requested Seats',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: mutedText,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.people_alt_rounded, size: 18, color: mutedText),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Requested Seats',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: mutedText,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              '${state.requestedSeats}',
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: blackColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        _StepperButton(
-                          icon: Icons.remove_rounded,
-                          onTap: state.requestedSeats > 1
-                              ? () => ref
-                                    .read(rideRequestProvider.notifier)
-                                    .decrementSeats()
-                              : null,
-                        ),
-                        const SizedBox(width: 8),
-                        _StepperButton(
-                          icon: Icons.add_rounded,
-                          onTap:
-                              state.requestedSeats < liveSeats &&
-                                  state.requestedSeats < 3
-                              ? () => ref
-                                    .read(rideRequestProvider.notifier)
-                                    .incrementSeats(liveSeats)
-                              : null,
-                        ),
-                      ],
+                    Text(
+                      '${state.requestedSeats}',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: blackColor,
+                      ),
                     ),
-                  ),
-                ],
-              );
-            },
+                  ],
+                ),
+                const Spacer(),
+                _StepperButton(
+                  icon: Icons.remove_rounded,
+                  onTap: state.requestedSeats > 1
+                      ? () => ref
+                            .read(rideRequestProvider.notifier)
+                            .decrementSeats()
+                      : null,
+                ),
+                const SizedBox(width: 8),
+                _StepperButton(
+                  icon: Icons.add_rounded,
+                  onTap:
+                      state.requestedSeats < ride.availableSeats &&
+                          state.requestedSeats < 4
+                      ? () => ref
+                            .read(rideRequestProvider.notifier)
+                            .incrementSeats(ride.availableSeats)
+                      : null,
+                ),
+              ],
+            ),
           ),
 
           // Vehicle number (if present)

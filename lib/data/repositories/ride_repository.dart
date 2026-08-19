@@ -119,17 +119,19 @@ class RideRepository {
         });
   }
 
-  /// Streams real-time updates for a specific ride
-  Stream<RideModel> streamRide(String rideId) {
+  /// Streams a single ride by ID.
+  Stream<RideModel?> streamRide(String rideId) {
     return _firestoreService.ridesCollection
         .doc(rideId)
         .snapshots()
         .map((doc) {
-      if (!doc.exists) {
-        throw Exception('Ride not found');
-      }
-      return RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-    });
+          if (!doc.exists) return null;
+          return RideModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+        })
+        .handleError((error) {
+          debugPrint('[RideRepository] streamRide error: $error');
+          return null;
+        });
   }
 
   // ---------------------------------------------------------------------------
