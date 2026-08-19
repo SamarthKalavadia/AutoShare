@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import '../../features/splash/splash_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../features/auth/presentation/controllers/onboarding_controller.dart';
 import '../../features/onboarding/onboarding_page.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/auth/register_page.dart';
@@ -31,7 +33,20 @@ class AppRouter {
     initialLocation: '/',
     observers: [FirebaseAnalyticsObserver(analytics: _analytics)],
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const SplashPage()),
+      GoRoute(
+        path: '/',
+        redirect: (context, state) async {
+          final user = FirebaseAuth.instance.currentUser;
+          if (user != null) {
+            return user.emailVerified ? '/home' : '/email-verification';
+          }
+          final prefs = await SharedPreferences.getInstance();
+          final onboardingDone =
+              prefs.getBool(kOnboardingCompletedKey) ?? false;
+          return onboardingDone ? '/login' : '/onboarding';
+        },
+        builder: (context, state) => const SizedBox.shrink(),
+      ),
       GoRoute(
         path: '/onboarding',
         pageBuilder: (context, state) => CustomTransitionPage(
