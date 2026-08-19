@@ -75,14 +75,14 @@ class _SplashPageState extends ConsumerState<SplashPage>
     _animCtrl.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         _isAnimationComplete = true;
-        _navigateIfReady();
+        _forceNavigate();
       }
     });
 
     _animCtrl.forward();
 
-    // Safety fallback: Never allow splash to hang on physical devices
-    Future.delayed(const Duration(milliseconds: 2800), () {
+    // Safety fallback: Never allow splash to hang on physical devices or emulators
+    Future.delayed(const Duration(milliseconds: 2300), () {
       if (mounted && !_hasNavigated) {
         _isAnimationComplete = true;
         _forceNavigate();

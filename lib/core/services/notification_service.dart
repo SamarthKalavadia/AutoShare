@@ -118,68 +118,79 @@ class NotificationService {
   bool _isInitialNotifSnapshot = true;
 
   Future<void> init() async {
-    tz.initializeTimeZones();
+    try {
+      tz.initializeTimeZones();
 
-    // 1. Local Notifications initialization
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+      // 1. Local Notifications initialization
+      const AndroidInitializationSettings initializationSettingsAndroid =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
+      const InitializationSettings initializationSettings =
+          InitializationSettings(android: initializationSettingsAndroid);
 
-    await _flutterLocalNotificationsPlugin.initialize(
-      settings: initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        debugPrint('[NOTIFICATION TAP] payload: ${response.payload}');
-        _handleNotificationTap(payload: response.payload);
-      },
-    );
-
-    // 2. Create High Importance Android Notification Channels (Heads-up popups)
-    final androidPlugin = _flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
-
-    if (androidPlugin != null) {
-      await androidPlugin.createNotificationChannel(
-        const AndroidNotificationChannel(
-          defaultChannelId,
-          defaultChannelName,
-          description:
-              'Real-time notifications for rides, bookings, and alerts',
-          importance: Importance.max,
-          enableVibration: true,
-          playSound: true,
-          showBadge: true,
-        ),
+      await _flutterLocalNotificationsPlugin.initialize(
+        settings: initializationSettings,
+        onDidReceiveNotificationResponse: (NotificationResponse response) {
+          debugPrint('[NOTIFICATION TAP] payload: ${response.payload}');
+          _handleNotificationTap(payload: response.payload);
+        },
       );
 
-      await androidPlugin.createNotificationChannel(
-        const AndroidNotificationChannel(
-          chatChannelId,
-          chatChannelName,
-          description: 'Real-time chat messages and conversations',
-          importance: Importance.max,
-          enableVibration: true,
-          playSound: true,
-          showBadge: true,
-        ),
-      );
+      // 2. Create High Importance Android Notification Channels (Heads-up popups)
+      final androidPlugin = _flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
 
-      await androidPlugin.createNotificationChannel(
-        const AndroidNotificationChannel(
-          kReminderChannelId,
-          kReminderChannelName,
-          description: 'Notifications before a ride starts',
-          importance: Importance.high,
-          enableVibration: true,
-          playSound: true,
-          showBadge: true,
-        ),
-      );
+      if (androidPlugin != null) {
+        await androidPlugin.createNotificationChannel(
+          const AndroidNotificationChannel(
+            defaultChannelId,
+            defaultChannelName,
+            description:
+                'Real-time notifications for rides, bookings, and alerts',
+            importance: Importance.max,
+            enableVibration: true,
+            playSound: true,
+            showBadge: true,
+          ),
+        );
+
+        await androidPlugin.createNotificationChannel(
+          const AndroidNotificationChannel(
+            chatChannelId,
+            chatChannelName,
+            description: 'Real-time chat messages and conversations',
+            importance: Importance.max,
+            enableVibration: true,
+            playSound: true,
+            showBadge: true,
+          ),
+        );
+
+        await androidPlugin.createNotificationChannel(
+          const AndroidNotificationChannel(
+            kReminderChannelId,
+            kReminderChannelName,
+            description: 'Notifications before a ride starts',
+            importance: Importance.high,
+            enableVibration: true,
+            playSound: true,
+            showBadge: true,
+          ),
+        );
+      }
+
+      // 3. Register Background Handler
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+      // 4. Request Notification Permissions & FCM Listeners (asynchronous, non-blocking)
+      unawaited(_initFcmAsync());
+    } catch (e) {
+      debugPrint('[NOTIFICATION INIT ERROR] $e');
     }
+  }
 
-    // 3. Request Notification Permissions (Android 13+ & iOS)
+  Future<void> _initFcmAsync() async {
     try {
       final messaging = FirebaseMessaging.instance;
       final settings = await messaging.requestPermission(
@@ -190,19 +201,33 @@ class NotificationService {
         criticalAlert: true,
         provisional: false,
         sound: true,
-      );
+      ).timeout(const Duration(seconds: 4), onTimeout: () {
+        return const NotificationSettings(
+          authorizationStatus: AuthorizationStatus.notDetermined,
+          alert: AppleNotificationSetting.notSupported,
+          announcement: AppleNotificationSetting.notSupported,
+          badge: AppleNotificationSetting.notSupported,
+          carPlay: AppleNotificationSetting.notSupported,
+          criticalAlert: AppleNotificationSetting.notSupported,
+          lockScreen: AppleNotificationSetting.notSupported,
+          notificationCenter: AppleNotificationSetting.notSupported,
+          showPreviews: AppleShowPreviewSetting.notSupported,
+          timeSensitive: AppleNotificationSetting.notSupported,
+          sound: AppleNotificationSetting.notSupported,
+          providesAppNotificationSettings: AppleNotificationSetting.notSupported,
+        );
+      });
       debugPrint('[FCM PERMISSION] Status: ${settings.authorizationStatus}');
 
-      await messaging.setForegroundNotificationPresentationOptions(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      try {
+        await messaging.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+      } catch (_) {}
 
-      // 4. Register Background Handler
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-
-      // 5. Handle Foreground Push Notifications
+      // Handle Foreground Push Notifications
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         debugPrint('[FCM FOREGROUND] Push message received: ${message.messageId}');
         final notification = message.notification;
@@ -229,31 +254,32 @@ class NotificationService {
         }
       });
 
-      // 6. Handle App Opened from Notification in background
+      // Handle App Opened from Notification in background
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         debugPrint('[FCM OPENED] App opened via notification: ${message.data}');
         _handleNotificationTap(data: message.data);
       });
 
-      // 7. Handle App Launched from terminated state via notification
-      final initialMessage = await messaging.getInitialMessage();
-      if (initialMessage != null) {
-        debugPrint(
-            '[FCM INITIAL] App launched from terminated state via notification: ${initialMessage.data}');
-        // Delay slightly to let the router and root widgets mount
-        Future.delayed(const Duration(milliseconds: 600), () {
-          _handleNotificationTap(data: initialMessage.data);
-        });
-      }
+      // Handle App Launched from terminated state via notification
+      try {
+        final initialMessage = await messaging.getInitialMessage().timeout(const Duration(seconds: 3));
+        if (initialMessage != null) {
+          debugPrint(
+              '[FCM INITIAL] App launched from terminated state via notification: ${initialMessage.data}');
+          Future.delayed(const Duration(milliseconds: 600), () {
+            _handleNotificationTap(data: initialMessage.data);
+          });
+        }
+      } catch (_) {}
 
-      // 8. Auto-sync FCM Token and start real-time listener if user is authenticated
+      // Auto-sync FCM Token and start real-time listener if user is authenticated
       final currentUid = FirebaseAuth.instance.currentUser?.uid;
       if (currentUid != null && currentUid.isNotEmpty) {
-        await syncFcmToken(currentUid);
+        syncFcmToken(currentUid);
         startListening(currentUid);
       }
     } catch (e) {
-      debugPrint('[FCM INIT ERROR] $e');
+      debugPrint('[FCM ASYNC INIT ERROR] $e');
     }
   }
 
@@ -371,27 +397,29 @@ class NotificationService {
   Future<void> syncFcmToken(String uid) async {
     if (uid.isEmpty) return;
     try {
-      final token = await FirebaseMessaging.instance.getToken();
+      final token = await FirebaseMessaging.instance.getToken().timeout(const Duration(seconds: 4));
       if (token != null && token.isNotEmpty) {
         await FirebaseFirestore.instance.collection('users').doc(uid).set({
           'fcmToken': token,
           'fcmTokens': FieldValue.arrayUnion([token]),
           'lastTokenUpdated': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+        }, SetOptions(merge: true)).timeout(const Duration(seconds: 4));
         debugPrint('[FCM TOKEN] Successfully synced token for $uid');
       }
 
       try {
-        await FirebaseMessaging.instance.subscribeToTopic('user_$uid');
+        await FirebaseMessaging.instance.subscribeToTopic('user_$uid').timeout(const Duration(seconds: 4));
       } catch (_) {}
 
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-        await FirebaseFirestore.instance.collection('users').doc(uid).set({
-          'fcmToken': newToken,
-          'fcmTokens': FieldValue.arrayUnion([newToken]),
-          'lastTokenUpdated': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-        debugPrint('[FCM TOKEN REFRESHED] Updated token for $uid');
+        try {
+          await FirebaseFirestore.instance.collection('users').doc(uid).set({
+            'fcmToken': newToken,
+            'fcmTokens': FieldValue.arrayUnion([newToken]),
+            'lastTokenUpdated': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true)).timeout(const Duration(seconds: 4));
+          debugPrint('[FCM TOKEN REFRESHED] Updated token for $uid');
+        } catch (_) {}
       });
     } catch (e) {
       debugPrint('[FCM TOKEN SYNC ERROR] $e');
@@ -411,7 +439,8 @@ class NotificationService {
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(recipientUid)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 4));
 
       if (!userDoc.exists) return;
       final userData = userDoc.data();
@@ -445,7 +474,7 @@ class NotificationService {
           'relatedId': relatedId ?? '',
           'createdAt': FieldValue.serverTimestamp(),
           'status': 'queued',
-        });
+        }).timeout(const Duration(seconds: 4));
       } catch (_) {}
     } catch (e) {
       debugPrint('[FCM PUSH DISPATCH ERROR] $e');

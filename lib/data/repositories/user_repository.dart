@@ -13,7 +13,10 @@ class UserRepository {
   /// Retrieves a user by their [uid].
   Future<Result<UserModel>> getUser(String uid) async {
     try {
-      final doc = await _firestoreService.usersCollection.doc(uid).get();
+      final doc = await _firestoreService.usersCollection
+          .doc(uid)
+          .get()
+          .timeout(const Duration(seconds: 4));
       if (!doc.exists) {
         return Failure(
           'User not found.',

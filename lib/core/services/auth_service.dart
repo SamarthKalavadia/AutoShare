@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'notification_service.dart';
 import '../utils/result.dart';
 import '../../data/models/user_model.dart';
 import '../../data/repositories/user_repository.dart';
@@ -190,46 +191,55 @@ class AuthService {
         );
       }
 
-      // Check if user already exists in Firestore
-      final existingCheck = await _userRepository.checkUserExists(user.uid);
-      if (existingCheck is Success<bool> && existingCheck.data) {
-        final dbUser = await _userRepository.getUser(user.uid);
-        if (dbUser is Success<UserModel>) {
-          return dbUser;
+      // Fetch existing user or create a new user profile
+      UserModel userModel;
+      final existingResult = await _userRepository.getUser(user.uid);
+      if (existingResult is Success<UserModel>) {
+        userModel = existingResult.data.copyWith(
+          name: existingResult.data.name.isNotEmpty
+              ? existingResult.data.name
+              : (user.displayName ?? 'User'),
+          email: user.email ?? existingResult.data.email,
+          profileImage: existingResult.data.profileImage.isNotEmpty
+              ? existingResult.data.profileImage
+              : (user.photoURL ?? ''),
+          emailVerified: user.emailVerified ||
+              (user.email != null && user.email!.isNotEmpty),
+          lastSeen: DateTime.now(),
+          isOnline: true,
+        );
+        await _userRepository.updateUser(userModel);
+      } else {
+        userModel = UserModel(
+          uid: user.uid,
+          name: user.displayName ??
+              (user.email != null ? user.email!.split('@').first : 'User'),
+          email: user.email ?? '',
+          phone: user.phoneNumber ?? '',
+          profileImage: user.photoURL ?? '',
+          emailVerified: user.emailVerified ||
+              (user.email != null && user.email!.isNotEmpty),
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          lastSeen: DateTime.now(),
+          isOnline: true,
+          gender: '',
+        );
+        final createResult = await _userRepository.createUser(userModel);
+        if (createResult is Failure) {
+          debugPrint(
+            'Warning: Google user created in Auth but failed in Firestore: ${createResult.message}',
+          );
         }
       }
 
-      // If new or missing in DB, create user model in Firestore
-      final userModel = UserModel(
-        uid: user.uid,
-        name:
-            user.displayName ??
-            (user.email != null ? user.email!.split('@').first : 'User'),
-        email: user.email ?? '',
-        phone: user.phoneNumber ?? '',
-        profileImage: user.photoURL ?? '',
-        emailVerified:
-            user.emailVerified ||
-            (user.email != null && user.email!.isNotEmpty),
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        lastSeen: DateTime.now(),
-        isOnline: true,
-        gender: '',
-      );
-
-      final createResult = await _userRepository.createUser(userModel);
-      if (createResult is Failure) {
-        // ignore: avoid_print
-        print(
-          'Warning: Google user created in Auth but failed in Firestore: ${createResult.message}',
-        );
-      }
+      // Sync FCM token and notifications
+      NotificationService().syncFcmToken(user.uid);
+      NotificationService().startListening(user.uid);
 
       return Success(userModel);
     } on FirebaseAuthException catch (e) {
-      // ignore: avoid_print
-      print(
+      debugPrint(
         'AuthService.googleLogin FirebaseAuthException: ${e.code} - ${e.message}',
       );
       return Failure(
@@ -237,8 +247,7 @@ class AuthService {
         AuthException(e.code),
       );
     } catch (e) {
-      // ignore: avoid_print
-      print('AuthService.googleLogin Unknown Error: $e');
+      debugPrint('AuthService.googleLogin Unknown Error: $e');
       return Failure(_mapGenericErrorMessage(e), Exception(e.toString()));
     }
   }
