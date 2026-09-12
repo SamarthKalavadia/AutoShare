@@ -408,7 +408,7 @@ class HomeTab extends ConsumerWidget {
                               label:
                                   '${searchState.passengers} ${searchState.passengers > 1 ? 'Seats' : 'Seat'}',
                               onTap: () {
-                                int p = searchState.passengers % 4 + 1;
+                                int p = searchState.passengers % 2 + 1;
                                 ref
                                     .read(homeSearchProvider.notifier)
                                     .updatePassengers(p);

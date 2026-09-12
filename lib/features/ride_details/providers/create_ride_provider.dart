@@ -122,8 +122,8 @@ class CreateRideState {
     )) {
       return 'Departure time must be in the future';
     }
-    if (availableSeats < 1 || availableSeats > 3) {
-      return 'Available seats must be between 1 and 3';
+    if (availableSeats < 1 || availableSeats > 2) {
+      return 'Available seats must be between 1 and 2';
     }
     if (farePerSeat < 0) {
       return 'Fare per seat cannot be negative';
@@ -214,7 +214,7 @@ class CreateRideNotifier extends Notifier<CreateRideState> {
   }
 
   void updateAvailableSeats(int seats) {
-    if (seats >= 1 && seats <= 4) {
+    if (seats >= 1 && seats <= 2) {
       state = state.copyWith(availableSeats: seats);
     }
   }

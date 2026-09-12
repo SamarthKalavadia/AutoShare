@@ -29,7 +29,7 @@ class HomeSearchState {
     this.destinationLng,
     this.departureDate,
     this.departureTime,
-    this.passengers = 1,
+    this.passengers = 2,
     this.girlsOnly = false,
   });
 
@@ -103,7 +103,11 @@ class HomeSearchNotifier extends Notifier<HomeSearchState> {
   void updateDate(DateTime value) =>
       state = state.copyWith(departureDate: value);
   void updateTime(String value) => state = state.copyWith(departureTime: value);
-  void updatePassengers(int value) => state = state.copyWith(passengers: value);
+  void updatePassengers(int value) {
+    if (value >= 1 && value <= 2) {
+      state = state.copyWith(passengers: value);
+    }
+  }
   void toggleGirlsOnly(bool value) => state = state.copyWith(girlsOnly: value);
 
   void clear() => state = const HomeSearchState();

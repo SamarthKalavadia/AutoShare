@@ -708,7 +708,7 @@ class _SeatsStepper extends ConsumerWidget {
           ),
           _StepperButton(
             icon: Icons.add,
-            onTap: state.availableSeats < 4
+            onTap: state.availableSeats < 2
                 ? () => notifier.updateAvailableSeats(state.availableSeats + 1)
                 : null,
           ),
