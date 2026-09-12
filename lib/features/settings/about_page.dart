@@ -39,55 +39,67 @@ class _AboutPageState extends State<AboutPage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final backgroundColor = theme.scaffoldBackgroundColor;
-    final cardColor = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E1E1E) : const Color(0xFFFFFFFF));
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
     final textColor = isDark ? Colors.white : const Color(0xFF121212);
-    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
+    final mutedText = isDark ? Colors.white54 : const Color(0xFF757575);
     final primaryColor = theme.colorScheme.primary;
 
     Widget buildSectionHeader(String title) {
       return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.only(bottom: 24),
         child: Text(
           title.toUpperCase(),
           style: theme.textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w700,
             color: mutedText,
-            letterSpacing: 1.2,
+            letterSpacing: 1.5,
           ),
         ),
       );
     }
 
-    Widget buildStepItem(String number, String text) {
+    Widget buildTimelineItem(String number, String title) {
       return Padding(
-        padding: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.only(bottom: 24),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              margin: const EdgeInsets.only(top: 2),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF0EDE9),
-                borderRadius: BorderRadius.circular(8),
+            Text(
+              number,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: mutedText,
               ),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
               child: Text(
-                number,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
+                title,
+                style: theme.textTheme.bodyLarge?.copyWith(
                   color: textColor,
+                  fontWeight: FontWeight.w400,
+                  height: 1.3,
                 ),
               ),
             ),
+          ],
+        ),
+      );
+    }
+
+    Widget buildFeatureItem(String title) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(Icons.horizontal_rule_rounded, size: 12, color: primaryColor),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                text,
-                style: theme.textTheme.bodyMedium?.copyWith(
+                title,
+                style: theme.textTheme.bodyLarge?.copyWith(
                   color: textColor,
-                  fontWeight: FontWeight.w500,
-                  height: 1.5,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
@@ -96,33 +108,7 @@ class _AboutPageState extends State<AboutPage> {
       );
     }
 
-    Widget buildFeatureItem(IconData icon, String text) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: borderColor),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 20, color: primaryColor),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                text,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: textColor,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    Widget buildBenefitItem(String title, String description) {
+    Widget buildWhyItem(String title, String description) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 24),
         child: Column(
@@ -131,7 +117,7 @@ class _AboutPageState extends State<AboutPage> {
             Text(
               title,
               style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: textColor,
               ),
             ),
@@ -151,158 +137,143 @@ class _AboutPageState extends State<AboutPage> {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: const Text('About AutoShare'),
+        title: Text(
+          'About AutoShare',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: textColor,
+          ),
+        ),
         centerTitle: false,
         backgroundColor: backgroundColor,
         scrolledUnderElevation: 0,
         elevation: 0,
+        iconTheme: IconThemeData(color: textColor),
       ),
       body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Hero Header Section
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 40, 24, 48),
-              child: Column(
-                children: [
-                  Image.asset(
-                    'assets/images/logo.png',
-                    width: 96,
-                    height: 96,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'AutoShare',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: textColor,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Smart Auto Ride Sharing',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: primaryColor,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'AutoShare makes everyday travel simpler by connecting people travelling along similar routes and helping them share available auto-rickshaw seats.',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: mutedText,
-                      height: 1.6,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 48),
 
-            // Content Sections
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
+              // BRAND HERO
+              Center(
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  width: 100,
+                  height: 100,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                'AutoShare',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Smart Auto Ride Sharing',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: primaryColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              
+              const SizedBox(height: 48),
+
+              // BIO
+              Text(
+                'Share the ride. Save the journey.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Connect with people travelling your way and share available auto-rickshaw seats.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: mutedText,
+                  height: 1.6,
+                ),
+              ),
+
+              const SizedBox(height: 120), // Generous whitespace for the first screen fold
+
+              // HOW IT WORKS
+              buildSectionHeader('How It Works'),
+              buildTimelineItem('01', 'Find or create a ride'),
+              buildTimelineItem('02', 'Choose your route'),
+              buildTimelineItem('03', 'Request or offer a seat'),
+              buildTimelineItem('04', 'Connect with your ride partner'),
+              buildTimelineItem('05', 'Travel together'),
+
+              const SizedBox(height: 64),
+
+              // KEY FEATURES
+              buildSectionHeader('Key Features'),
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  buildSectionHeader('About AutoShare'),
-                  Text(
-                    'AutoShare is a ride-sharing platform designed to make everyday auto travel more convenient and affordable. It helps people travelling in the same direction connect with each other and share available seats.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: textColor,
-                      height: 1.6,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        buildFeatureItem('Find a Ride'),
+                        buildFeatureItem('My Rides'),
+                        buildFeatureItem('Chat'),
+                        buildFeatureItem('Driver Directory'),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 48),
-
-                  buildSectionHeader('How AutoShare Works'),
-                  buildStepItem('01', 'Create or find a ride'),
-                  buildStepItem('02', 'Choose your route and travel details'),
-                  buildStepItem('03', 'Request or offer available seats'),
-                  buildStepItem('04', 'Connect with your ride partner'),
-                  buildStepItem('05', 'Travel together'),
-                  const SizedBox(height: 32),
-
-                  buildSectionHeader('Key Features'),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      FractionallySizedBox(
-                        widthFactor: 0.48,
-                        child: buildFeatureItem(Icons.search_rounded, 'Find a Ride'),
-                      ),
-                      FractionallySizedBox(
-                        widthFactor: 0.48,
-                        child: buildFeatureItem(Icons.add_circle_outline_rounded, 'Create a Ride'),
-                      ),
-                      FractionallySizedBox(
-                        widthFactor: 0.48,
-                        child: buildFeatureItem(Icons.directions_car_filled_outlined, 'My Rides'),
-                      ),
-                      FractionallySizedBox(
-                        widthFactor: 0.48,
-                        child: buildFeatureItem(Icons.person_add_alt_1_outlined, 'Ride Requests'),
-                      ),
-                      FractionallySizedBox(
-                        widthFactor: 0.48,
-                        child: buildFeatureItem(Icons.chat_bubble_outline_rounded, 'Real-time Chat'),
-                      ),
-                      FractionallySizedBox(
-                        widthFactor: 0.48,
-                        child: buildFeatureItem(Icons.notifications_none_rounded, 'Notifications'),
-                      ),
-                      FractionallySizedBox(
-                        widthFactor: 1.0,
-                        child: buildFeatureItem(Icons.contacts_outlined, 'Driver Directory'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 48),
-
-                  buildSectionHeader('Why AutoShare'),
-                  buildBenefitItem(
-                    'Convenient',
-                    'Find or share rides along routes that work for you.',
-                  ),
-                  buildBenefitItem(
-                    'Affordable',
-                    'Share available seats and make everyday travel more economical.',
-                  ),
-                  buildBenefitItem(
-                    'Connected',
-                    'Communicate with your ride partner through in-app chat.',
-                  ),
-                  buildBenefitItem(
-                    'Simple',
-                    'Everything needed for a shared ride is available in one place.',
-                  ),
-                  const SizedBox(height: 24),
-
-                  buildSectionHeader('Version'),
-                  Text(
-                    _version.isNotEmpty ? 'AutoShare v$_version' : 'Loading version...',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: textColor,
-                      fontWeight: FontWeight.w600,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        buildFeatureItem('Create a Ride'),
+                        buildFeatureItem('Ride Requests'),
+                        buildFeatureItem('Notifications'),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '© ${DateTime.now().year} AutoShare',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: mutedText,
-                    ),
-                  ),
-                  const SizedBox(height: 64),
                 ],
               ),
-            ),
-          ],
+
+              const SizedBox(height: 64),
+
+              // WHY AUTOSHARE
+              buildSectionHeader('Why AutoShare'),
+              buildWhyItem('Convenient', 'Find rides that fit your route.'),
+              buildWhyItem('Affordable', 'Share available seats and travel economically.'),
+              buildWhyItem('Connected', 'Stay connected with your ride partner.'),
+
+              const SizedBox(height: 80),
+
+              // VERSION
+              Center(
+                child: Text(
+                  _version.isNotEmpty ? 'AutoShare v$_version' : 'Loading version...',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: mutedText,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 64),
+            ],
+          ),
         ),
       ),
     );
