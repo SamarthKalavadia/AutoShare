@@ -23,8 +23,6 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     final primaryColor = theme.colorScheme.primary;
     final backgroundColor = theme.scaffoldBackgroundColor;
     final blackColor = theme.colorScheme.onSurface;
@@ -429,6 +427,7 @@ class _RideListView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     if (rides.isEmpty) {
       return Center(
         child: Column(
@@ -457,7 +456,7 @@ class _RideListView extends ConsumerWidget {
       onRefresh: () async {
         ref.invalidate(myRidesProvider);
       },
-      color: const Color(0xFFF6C000),
+      color: theme.colorScheme.primary,
       child: ListView.builder(
         padding: const EdgeInsets.all(20),
         itemCount: rides.length,
@@ -690,6 +689,7 @@ class _IncomingRequestsView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     if (requests.isEmpty) {
       return Center(
         child: Column(
@@ -718,7 +718,7 @@ class _IncomingRequestsView extends ConsumerWidget {
       onRefresh: () async {
         ref.invalidate(incomingRequestsProvider);
       },
-      color: const Color(0xFFF6C000),
+      color: theme.colorScheme.primary,
       child: ListView.builder(
         padding: const EdgeInsets.all(20),
         itemCount: requests.length,

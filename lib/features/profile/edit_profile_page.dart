@@ -177,7 +177,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final blackColor = theme.colorScheme.onSurface;
-    const primaryColor = Color(0xFFF6C000);
+    final primaryColor = theme.colorScheme.primary;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -202,7 +202,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: primaryColor))
+          ? Center(child: CircularProgressIndicator(color: primaryColor))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Form(

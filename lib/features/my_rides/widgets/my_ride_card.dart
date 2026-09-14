@@ -7,7 +7,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../chat/providers/chat_provider.dart';
-import '../../../shared/providers.dart';
 import '../../ride_details/providers/ride_request_provider.dart';
 import '../../ride_details/providers/driver_profile_provider.dart';
 import '../providers/my_rides_provider.dart';
@@ -52,13 +51,17 @@ class MyRideCard extends ConsumerWidget {
 
     switch (status) {
       case 'active':
+        badgeColor = theme.colorScheme.primary; // Forest Green
+        badgeTextColor = Colors.white;
+        break;
       case 'pending':
-        badgeColor = const Color(0xFFF6C000); // Primary Yellow
-        badgeTextColor = blackColor;
+        badgeColor = const Color(0xFFE5A93C); // Amber
+        badgeTextColor = Colors.white;
         break;
       case 'joined':
       case 'completed':
-        badgeColor = const Color(0xFF4CAF50); // Green
+        badgeColor = const Color(0xFF2E7D32); // Green
+        badgeTextColor = Colors.white;
         break;
       case 'cancelled':
       case 'rejected':
@@ -342,26 +345,24 @@ class MyRideCard extends ConsumerWidget {
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFFF6C000,
-                                ), // Primary Yellow
+                                color: theme.colorScheme.primary,
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.chat_bubble_outline,
                                     size: 16,
-                                    color: blackColor,
+                                    color: Colors.white,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Chat',
                                     style: GoogleFonts.inter(
                                       fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: blackColor,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
                                     ),
                                   ),
                                 ],

@@ -74,10 +74,17 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final sheetBg = isDark ? const Color(0xFF18221D) : Colors.white;
+    final textColor = theme.colorScheme.onSurface;
+    final subtextColor = isDark ? const Color(0xFFA0B2AA) : const Color(0xFF6B7E75);
+    final handleColor = isDark ? const Color(0xFF2D3F37) : const Color(0xFFE3EBE6);
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      decoration: BoxDecoration(
+        color: sheetBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
       child: Column(
@@ -88,7 +95,7 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
             width: 48,
             height: 5,
             decoration: BoxDecoration(
-              color: const Color(0xFFE0E0E0),
+              color: handleColor,
               borderRadius: BorderRadius.circular(10),
             ),
           ),
@@ -98,7 +105,7 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
             style: GoogleFonts.inter(
               fontSize: 22,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF121212),
+              color: textColor,
             ),
           ),
           const SizedBox(height: 8),
@@ -106,7 +113,7 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
             'How was your trip with ${widget.prompt.toUserName}?',
             style: GoogleFonts.inter(
               fontSize: 14,
-              color: const Color(0xFF6E6E73),
+              color: subtextColor,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -127,8 +134,8 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
                         : Icons.star_outline_rounded,
                     size: 52,
                     color: isSelected
-                        ? const Color(0xFFF6C000)
-                        : const Color(0xFFE0E0E0),
+                        ? const Color(0xFFFFB800)
+                        : (isDark ? const Color(0xFF38383A) : const Color(0xFFE0E0E0)),
                   ),
                 ),
               );

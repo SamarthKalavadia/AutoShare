@@ -10,8 +10,9 @@ class EmptySearch extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final blackColor = theme.colorScheme.onSurface;
-    final iconBg = isDark ? const Color(0xFF28282A) : const Color(0xFFF6F5F3);
-    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
+    final primaryGreen = theme.colorScheme.primary;
+    final iconBg = isDark ? const Color(0xFF1F2D26) : const Color(0xFFF0F7F4);
+    final mutedText = isDark ? const Color(0xFFA0B2AA) : const Color(0xFF6B7E75);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
@@ -19,13 +20,13 @@ class EmptySearch extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 140,
-            height: 140,
+            width: 120,
+            height: 120,
             decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-            child: const Icon(
+            child: Icon(
               Icons.search_off_rounded,
-              size: 64,
-              color: Color(0xFF9E9E9E),
+              size: 56,
+              color: primaryGreen,
             ),
           ),
           const SizedBox(height: 24),
@@ -33,11 +34,11 @@ class EmptySearch extends StatelessWidget {
             'No rides found',
             style: GoogleFonts.inter(
               fontSize: 20,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
               color: blackColor,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             'Try changing your filters or search another route.',
             textAlign: TextAlign.center,
@@ -46,24 +47,21 @@ class EmptySearch extends StatelessWidget {
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
-            height: 52,
-            child: FilledButton(
+            height: 54,
+            child: ElevatedButton(
               onPressed: () => context.push('/create-ride'),
-              style: FilledButton.styleFrom(
-                backgroundColor: isDark
-                    ? const Color(0xFFF6C000)
-                    : const Color(0xFF121212),
-                foregroundColor: isDark
-                    ? const Color(0xFF121212)
-                    : Colors.white,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen,
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(28),
                 ),
+                elevation: 2,
               ),
               child: Text(
                 'Create Ride',
                 style: GoogleFonts.inter(
-                  fontSize: 15,
+                  fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
               ),

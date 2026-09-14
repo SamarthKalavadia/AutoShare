@@ -254,24 +254,24 @@ class RequestCard extends ConsumerWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF6C000), // Primary Yellow
+                          color: theme.colorScheme.primary,
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.chat_bubble_outline,
                               size: 16,
-                              color: blackColor,
+                              color: Colors.white,
                             ),
                             const SizedBox(width: 6),
                             Text(
                               'Chat',
                               style: GoogleFonts.inter(
                                 fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: blackColor,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
                               ),
                             ),
                           ],

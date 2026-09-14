@@ -23,22 +23,20 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final primaryColor = isDark
-        ? const Color(0xFFFFC400)
-        : theme.colorScheme.primary;
+    final primaryColor = theme.colorScheme.primary;
     final blackColor = isDark
         ? const Color(0xFFFFFFFF)
         : theme.colorScheme.onSurface;
-    final cardColor = isDark ? const Color(0xFF181818) : Colors.white;
+    final cardColor = isDark ? const Color(0xFF18221D) : Colors.white;
     final mutedText = isDark
-        ? const Color(0xFFA1A1A1)
-        : const Color(0xFF6F6F72);
+        ? const Color(0xFFA0B2AA)
+        : const Color(0xFF6B7E75);
     final borderColor = isDark
-        ? const Color(0xFF2A2A2A)
-        : const Color(0xFFEAE5DD);
+        ? const Color(0xFF2D3F37)
+        : const Color(0xFFE3EBE6);
     final secondaryBg = isDark
-        ? const Color(0xFF2A2A2A)
-        : const Color(0xFFF6F5F3);
+        ? const Color(0xFF1F2D26)
+        : const Color(0xFFF0F7F4);
 
     final state = ref.watch(createRideProvider);
     final notifier = ref.read(createRideProvider.notifier);
@@ -448,7 +446,7 @@ class _RideTextFieldState extends State<_RideTextField> {
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: _isFocused ? const Color(0xFFF6C000) : borderColor,
+          color: _isFocused ? Theme.of(context).colorScheme.primary : borderColor,
           width: _isFocused ? 2 : 1,
         ),
         boxShadow: isDark

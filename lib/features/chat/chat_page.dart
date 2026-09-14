@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -139,7 +138,6 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final backgroundColor = theme.scaffoldBackgroundColor;
     final blackColor = theme.colorScheme.onSurface;
     final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
     final appBarBg = theme.scaffoldBackgroundColor;
 
     final currentUid = ref.watch(authControllerProvider).value?.uid ?? '';

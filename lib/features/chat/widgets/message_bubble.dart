@@ -130,7 +130,7 @@ class MessageBubble extends ConsumerWidget {
                   child: Text(
                     message.text,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: isMe ? const Color(0xFF121212) : blackColor,
+                      color: isMe ? Colors.white : blackColor,
                       fontSize: 15,
                       height: 1.35,
                     ),
@@ -144,7 +144,7 @@ class MessageBubble extends ConsumerWidget {
                       DateFormat('h:mm a').format(message.sentAt),
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontSize: 10,
-                        color: isMe ? const Color(0xFF121212).withAlpha(140) : mutedText,
+                        color: isMe ? Colors.white70 : mutedText,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -154,8 +154,8 @@ class MessageBubble extends ConsumerWidget {
                         isRead ? Icons.done_all_rounded : Icons.check_rounded,
                         size: 14,
                         color: isRead
-                            ? Colors.blue.shade700
-                            : const Color(0xFF121212).withAlpha(140),
+                            ? const Color(0xFFFFB800)
+                            : Colors.white70,
                       ),
                     ],
                   ],

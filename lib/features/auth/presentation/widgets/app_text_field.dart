@@ -72,13 +72,13 @@ class AppTextField extends StatelessWidget {
               color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             ),
             prefixIcon: prefixIcon != null
-                ? (maxLines != null && maxLines! > 1)
+                ? (maxLines > 1)
                     ? Column(
                         mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(prefixIcon, size: 22),
-                          SizedBox(height: (maxLines! - 1) * 20.0), // Pushes the icon up to align with first line
+                          SizedBox(height: (maxLines - 1) * 20.0), // Pushes the icon up to align with first line
                         ],
                       )
                     : Icon(prefixIcon, size: 22)

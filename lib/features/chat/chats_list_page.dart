@@ -601,7 +601,7 @@ class _ChatCard extends ConsumerWidget {
                         ? Icons.check_circle
                         : Icons.radio_button_unchecked,
                     color: isSelected
-                        ? const Color(0xFFFFC400)
+                        ? theme.colorScheme.primary
                         : (isDark ? Colors.white30 : Colors.black26),
                     size: 20,
                   ),

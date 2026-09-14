@@ -44,11 +44,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     final blackColor = theme.colorScheme.onSurface;
     final backgroundColor = theme.scaffoldBackgroundColor;
-    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
 
     final state = ref.watch(searchRideProvider);
 

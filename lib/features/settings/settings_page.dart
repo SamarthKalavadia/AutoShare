@@ -271,7 +271,8 @@ class SettingsPage extends ConsumerWidget {
         ),
       ),
       secondary: Icon(icon, color: textColor, size: 22),
-      activeTrackColor: const Color(0xFFF6C000),
+      activeColor: Theme.of(context).colorScheme.primary,
+      activeTrackColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );

@@ -2,65 +2,65 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import 'providers/driver_provider.dart';
 
-class DriverDirectoryPage extends ConsumerWidget {
+class DriverDirectoryPage extends ConsumerStatefulWidget {
   const DriverDirectoryPage({super.key});
 
-  String _formatPhoneNumber(String phone) {
-    if (phone.length == 10) {
-      return '+91 ${phone.substring(0, 5)} ${phone.substring(5)}';
-    }
-    return phone;
-  }
+  @override
+  ConsumerState<DriverDirectoryPage> createState() =>
+      _DriverDirectoryPageState();
+}
 
-  Future<void> _makePhoneCall(String phone) async {
-    final formattedPhone = '+91$phone';
-    final Uri url = Uri.parse('tel:$formattedPhone');
-    try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        debugPrint('Could not launch dialer for $formattedPhone');
-      }
-    } catch (e) {
-      debugPrint('Error launching phone call: $e');
+class _DriverDirectoryPageState extends ConsumerState<DriverDirectoryPage> {
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final cleanPhone = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+    final Uri launchUri = Uri(scheme: 'tel', path: cleanPhone);
+    if (await canLaunchUrl(launchUri)) {
+      await launchUrl(launchUri);
     }
   }
 
-  Future<void> _openWhatsApp(BuildContext context, String phone) async {
-    final formattedPhone = '+91$phone';
-    final Uri url = Uri.parse('https://wa.me/$formattedPhone');
-    try {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } catch (e) {
-      debugPrint('Error launching WhatsApp: $e');
+  Future<void> _openWhatsApp(BuildContext context, String phoneNumber) async {
+    var cleanPhone = phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
+    if (!cleanPhone.startsWith('91') && cleanPhone.length == 10) {
+      cleanPhone = '91$cleanPhone';
+    }
+
+    final Uri whatsappUri = Uri.parse('https://wa.me/$cleanPhone');
+    if (await canLaunchUrl(whatsappUri)) {
+      await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+    } else {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Could not open WhatsApp. Please check if it is installed.',
-            ),
-            backgroundColor: Color(0xFFD32F2F),
-          ),
+          const SnackBar(content: Text('Could not open WhatsApp')),
         );
       }
     }
   }
 
+  String _formatPhoneNumber(String phone) {
+    final clean = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    if (clean.length == 10) {
+      return '+91 ${clean.substring(0, 5)} ${clean.substring(5)}';
+    }
+    return phone;
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final blackColor = theme.colorScheme.onSurface;
     final borderColor = isDark
-        ? const Color(0xFF333333)
-        : const Color(0xFFEAE5DD);
+        ? const Color(0xFF2D3F37)
+        : const Color(0xFFE3EBE6);
     final cardBg =
         theme.cardTheme.color ??
-        (isDark ? const Color(0xFF1E1E1E) : Colors.white);
-    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
-    const primaryColor = Color(0xFFF6C000);
+        (isDark ? const Color(0xFF18221D) : Colors.white);
+    final mutedText = isDark ? const Color(0xFFA0B2AA) : const Color(0xFF6B7E75);
+    final primaryColor = theme.colorScheme.primary;
 
     final driversAsync = ref.watch(driverDirectoryListProvider);
 
@@ -79,24 +79,18 @@ class DriverDirectoryPage extends ConsumerWidget {
         ),
         centerTitle: false,
         titleSpacing: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Driver Directory',
-              style: GoogleFonts.inter(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: blackColor,
-              ),
-            ),
-          ],
+        title: Text(
+          'Driver Directory',
+          style: GoogleFonts.inter(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: blackColor,
+          ),
         ),
       ),
       body: driversAsync.when(
         loading: () =>
-            const Center(child: CircularProgressIndicator(color: primaryColor)),
+            Center(child: CircularProgressIndicator(color: primaryColor)),
         error: (error, stack) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -126,7 +120,7 @@ class DriverDirectoryPage extends ConsumerWidget {
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
                   color: cardBg,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: borderColor, width: 1.1),
                   boxShadow: isDark
                       ? []
@@ -147,9 +141,7 @@ class DriverDirectoryPage extends ConsumerWidget {
                         children: [
                           CircleAvatar(
                             radius: 24,
-                            backgroundColor: primaryColor.withValues(
-                              alpha: 0.15,
-                            ),
+                            backgroundColor: const Color(0xFFD85A30),
                             child: Text(
                               driver.name.isNotEmpty
                                   ? driver.name[0].toUpperCase()
@@ -157,7 +149,7 @@ class DriverDirectoryPage extends ConsumerWidget {
                               style: GoogleFonts.inter(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
-                                color: primaryColor,
+                                color: Colors.white,
                               ),
                             ),
                           ),
@@ -170,7 +162,7 @@ class DriverDirectoryPage extends ConsumerWidget {
                                   driver.name,
                                   style: GoogleFonts.inter(
                                     fontSize: 16,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w700,
                                     color: blackColor,
                                   ),
                                 ),
@@ -196,15 +188,13 @@ class DriverDirectoryPage extends ConsumerWidget {
                               child: FilledButton.icon(
                                 onPressed: () => _makePhoneCall(driver.phone),
                                 style: FilledButton.styleFrom(
-                                  backgroundColor: isDark
-                                      ? const Color(0xFF222222)
-                                      : Colors.black,
+                                  backgroundColor: primaryColor,
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
                                 icon: const Icon(
@@ -216,7 +206,7 @@ class DriverDirectoryPage extends ConsumerWidget {
                                   'Call',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ),
@@ -236,7 +226,7 @@ class DriverDirectoryPage extends ConsumerWidget {
                                     horizontal: 8,
                                   ),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
                                 icon: const Icon(
@@ -248,7 +238,7 @@ class DriverDirectoryPage extends ConsumerWidget {
                                   'WhatsApp',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ),

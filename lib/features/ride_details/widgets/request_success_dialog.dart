@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Animated success bottom sheet shown after a ride request is submitted.
 Future<void> showRequestSuccessDialog(BuildContext context) {

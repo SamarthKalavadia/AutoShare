@@ -3,19 +3,25 @@ import 'package:flutter/material.dart';
 import '../../core/theme/color_palette.dart';
 
 class AppFAB extends StatelessWidget {
-  const AppFAB({super.key});
+  final VoidCallback? onPressed;
+  final IconData icon;
+
+  const AppFAB({
+    super.key,
+    this.onPressed,
+    this.icon = Icons.directions_car_filled,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return FloatingActionButton(
-      backgroundColor: AppColors.primaryYellow,
+      backgroundColor: isDark ? const Color(0xFF10B981) : AppColors.primaryGreen,
       foregroundColor: Colors.white,
-      onPressed: () {
-        // Navigate to create ride page (placeholder)
-        // Assuming route exists
-        // context.go(AppRoutes.createRide); // Uncomment when route added
-      },
-      child: const Icon(Icons.directions_car_filled),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      onPressed: onPressed,
+      child: Icon(icon),
     );
   }
 }

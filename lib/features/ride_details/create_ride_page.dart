@@ -15,16 +15,10 @@ class CreateRidePage extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final primaryColor = theme.colorScheme.primary;
     final blackColor = theme.colorScheme.onSurface;
     final backgroundColor = isDark
         ? const Color(0xFF0F0F0F)
         : theme.scaffoldBackgroundColor;
-    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
-    final borderColor = isDark
-        ? const Color(0xFF2A2A2A)
-        : const Color(0xFFEAE5DD);
-    const successColor = Color(0xFF2E7D32);
     const dangerColor = Color(0xFFD32F2F);
 
     final state = ref.watch(createRideProvider);
@@ -319,40 +313,6 @@ class CreateRidePage extends ConsumerWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String text;
-
-  const _InfoRow({
-    required this.icon,
-    required this.iconColor,
-    required this.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: iconColor, size: 20),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF4C4C4F),
-              height: 1.4,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -181,10 +181,8 @@ class _SplashPageState extends ConsumerState<SplashPage>
 
     // Using deep dark for dark mode, and existing surface for light mode
     final backgroundColor = isDark
-        ? const Color(0xFF121212)
+        ? const Color(0xFF101714)
         : theme.colorScheme.surface;
-    final textColor = isDark ? Colors.white : const Color(0xFF121212);
-    final subtitleColor = isDark ? Colors.white70 : const Color(0xFF6F6F72);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -225,12 +223,26 @@ class _SplashPageState extends ConsumerState<SplashPage>
                   position: _titleSlideAnim,
                   child: Opacity(
                     opacity: _titleFadeAnim.value,
-                    child: Text(
-                      'AutoShare',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                        color: textColor,
+                    child: RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Auto',
+                            style: theme.textTheme.headlineLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              color: isDark ? Colors.white : const Color(0xFF084E31),
+                            ),
+                          ),
+                          TextSpan(
+                            text: 'Share',
+                            style: theme.textTheme.headlineLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              color: const Color(0xFFFFB800),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -239,10 +251,11 @@ class _SplashPageState extends ConsumerState<SplashPage>
                 Opacity(
                   opacity: _taglineFadeAnim.value,
                   child: Text(
-                    'Smart & Safe Ride Sharing',
+                    'Rides Together, A Greener Tomorrow',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: subtitleColor,
-                      letterSpacing: 0.5,
+                      color: isDark ? const Color(0xFFA0B2AA) : const Color(0xFF6B7E75),
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -0.1,
                     ),
                   ),
                 ),

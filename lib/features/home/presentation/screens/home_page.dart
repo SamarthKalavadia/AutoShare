@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'home_tab.dart';
 import '../../../search/search_page.dart';
@@ -176,11 +175,14 @@ class _HomePageState extends ConsumerState<HomePage> {
   }) {
     final isSelected = currentIndex == index;
     final inactiveColor = isDark
-        ? const Color(0xFFA1A1A1)
-        : const Color(0xFF6F6F72);
-    final activeColor = const Color(0xFFFFC400); // AutoShare Yellow
-    final activeIconColor =
-        Colors.black87; // Dark icon for contrast inside yellow pill
+        ? const Color(0xFFA0B2AA)
+        : const Color(0xFF70857B);
+    final activePillColor = isDark
+        ? const Color(0xFF1E382B)
+        : const Color(0xFFE8F5EE);
+    final activeIconColor = isDark
+        ? const Color(0xFF10B981)
+        : const Color(0xFF084E31);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -199,18 +201,18 @@ class _HomePageState extends ConsumerState<HomePage> {
                 // Active Indicator Capsule
                 if (isSelected)
                   Container(
-                    width: 44,
-                    height: 28,
+                    width: 48,
+                    height: 30,
                     decoration: BoxDecoration(
-                      color: activeColor,
-                      borderRadius: BorderRadius.circular(14),
+                      color: activePillColor,
+                      borderRadius: BorderRadius.circular(15),
                     ),
                   ),
 
                 // Icon
                 SizedBox(
-                  width: 44,
-                  height: 28,
+                  width: 48,
+                  height: 30,
                   child: Center(
                     child: Icon(
                       isSelected ? activeIcon : inactiveIcon,

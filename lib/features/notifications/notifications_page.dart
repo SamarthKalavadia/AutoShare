@@ -651,7 +651,7 @@ class _NotificationTile extends ConsumerWidget {
                           ? Icons.check_circle
                           : Icons.radio_button_unchecked,
                       color: isSelected
-                          ? const Color(0xFFFFC400)
+                          ? theme.colorScheme.primary
                           : (isDark ? Colors.white30 : Colors.black26),
                       size: 20,
                     ),
@@ -757,8 +757,8 @@ class _NotificationTile extends ConsumerWidget {
                     child: Container(
                       width: 8,
                       height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF6C000),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -797,7 +797,7 @@ class _NotificationTile extends ConsumerWidget {
         return isDark ? const Color(0xFF332D19) : const Color(0xFFFFF8E1);
       case 'accepted':
       case 'completed':
-        return isDark ? const Color(0xFF1B3320) : const Color(0xFFE8F5E9);
+        return isDark ? const Color(0xFF1B2F25) : const Color(0xFFF0F7F4);
       case 'rejected':
       case 'cancelled':
         return isDark ? const Color(0xFF331B1B) : const Color(0xFFFFEBEE);
@@ -811,15 +811,15 @@ class _NotificationTile extends ConsumerWidget {
   Color _iconColorForType(String type, bool isDark) {
     switch (type) {
       case 'new_request':
-        return const Color(0xFFF6C000);
+        return const Color(0xFFFFB800);
       case 'accepted':
       case 'completed':
-        return const Color(0xFF4CAF50);
+        return const Color(0xFF084E31);
       case 'rejected':
       case 'cancelled':
         return const Color(0xFFE53935);
       default:
-        return isDark ? const Color(0xFFA1A1A1) : const Color(0xFF6F6F72);
+        return isDark ? const Color(0xFFA0B2AA) : const Color(0xFF6B7E75);
     }
   }
 

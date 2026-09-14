@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -24,12 +23,14 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    const primaryColor = Color(0xFFF6C000);
+    final primaryGreen = isDark
+        ? const Color(0xFF10B981)
+        : const Color(0xFF084E31);
     final blackColor = theme.colorScheme.onSurface;
     final borderColor = isDark
-        ? const Color(0xFF333333)
-        : const Color(0xFFEAE5DD);
-    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
+        ? const Color(0xFF2D3F37)
+        : const Color(0xFFE3EBE6);
+    final mutedText = isDark ? const Color(0xFFA0B2AA) : const Color(0xFF6B7E75);
 
     final state = ref.watch(searchRideProvider);
     final notifier = ref.read(searchRideProvider.notifier);
@@ -38,10 +39,13 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
     final isFemale = authState.value?.gender.toLowerCase() == 'female';
     final isSearching = _isSearchingBoarding || _isSearchingDestination;
 
-    final cardColor = isDark ? const Color(0xFF181818) : Colors.white;
+    final cardColor = isDark ? const Color(0xFF18221D) : Colors.white;
     final secondaryBg = isDark
-        ? const Color(0xFF2A2A2A)
-        : const Color(0xFFF6F5F3);
+        ? const Color(0xFF1F2D26)
+        : const Color(0xFFF0F7F4);
+    final mintBorder = isDark
+        ? const Color(0xFF2E4D3D)
+        : const Color(0xFFC4E3D4);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -52,15 +56,15 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
           Container(
             decoration: BoxDecoration(
               color: cardColor,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(24),
               border: Border.all(color: borderColor),
               boxShadow: isDark
                   ? []
                   : [
                       BoxShadow(
-                        color: Colors.black.withAlpha(5),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
                       ),
                     ],
             ),
@@ -74,8 +78,8 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                   child: Container(
                     width: 1.5,
                     color: isDark
-                        ? const Color(0xFF333333)
-                        : const Color(0xFFE0E0E0),
+                        ? const Color(0xFF2D3F37)
+                        : const Color(0xFFE3EBE6),
                   ),
                 ),
                 Column(
@@ -84,8 +88,8 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                     LocationAutocompleteField(
                       fieldKey: 'search_boarding',
                       hint: 'Pickup location',
-                      icon: Icons.radio_button_checked,
-                      iconColor: primaryColor,
+                      icon: Icons.adjust_rounded,
+                      iconColor: const Color(0xFFE5A93C), // Gold Target
                       initialValue: state.boardingLocation,
                       showCurrentLocationButton: true,
                       transparentBackground: true,
@@ -98,21 +102,19 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                         notifier.updateBoardingLocation(prediction.description);
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Divider(
                       height: 1,
                       indent: 52,
                       endIndent: 68,
-                      color: isDark
-                          ? const Color(0xFF333333)
-                          : const Color(0xFFE0E0E0),
+                      color: borderColor,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     LocationAutocompleteField(
                       fieldKey: 'search_destination',
                       hint: 'Dropoff location',
                       icon: Icons.location_on,
-                      iconColor: isDark ? Colors.white : Colors.black87,
+                      iconColor: const Color(0xFFE53935), // Red Pin
                       initialValue: state.destination,
                       showCurrentLocationButton: false,
                       transparentBackground: true,
@@ -141,11 +143,18 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                           decoration: BoxDecoration(
                             color: secondaryBg,
                             shape: BoxShape.circle,
-                            border: Border.all(color: borderColor),
+                            border: Border.all(color: mintBorder),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Icon(
                             Icons.swap_vert_rounded,
-                            color: blackColor,
+                            color: primaryGreen,
                             size: 20,
                           ),
                         ),
@@ -155,17 +164,20 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
           // Date and Time
           Row(
             children: [
               Expanded(
                 child: _DateTimeSelector(
-                  icon: Icons.calendar_month_rounded,
+                  icon: Icons.calendar_today_outlined,
                   text: state.departureDate != null
                       ? DateFormat('MMM dd').format(state.departureDate!)
                       : 'Date',
+                  mintBg: secondaryBg,
+                  mintBorder: mintBorder,
+                  primaryColor: primaryGreen,
                   onTap: () async {
                     final date = await showDatePicker(
                       context: context,
@@ -184,6 +196,9 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                   text: state.departureTime != null
                       ? DateFormat('hh:mm a').format(state.departureTime!)
                       : 'Time',
+                  mintBg: secondaryBg,
+                  mintBorder: mintBorder,
+                  primaryColor: primaryGreen,
                   onTap: () async {
                     final time = await showTimePicker(
                       context: context,
@@ -219,7 +234,8 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                   children: [
                     Text(
                       'Required Seats',
-                      style: theme.textTheme.labelMedium?.copyWith(
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: mutedText,
                       ),
@@ -228,27 +244,20 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
-                        vertical: 8,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
                         color: cardColor,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(18),
                         border: Border.all(color: borderColor),
-                        boxShadow: isDark
-                            ? []
-                            : [
-                                BoxShadow(
-                                  color: Colors.black.withAlpha(5),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           _StepperButton(
                             icon: Icons.remove,
+                            primaryColor: primaryGreen,
+                            mintBg: secondaryBg,
                             onTap: state.requiredSeats > 1
                                 ? () => notifier.updateRequiredSeats(
                                     state.requiredSeats - 1,
@@ -260,14 +269,17 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                             child: Text(
                               '${state.requiredSeats}',
                               key: ValueKey(state.requiredSeats),
-                              style: theme.textTheme.titleMedium?.copyWith(
+                              style: GoogleFonts.inter(
                                 fontWeight: FontWeight.w700,
+                                fontSize: 16,
                                 color: blackColor,
                               ),
                             ),
                           ),
                           _StepperButton(
                             icon: Icons.add,
+                            primaryColor: primaryGreen,
+                            mintBg: secondaryBg,
                             onTap: state.requiredSeats < 4
                                 ? () => notifier.updateRequiredSeats(
                                     state.requiredSeats + 1,
@@ -287,11 +299,13 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                   children: [
                     Text(
                       'Max Fare (₹${state.maxFare.toInt()})',
-                      style: theme.textTheme.labelMedium?.copyWith(
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: mutedText,
                       ),
                     ),
+                    const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 4,
@@ -299,26 +313,17 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                       ),
                       decoration: BoxDecoration(
                         color: cardColor,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(18),
                         border: Border.all(color: borderColor),
-                        boxShadow: isDark
-                            ? []
-                            : [
-                                BoxShadow(
-                                  color: Colors.black.withAlpha(5),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
                       ),
                       child: SliderTheme(
                         data: SliderTheme.of(context).copyWith(
-                          activeTrackColor: primaryColor,
+                          activeTrackColor: primaryGreen,
                           inactiveTrackColor: isDark
-                              ? const Color(0xFF38383A)
-                              : const Color(0xFFEAE5DD),
-                          thumbColor: primaryColor,
-                          overlayColor: primaryColor.withValues(alpha: 0.2),
+                              ? const Color(0xFF263730)
+                              : const Color(0xFFE3EBE6),
+                          thumbColor: primaryGreen,
+                          overlayColor: primaryGreen.withValues(alpha: 0.2),
                           trackHeight: 4,
                         ),
                         child: Slider(
@@ -338,42 +343,28 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
           const SizedBox(height: 16),
 
           // Girls Only Toggle
-          if (isFemale)
+          if (isFemale) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: borderColor),
-                boxShadow: isDark
-                    ? []
-                    : [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(5),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                color: secondaryBg,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: mintBorder),
               ),
               child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: primaryColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.female_rounded,
-                      size: 18,
-                      color: primaryColor,
-                    ),
+                  Icon(
+                    Icons.female_rounded,
+                    size: 20,
+                    color: primaryGreen,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'Girls Only Rides',
-                      style: theme.textTheme.titleMedium?.copyWith(
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
                         color: blackColor,
                       ),
                     ),
@@ -381,44 +372,57 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                   Switch.adaptive(
                     value: state.isGirlsOnly,
                     onChanged: notifier.toggleGirlsOnly,
-                    activeTrackColor: primaryColor,
+                    activeColor: primaryGreen,
                   ),
                 ],
               ),
             ),
-          if (isFemale) const SizedBox(height: 24),
+            const SizedBox(height: 20),
+          ],
 
           // Search Button
           SizedBox(
             width: double.infinity,
-            height: 56,
-            child: FilledButton(
+            height: 54,
+            child: ElevatedButton(
               onPressed: state.isValid && !state.isLoading
                   ? () => notifier.searchRides()
                   : null,
-              style: FilledButton.styleFrom(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryGreen,
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(28),
                 ),
-                elevation: state.isValid ? 4 : 0,
+                elevation: state.isValid ? 3 : 0,
               ),
               child: state.isLoading
-                  ? SizedBox(
+                  ? const SizedBox(
                       width: 24,
                       height: 24,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          isDark ? Colors.black : Colors.white,
-                        ),
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
-                  : Text(
-                      'Search Rides',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Search Rides',
+                          style: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 20,
+                          color: Colors.white,
+                        ),
+                      ],
                     ),
             ),
           ),
@@ -431,56 +435,53 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
 class _DateTimeSelector extends StatelessWidget {
   final IconData icon;
   final String text;
+  final Color mintBg;
+  final Color mintBorder;
+  final Color primaryColor;
   final VoidCallback onTap;
 
   const _DateTimeSelector({
     required this.icon,
     required this.text,
+    required this.mintBg,
+    required this.mintBorder,
+    required this.primaryColor,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cardColor = isDark ? const Color(0xFF181818) : Colors.white;
-    final borderColor = isDark
-        ? const Color(0xFF2A2A2A)
-        : const Color(0xFFEAE5DD);
-    final textColor = theme.colorScheme.onSurface;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: borderColor),
-          boxShadow: isDark
-              ? []
-              : [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(5),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            color: mintBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: mintBorder),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: primaryColor, size: 18),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  text,
+                  style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: primaryColor,
                   ),
-                ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: textColor, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              text,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: textColor,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -489,36 +490,32 @@ class _DateTimeSelector extends StatelessWidget {
 
 class _StepperButton extends StatelessWidget {
   final IconData icon;
+  final Color primaryColor;
+  final Color mintBg;
   final VoidCallback? onTap;
 
-  const _StepperButton({required this.icon, this.onTap});
+  const _StepperButton({
+    required this.icon,
+    required this.primaryColor,
+    required this.mintBg,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final activeBg = isDark ? const Color(0xFF38383A) : Colors.white;
-    final activeIconColor = isDark ? Colors.white : const Color(0xFF121212);
-    final disabledIconColor = isDark ? Colors.white30 : const Color(0xFFD0D0D0);
+    final activeBg = mintBg;
+    final activeIconColor = primaryColor;
+    final disabledIconColor = isDark ? Colors.white24 : const Color(0xFFD0D0D0);
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(6),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: onTap != null ? activeBg : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: onTap != null
-              ? [
-                  BoxShadow(
-                    color: isDark
-                        ? const Color(0x33000000)
-                        : const Color(0x0F000000),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : [],
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
           icon,

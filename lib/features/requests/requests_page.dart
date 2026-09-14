@@ -174,7 +174,7 @@ class _RequestListView extends ConsumerWidget {
       onRefresh: () async {
         ref.invalidate(incomingRequestsProvider);
       },
-      color: const Color(0xFFF6C000),
+      color: Theme.of(context).colorScheme.primary,
       child: ListView.builder(
         padding: const EdgeInsets.all(20),
         itemCount: requests.length,

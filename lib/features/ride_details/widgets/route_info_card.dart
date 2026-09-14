@@ -15,19 +15,15 @@ class RouteInfoCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final borderColor = isDark
-        ? const Color(0xFF333333)
-        : const Color(0xFFEAE5DD);
-    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
+        ? const Color(0xFF2D3F37)
+        : const Color(0xFFE3EBE6);
+    final mutedText = isDark ? const Color(0xFFA0B2AA) : const Color(0xFF6B7E75);
     final cardBg =
         theme.cardTheme.color ??
-        (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+        (isDark ? const Color(0xFF18221D) : Colors.white);
 
-    final successColor = isDark
-        ? const Color(0xFF4CAF50)
-        : const Color(0xFF2E7D32);
-    final dangerColor = isDark
-        ? const Color(0xFFEF5350)
-        : const Color(0xFFD32F2F);
+    const pickupColor = Color(0xFFE5A93C);
+    const dropColor = Color(0xFFE53935);
 
     final dateStr = DateFormat('EEE, d MMM yyyy').format(ride.departureTime);
     final timeStr = DateFormat('h:mm a').format(ride.departureTime);
@@ -54,8 +50,9 @@ class RouteInfoCard extends StatelessWidget {
           // Section title
           Text(
             'ROUTE',
-            style: theme.textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
               color: mutedText,
               letterSpacing: 0.8,
             ),
@@ -72,34 +69,23 @@ class RouteInfoCard extends StatelessWidget {
                   width: 24,
                   child: Column(
                     children: [
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: cardBg,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: theme.colorScheme.onSurface,
-                            width: 2,
-                          ),
-                        ),
+                      const Icon(
+                        Icons.adjust_rounded,
+                        color: pickupColor,
+                        size: 16,
                       ),
                       Expanded(
                         child: Center(
                           child: Container(
                             width: 2,
-                            color: isDark ? Colors.white24 : Colors.black12,
+                            color: borderColor,
                           ),
                         ),
                       ),
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.onSurface,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: cardBg, width: 2),
-                        ),
+                      const Icon(
+                        Icons.location_on,
+                        color: dropColor,
+                        size: 16,
                       ),
                     ],
                   ),
@@ -114,13 +100,13 @@ class RouteInfoCard extends StatelessWidget {
                       _LocationLabel(
                         label: 'Boarding',
                         value: ride.boardingLocation,
-                        color: successColor,
+                        color: pickupColor,
                       ),
                       const SizedBox(height: 20),
                       _LocationLabel(
                         label: 'Destination',
                         value: ride.destination,
-                        color: dangerColor,
+                        color: dropColor,
                       ),
                     ],
                   ),
@@ -132,9 +118,7 @@ class RouteInfoCard extends StatelessWidget {
           const SizedBox(height: 20),
           Divider(
             height: 1,
-            color: isDark
-                ? Colors.white10
-                : Colors.black.withValues(alpha: 0.05),
+            color: borderColor,
           ),
           const SizedBox(height: 16),
 
@@ -213,17 +197,19 @@ class _LocationLabel extends StatelessWidget {
       children: [
         Text(
           label.toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: color.withValues(alpha: 0.8),
+          style: GoogleFonts.inter(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: color,
             letterSpacing: 0.8,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 3),
         Text(
           value.isNotEmpty ? value : '—',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
             color: blackColor,
           ),
           maxLines: 2,
@@ -249,19 +235,23 @@ class _MetaChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final primaryGreen = theme.colorScheme.primary;
+    final chipBg = isDark ? const Color(0xFF1F2D26) : const Color(0xFFF0F7F4);
+    final chipBorder = isDark ? const Color(0xFF2E4D3D) : const Color(0xFFC4E3D4);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3),
+        color: chipBg,
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: chipBorder),
       ),
       child: Row(
         children: [
           Icon(
             icon,
             size: 16,
-            color: isDark ? Colors.white60 : const Color(0xFF6F6F72),
+            color: primaryGreen,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -270,15 +260,18 @@ class _MetaChip extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: isDark ? Colors.white54 : const Color(0xFF9E9E9E),
+                  style: GoogleFonts.inter(
+                    color: isDark ? const Color(0xFFA0B2AA) : const Color(0xFF6B7E75),
+                    fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 Text(
                   value,
-                  style: theme.textTheme.titleSmall?.copyWith(
+                  style: GoogleFonts.inter(
                     fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: theme.colorScheme.onSurface,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

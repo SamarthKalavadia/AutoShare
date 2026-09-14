@@ -392,9 +392,9 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
                     child: SizedBox(
                       width: 20,
                       height: 20,
-                      child: const CircularProgressIndicator(
+                      child: CircularProgressIndicator(
                         strokeWidth: 2.5,
-                        color: Color(0xFFF6C000),
+                        color: theme.colorScheme.primary,
                       ),
                     ),
                   ),
@@ -405,9 +405,7 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
                       padding: const EdgeInsets.only(right: 10),
                       child: IconButton(
                         icon: const Icon(Icons.my_location_rounded, size: 20),
-                        color: const Color(
-                          0xFFF6C000,
-                        ), // Primary Yellow GPS Icon
+                        color: const Color(0xFFE5A93C), // Gold GPS Icon
                         tooltip: 'Use Current Location',
                         onPressed: _fetchAndSetCurrentLocation,
                       ),
@@ -435,8 +433,8 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
             ? InputBorder.none
             : OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(
-                  color: Color(0xFFF6C000),
+                borderSide: BorderSide(
+                  color: theme.colorScheme.primary,
                   width: 2,
                 ),
               ),
@@ -520,8 +518,8 @@ class _SuggestionTile extends StatelessWidget {
       color: cardBg,
       child: InkWell(
         onTap: onTap,
-        splashColor: const Color(0xFFF6C000).withAlpha(30),
-        highlightColor: const Color(0xFFF6C000).withAlpha(15),
+        splashColor: theme.colorScheme.primary.withAlpha(30),
+        highlightColor: theme.colorScheme.primary.withAlpha(15),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(

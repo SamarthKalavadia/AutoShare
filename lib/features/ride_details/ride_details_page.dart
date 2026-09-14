@@ -439,8 +439,8 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
                     style: FilledButton.styleFrom(
                       backgroundColor: primaryColor,
                       disabledBackgroundColor: primaryColor.withAlpha(120),
-                      foregroundColor: const Color(0xFF121212),
-                      disabledForegroundColor: const Color(0xFF121212),
+                      foregroundColor: Colors.white,
+                      disabledForegroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -457,15 +457,19 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
           ] else ...[
             SizedBox(
               width: double.infinity,
+              height: 54,
               child: FilledButton(
                 onPressed: canRequest ? _onRequestPressed : null,
                 style: FilledButton.styleFrom(
                   backgroundColor: primaryColor,
                   disabledBackgroundColor: disabledBg,
-                  foregroundColor: const Color(0xFF121212),
+                  foregroundColor: Colors.white,
                   disabledForegroundColor: isDark
                       ? Colors.white30
                       : const Color(0xFFAAAAAA),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
                 ),
                 child: isLoading
                     ? const SizedBox(
@@ -473,10 +477,16 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
                         height: 22,
                         child: CircularProgressIndicator(
                           strokeWidth: 2.5,
-                          color: Color(0xFF121212),
+                          color: Colors.white,
                         ),
                       )
-                    : Text(buttonLabel),
+                    : Text(
+                        buttonLabel,
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
               ),
             ),
           ],

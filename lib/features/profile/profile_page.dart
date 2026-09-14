@@ -497,7 +497,7 @@ class _ProfileBody extends ConsumerWidget {
                                         const Icon(
                                           Icons.star_rounded,
                                           size: 12,
-                                          color: Color(0xFFF6C000),
+                                          color: Color(0xFFFFB800),
                                         ),
                                         const SizedBox(width: 8),
                                         Expanded(
@@ -1050,7 +1050,7 @@ class _ReviewCard extends StatelessWidget {
                   return Icon(
                     filled ? Icons.star_rounded : Icons.star_outline_rounded,
                     color: filled
-                        ? const Color(0xFFF6C000)
+                        ? const Color(0xFFFFB800)
                         : (isDark ? Colors.grey[700] : const Color(0xFFE0E0E0)),
                     size: 16,
                   );

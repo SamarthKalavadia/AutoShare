@@ -10,10 +10,9 @@ import '../../providers/home_dashboard_provider.dart';
 import '../../providers/home_search_provider.dart';
 import '../../../profile/providers/user_profile_provider.dart';
 import '../../../../shared/utils/avatar_utils.dart';
-import '../../../ride_details/providers/create_ride_provider.dart';
 import '../../../../shared/widgets/location_autocomplete_field.dart';
 import '../../../../services/location_service.dart'
-    show LocationService, PermissionException, HttpException;
+    show LocationService, PermissionException;
 import 'home_page.dart' show homeNavigationProvider;
 
 class HomeTab extends ConsumerWidget {
@@ -24,24 +23,36 @@ class HomeTab extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final primaryColor = isDark
-        ? const Color(0xFFFFC400)
-        : theme.colorScheme.primary;
+    final primaryGreen = isDark
+        ? const Color(0xFF10B981)
+        : const Color(0xFF084E31);
+    final heroHeaderColor = isDark
+        ? const Color(0xFF0D2319)
+        : const Color(0xFF084E31);
     final backgroundColor = isDark
-        ? const Color(0xFF0F0F0F)
-        : theme.scaffoldBackgroundColor;
+        ? const Color(0xFF101714)
+        : const Color(0xFFF6F9F7);
     final cardColor = isDark
-        ? const Color(0xFF181818)
-        : (theme.cardTheme.color ?? const Color(0xFFFFFFFF));
+        ? const Color(0xFF18221D)
+        : Colors.white;
     final borderColor = isDark
-        ? const Color(0xFF2A2A2A)
-        : const Color(0xFFEAE5DD);
+        ? const Color(0xFF2D3F37)
+        : const Color(0xFFE3EBE6);
     final textPrimary = isDark
-        ? const Color(0xFFFFFFFF)
-        : theme.colorScheme.onSurface;
+        ? Colors.white
+        : const Color(0xFF0F1713);
     final textSecondary = isDark
-        ? const Color(0xFFA1A1A1)
-        : const Color(0xFF6F6F72);
+        ? const Color(0xFFA0B2AA)
+        : const Color(0xFF6B7E75);
+    final mintBg = isDark
+        ? const Color(0xFF1B2F25)
+        : const Color(0xFFF0F7F4);
+    final mintBorder = isDark
+        ? const Color(0xFF2E4D3D)
+        : const Color(0xFFC4E3D4);
+    final inputBg = isDark
+        ? const Color(0xFF1F2D26)
+        : const Color(0xFFF5F7F6);
 
     final user = ref.watch(authControllerProvider).value;
     final searchState = ref.watch(homeSearchProvider);
@@ -57,192 +68,205 @@ class HomeTab extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      appBar: AppBar(
-        backgroundColor: backgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        automaticallyImplyLeading: false,
-        toolbarHeight: 92,
-        titleSpacing: 12,
-        title: Row(
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Image.asset(
-                'assets/images/logo.png',
-                width: 44,
-                height: 44,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Image.asset(
-                    'assets/appicon.png',
-                    width: 44,
-                    height: 44,
-                    fit: BoxFit.cover,
-                  );
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    greeting,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      color: textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    user?.name.split(' ').first ?? 'Guest',
-                    style: GoogleFonts.inter(
-                      fontSize: 22,
-                      color: textPrimary,
-                      fontWeight: FontWeight.w700,
-                      height: 1.1,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          GestureDetector(
-            onTap: () => context.push('/notifications'),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? const Color(0xFF202020)
-                        : const Color(0xFFF7F4EE),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: Icon(
-                    Icons.notifications_outlined,
-                    color: textPrimary,
-                    size: 20,
-                  ),
+            // TOP GREEN HERO BANNER
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: heroHeaderColor,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(32),
+                  bottomRight: Radius.circular(32),
                 ),
-                Consumer(
-                  builder: (ctx, ref, _) {
-                    final count = ref.watch(unreadNotificationCountProvider);
-                    if (count == 0) return const SizedBox.shrink();
-                    return Positioned(
-                      right: 4,
-                      top: -2,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 5,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFF4444),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: backgroundColor,
-                            width: 1.5,
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Greeting & Name with Logo
+                      Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              width: 44,
+                              height: 44,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Image.asset(
+                                  'assets/appicon.png',
+                                  width: 44,
+                                  height: 44,
+                                  fit: BoxFit.cover,
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          count > 99 ? '99+' : '$count',
-                          style: GoogleFonts.inter(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                greeting,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white.withValues(alpha: 0.85),
+                                  letterSpacing: -0.1,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                user?.name.isNotEmpty == true
+                                    ? user!.name.split(' ').first
+                                    : 'Sanidhya',
+                                style: GoogleFonts.inter(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
+                        ],
                       ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 20.0),
-            child: Center(
-              child: GestureDetector(
-                onTap: () => context.push('/profile'),
-                child: Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? const Color(0xFF202020)
-                        : const Color(0xFFF7F4EE),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: borderColor, width: 1.0),
-                  ),
-                  child: ClipOval(
-                    child: getAvatarImageProvider(user?.profileImage) != null
-                        ? Image(
-                            image: getAvatarImageProvider(user!.profileImage)!,
-                            fit: BoxFit.cover,
-                            alignment: Alignment.center,
-                          )
-                        : Center(
-                            child: Text(
-                              user?.name.isNotEmpty == true
-                                  ? user!.name[0].toUpperCase()
-                                  : '?',
-                              style: GoogleFonts.inter(
-                                color: textPrimary,
-                                fontWeight: FontWeight.bold,
+
+                      // Right Actions: Notification Bell + Avatar
+                      Row(
+                        children: [
+                          // Notification Button (Glass Circle)
+                          GestureDetector(
+                            onTap: () => context.push('/notifications'),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.18),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white.withValues(alpha: 0.25),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.notifications_none_rounded,
+                                    color: Colors.white,
+                                    size: 22,
+                                  ),
+                                ),
+                                Consumer(
+                                  builder: (ctx, ref, _) {
+                                    final count =
+                                        ref.watch(unreadNotificationCountProvider);
+                                    if (count == 0) return const SizedBox.shrink();
+                                    return Positioned(
+                                      right: -2,
+                                      top: -2,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 5,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFF4444),
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(
+                                            color: heroHeaderColor,
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          count > 99 ? '99+' : '$count',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Avatar Circle (Coral / Orange Circle with Initial 'S')
+                          GestureDetector(
+                            onTap: () => context.push('/profile'),
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD85A30), // Coral Avatar
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.35),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.15),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: ClipOval(
+                                child: getAvatarImageProvider(user?.profileImage) != null
+                                    ? Image(
+                                        image: getAvatarImageProvider(user!.profileImage)!,
+                                        fit: BoxFit.cover,
+                                        alignment: Alignment.center,
+                                      )
+                                    : Center(
+                                        child: Text(
+                                          user?.name.isNotEmpty == true
+                                              ? user!.name[0].toUpperCase()
+                                              : 'S',
+                                          style: GoogleFonts.inter(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
                               ),
                             ),
                           ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 10),
-              AnimatedOpacity(
-                opacity: 1,
-                duration: const Duration(milliseconds: 400),
-                child: AnimatedSlide(
-                  offset: const Offset(0, 0),
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeOut,
-                  child: Text(
-                    'Where to next?',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      color: textPrimary,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              _animatedCard(
+
+            // MAIN SEARCH CARD
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: _animatedCard(
                 duration: 500,
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(22),
                   decoration: BoxDecoration(
                     color: cardColor,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(28),
                     border: isDark
                         ? Border.all(color: borderColor, width: 1.1)
                         : null,
@@ -257,198 +281,288 @@ class HomeTab extends ConsumerWidget {
                           ],
                   ),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Uber-style stacked location inputs
+                      // Card Title
+                      Text(
+                        'Where to next?',
+                        style: GoogleFonts.inter(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: textPrimary,
+                          letterSpacing: -0.4,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Stacked Inputs Container
                       InkWell(
-                        onTap: () => context.push('/create-ride'),
+                        onTap: () => _showLocationPicker(context, ref, 'boarding'),
                         borderRadius: BorderRadius.circular(20),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: cardColor,
+                            color: inputBg,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: borderColor),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withAlpha(5),
-                                blurRadius: 10,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
                           ),
-                          child: AbsorbPointer(
-                            child: Stack(
-                              alignment: Alignment.centerLeft,
-                              children: [
-                                Positioned(
-                                  left: 25,
-                                  top: 40,
-                                  bottom: 40,
-                                  child: Container(
-                                    width: 1.5,
-                                    color: isDark
-                                        ? const Color(0xFF333333)
-                                        : const Color(0xFFE0E0E0),
-                                  ),
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    LocationAutocompleteField(
-                                      fieldKey: 'home_dummy_boarding',
-                                      hint: 'Pickup location',
-                                      icon: Icons.radio_button_checked,
-                                      iconColor: primaryColor,
-                                      initialValue: searchState.boarding.isEmpty
-                                          ? null
-                                          : searchState.boarding,
-                                      showCurrentLocationButton: true,
-                                      transparentBackground: true,
-                                      onChanged: (_) {},
-                                      onPlaceSelected: (_, __) async {},
+                          child: Stack(
+                            alignment: Alignment.centerRight,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Pickup Input Row
+                                  InkWell(
+                                    onTap: () => _showLocationPicker(
+                                      context,
+                                      ref,
+                                      'boarding',
                                     ),
-                                    const SizedBox(height: 16),
-                                    Divider(
-                                      height: 1,
-                                      indent: 52,
-                                      endIndent: 68,
-                                      color: isDark
-                                          ? const Color(0xFF333333)
-                                          : const Color(0xFFE0E0E0),
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(20),
                                     ),
-                                    const SizedBox(height: 16),
-                                    LocationAutocompleteField(
-                                      fieldKey: 'home_dummy_destination',
-                                      hint: 'Dropoff location',
-                                      icon: Icons.location_on,
-                                      iconColor: isDark
-                                          ? Colors.white
-                                          : Colors.black87,
-                                      initialValue:
-                                          searchState.destination.isEmpty
-                                          ? null
-                                          : searchState.destination,
-                                      showCurrentLocationButton: false,
-                                      transparentBackground: true,
-                                      onChanged: (_) {},
-                                      onPlaceSelected: (_, __) async {},
-                                    ),
-                                  ],
-                                ),
-                                // Right-aligned Swap Button
-                                Positioned(
-                                  right: 16,
-                                  child: Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      onTap: () {},
-                                      borderRadius: BorderRadius.circular(24),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: isDark
-                                              ? const Color(0xFF2A2A2A)
-                                              : const Color(0xFFE8E8E8),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: borderColor,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 14,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.adjust_rounded,
+                                            color: Color(0xFFE5A93C), // Gold Target
+                                            size: 22,
                                           ),
-                                        ),
-                                        child: Icon(
-                                          Icons.swap_vert_rounded,
-                                          color: isDark
-                                              ? Colors.white
-                                              : Colors.black,
-                                          size: 20,
-                                        ),
+                                          const SizedBox(width: 14),
+                                          Expanded(
+                                            child: Text(
+                                              searchState.boarding.isNotEmpty
+                                                  ? searchState.boarding
+                                                  : 'Enter pickup location',
+                                              style: GoogleFonts.inter(
+                                                fontSize: 15,
+                                                fontWeight: searchState.boarding.isNotEmpty
+                                                    ? FontWeight.w600
+                                                    : FontWeight.w400,
+                                                color: searchState.boarding.isNotEmpty
+                                                    ? textPrimary
+                                                    : textSecondary.withValues(alpha: 0.8),
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.my_location_rounded,
+                                              color: Color(0xFFE5A93C),
+                                              size: 20,
+                                            ),
+                                            tooltip: 'Use current location',
+                                            onPressed: () async {
+                                              try {
+                                                final loc =
+                                                    await LocationService.getCurrentLocation();
+                                                ref
+                                                    .read(homeSearchProvider.notifier)
+                                                    .updateBoarding(
+                                                      loc.description,
+                                                      placeId: loc.placeId,
+                                                      address: loc.description,
+                                                      lat: loc.latitude,
+                                                      lng: loc.longitude,
+                                                    );
+                                              } catch (e) {
+                                                if (context.mounted) {
+                                                  _showValidationMessage(
+                                                    context,
+                                                    'Could not get current location.',
+                                                  );
+                                                }
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+
+                                  // Thin Horizontal Divider
+                                  Divider(
+                                    height: 1,
+                                    thickness: 1,
+                                    indent: 16,
+                                    endIndent: 60,
+                                    color: borderColor,
+                                  ),
+
+                                  // Drop Input Row
+                                  InkWell(
+                                    onTap: () => _showLocationPicker(
+                                      context,
+                                      ref,
+                                      'destination',
+                                    ),
+                                    borderRadius: const BorderRadius.vertical(
+                                      bottom: Radius.circular(20),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 14,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.location_on,
+                                            color: Color(0xFFE53935), // Red Pin
+                                            size: 22,
+                                          ),
+                                          const SizedBox(width: 14),
+                                          Expanded(
+                                            child: Text(
+                                              searchState.destination.isNotEmpty
+                                                  ? searchState.destination
+                                                  : 'Enter drop location',
+                                              style: GoogleFonts.inter(
+                                                fontSize: 15,
+                                                fontWeight: searchState.destination.isNotEmpty
+                                                    ? FontWeight.w600
+                                                    : FontWeight.w400,
+                                                color: searchState.destination.isNotEmpty
+                                                    ? textPrimary
+                                                    : textSecondary.withValues(alpha: 0.8),
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 48),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              // Floating Circular Swap Button
+                              Positioned(
+                                right: 14,
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: () {
+                                      final curB = searchState.boarding;
+                                      final curD = searchState.destination;
+                                      ref.read(homeSearchProvider.notifier).updateBoarding(curD);
+                                      ref.read(homeSearchProvider.notifier).updateDestination(curB);
+                                    },
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Container(
+                                      width: 38,
+                                      height: 38,
+                                      decoration: BoxDecoration(
+                                        color: isDark ? const Color(0xFF263730) : Colors.white,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: borderColor),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.08),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Icon(
+                                        Icons.swap_vert_rounded,
+                                        color: textPrimary,
+                                        size: 20,
                                       ),
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
+
+                      // Selection Pills: Today & Seats
                       Row(
                         children: [
+                          // Date Pill
                           Expanded(
-                            child: _uberActionButton(
+                            child: _mintPillButton(
                               context: context,
-                              icon: Icons.calendar_today_rounded,
+                              icon: Icons.calendar_today_outlined,
                               label: searchState.departureDate == null
                                   ? 'Today'
-                                  : DateFormat(
-                                      'MMM d',
-                                    ).format(searchState.departureDate!),
+                                  : DateFormat('MMM d').format(searchState.departureDate!),
+                              mintBg: mintBg,
+                              mintBorder: mintBorder,
+                              primaryGreen: primaryGreen,
                               onTap: () async {
                                 final date = await showDatePicker(
                                   context: context,
-                                  initialDate:
-                                      searchState.departureDate ??
-                                      DateTime.now(),
+                                  initialDate: searchState.departureDate ?? DateTime.now(),
                                   firstDate: DateTime.now(),
-                                  lastDate: DateTime.now().add(
-                                    const Duration(days: 30),
-                                  ),
+                                  lastDate: DateTime.now().add(const Duration(days: 30)),
                                 );
                                 if (date != null) {
-                                  ref
-                                      .read(homeSearchProvider.notifier)
-                                      .updateDate(date);
+                                  ref.read(homeSearchProvider.notifier).updateDate(date);
                                 }
                               },
                             ),
                           ),
                           const SizedBox(width: 12),
+
+                          // Seat Pill
                           Expanded(
-                            child: _uberActionButton(
+                            child: _mintPillButton(
                               context: context,
-                              icon: Icons.person_rounded,
+                              icon: Icons.event_seat_rounded,
                               label:
                                   '${searchState.passengers} ${searchState.passengers > 1 ? 'Seats' : 'Seat'}',
+                              mintBg: mintBg,
+                              mintBorder: mintBorder,
+                              primaryGreen: primaryGreen,
                               onTap: () {
-                                int p = searchState.passengers % 2 + 1;
-                                ref
-                                    .read(homeSearchProvider.notifier)
-                                    .updatePassengers(p);
+                                int p = searchState.passengers % 4 + 1;
+                                ref.read(homeSearchProvider.notifier).updatePassengers(p);
                               },
                             ),
                           ),
                         ],
                       ),
-                      if (isFemale) const SizedBox(height: 16),
-                      if (isFemale)
+
+                      if (isFemale) ...[
+                        const SizedBox(height: 14),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
+                            horizontal: 14,
+                            vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: isDark
-                                ? const Color(0xFF202020)
-                                : const Color(0xFFF3F3F3),
+                            color: mintBg,
                             borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: mintBorder),
                           ),
                           child: Row(
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: primaryColor.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(
-                                  Icons.female_rounded,
-                                  size: 18,
-                                  color: primaryColor,
-                                ),
+                              Icon(
+                                Icons.female_rounded,
+                                size: 20,
+                                color: primaryGreen,
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   'Girls Only Ride',
-                                  style: theme.textTheme.titleMedium?.copyWith(
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
                                     color: textPrimary,
                                   ),
                                 ),
@@ -458,39 +572,89 @@ class HomeTab extends ConsumerWidget {
                                 onChanged: (val) => ref
                                     .read(homeSearchProvider.notifier)
                                     .toggleGirlsOnly(val),
-                                activeThumbColor: primaryColor,
-                                activeTrackColor: primaryColor.withValues(
-                                  alpha: 0.7,
-                                ),
+                                activeColor: primaryGreen,
                               ),
                             ],
                           ),
                         ),
-                      const SizedBox(height: 24),
+                      ],
+
+                      const SizedBox(height: 20),
+
+                      // Solid Forest Green Find a Ride Button
                       SizedBox(
                         width: double.infinity,
-                        child: FilledButton(
-                          onPressed: () =>
-                              _handleCreateRideCTA(context, ref, searchState),
-                          child: const Text('Create Ride'),
+                        height: 54,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (searchState.boarding.isNotEmpty ||
+                                searchState.destination.isNotEmpty) {
+                              _handleCreateOrFindRideCTA(context, ref, searchState);
+                            } else {
+                              ref.read(homeNavigationProvider.notifier).setIndex(1);
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryGreen,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(28),
+                            ),
+                            elevation: 2,
+                            shadowColor: primaryGreen.withValues(alpha: 0.3),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Find a Ride',
+                                style: GoogleFonts.inter(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 20,
+                                color: Colors.white,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
-              Text(
+            ),
+
+            // QUICK ACTIONS
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+              child: Text(
                 'Quick Actions',
-                style: theme.textTheme.titleLarge?.copyWith(color: textPrimary),
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: textPrimary,
+                  letterSpacing: -0.3,
+                ),
               ),
-              const SizedBox(height: 16),
-              Row(
+            ),
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
                 children: [
                   Expanded(
                     child: _ActionCard(
                       icon: Icons.search_rounded,
                       label: 'Find Ride',
+                      primaryColor: primaryGreen,
+                      mintBg: mintBg,
+                      borderColor: borderColor,
                       onTap: () {
                         ref.read(homeNavigationProvider.notifier).setIndex(1);
                       },
@@ -501,26 +665,44 @@ class HomeTab extends ConsumerWidget {
                     child: _ActionCard(
                       icon: Icons.directions_car_filled_rounded,
                       label: 'My Rides',
+                      primaryColor: primaryGreen,
+                      mintBg: mintBg,
+                      borderColor: borderColor,
                       onTap: () => context.push('/my-rides'),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: _ActionCard(
-                      icon: Icons.person_rounded,
+                      icon: Icons.people_alt_rounded,
                       label: 'Drivers',
+                      primaryColor: primaryGreen,
+                      mintBg: mintBg,
+                      borderColor: borderColor,
                       onTap: () => context.push('/driver-directory'),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 32),
-              Text(
+            ),
+
+            // ACTIVE RIDE SECTION
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 28, 20, 0),
+              child: Text(
                 'Active Ride',
-                style: theme.textTheme.titleLarge?.copyWith(color: textPrimary),
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: textPrimary,
+                  letterSpacing: -0.3,
+                ),
               ),
-              const SizedBox(height: 16),
-              Consumer(
+            ),
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Consumer(
                 builder: (context, ref, _) {
                   final activeRideAsync = ref.watch(activeRideProvider);
                   return activeRideAsync.when(
@@ -559,21 +741,25 @@ class HomeTab extends ConsumerWidget {
                                 Icon(
                                   Icons.directions_car_filled_rounded,
                                   size: 48,
-                                  color: textSecondary.withValues(alpha: 0.5),
+                                  color: textSecondary.withValues(alpha: 0.4),
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 14),
                                 Text(
                                   'No active rides',
                                   textAlign: TextAlign.center,
-                                  style: theme.textTheme.titleMedium?.copyWith(
+                                  style: GoogleFonts.inter(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
                                     color: textPrimary,
                                   ),
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 6),
                                 Text(
                                   'Your current or upcoming trips will appear here.',
                                   textAlign: TextAlign.center,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w400,
                                     color: textSecondary,
                                   ),
                                 ),
@@ -622,19 +808,18 @@ class HomeTab extends ConsumerWidget {
                                         vertical: 6,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: primaryColor.withValues(
-                                          alpha: 0.15,
-                                        ),
+                                        color: mintBg,
                                         borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: mintBorder),
                                       ),
                                       child: Text(
                                         'UPCOMING',
-                                        style: theme.textTheme.labelSmall
-                                            ?.copyWith(
-                                              color: primaryColor,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 0.5,
-                                            ),
+                                        style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                          color: primaryGreen,
+                                          letterSpacing: 0.5,
+                                        ),
                                       ),
                                     ),
                                     const Spacer(),
@@ -642,41 +827,38 @@ class HomeTab extends ConsumerWidget {
                                       DateFormat(
                                         'MMM d, h:mm a',
                                       ).format(ride.departureTime),
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                            color: textSecondary,
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                      style: GoogleFonts.inter(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: textSecondary,
+                                      ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 20),
+                                const SizedBox(height: 18),
                                 IntrinsicHeight(
                                   child: Row(
                                     children: [
                                       Column(
                                         children: [
-                                          Icon(
-                                            Icons.circle,
-                                            size: 10,
-                                            color: textSecondary,
+                                          const Icon(
+                                            Icons.adjust_rounded,
+                                            size: 14,
+                                            color: Color(0xFFE5A93C),
                                           ),
                                           Expanded(
                                             child: Container(
                                               width: 2,
-                                              color: textSecondary.withValues(
-                                                alpha: 0.3,
+                                              color: borderColor,
+                                              margin: const EdgeInsets.symmetric(
+                                                vertical: 4,
                                               ),
-                                              margin:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 4,
-                                                  ),
                                             ),
                                           ),
-                                          Icon(
+                                          const Icon(
                                             Icons.location_on,
-                                            size: 14,
-                                            color: primaryColor,
+                                            size: 16,
+                                            color: Color(0xFFE53935),
                                           ),
                                         ],
                                       ),
@@ -688,20 +870,24 @@ class HomeTab extends ConsumerWidget {
                                           children: [
                                             Text(
                                               ride.boardingLocation,
-                                              style: theme.textTheme.titleMedium
-                                                  ?.copyWith(
-                                                    color: textPrimary,
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
+                                              style: GoogleFonts.inter(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w700,
+                                                color: textPrimary,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
-                                            const SizedBox(height: 16),
+                                            const SizedBox(height: 14),
                                             Text(
                                               ride.destination,
-                                              style: theme.textTheme.titleMedium
-                                                  ?.copyWith(
-                                                    color: textPrimary,
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
+                                              style: GoogleFonts.inter(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w700,
+                                                color: textPrimary,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ],
                                         ),
@@ -709,9 +895,9 @@ class HomeTab extends ConsumerWidget {
                                     ],
                                   ),
                                 ),
-                                const SizedBox(height: 20),
-                                const Divider(height: 1),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 18),
+                                Divider(height: 1, color: borderColor),
+                                const SizedBox(height: 14),
                                 Row(
                                   children: [
                                     Consumer(
@@ -726,24 +912,21 @@ class HomeTab extends ConsumerWidget {
                                           children: [
                                             CircleAvatar(
                                               radius: 14,
-                                              backgroundColor: theme
-                                                  .colorScheme
-                                                  .surfaceContainerHighest,
+                                              backgroundColor: mintBg,
                                               child: Icon(
                                                 Icons.person,
                                                 size: 16,
-                                                color:
-                                                    theme.colorScheme.onSurface,
+                                                color: primaryGreen,
                                               ),
                                             ),
                                             const SizedBox(width: 8),
                                             Text(
                                               name,
-                                              style: theme.textTheme.bodyMedium
-                                                  ?.copyWith(
-                                                    color: textPrimary,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
+                                              style: GoogleFonts.inter(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: textPrimary,
+                                              ),
                                             ),
                                           ],
                                         );
@@ -752,11 +935,11 @@ class HomeTab extends ConsumerWidget {
                                     const Spacer(),
                                     Text(
                                       '₹${ride.farePerSeat.toInt()}',
-                                      style: theme.textTheme.titleLarge
-                                          ?.copyWith(
-                                            color: textPrimary,
-                                            fontWeight: FontWeight.w800,
-                                          ),
+                                      style: GoogleFonts.inter(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800,
+                                        color: primaryGreen,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -772,7 +955,52 @@ class HomeTab extends ConsumerWidget {
                   );
                 },
               ),
-              const SizedBox(height: 24),
+            ),
+            const SizedBox(height: 36),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _mintPillButton({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required Color mintBg,
+    required Color mintBorder,
+    required Color primaryGreen,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: mintBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: mintBorder),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: primaryGreen),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: primaryGreen,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
         ),
@@ -780,7 +1008,7 @@ class HomeTab extends ConsumerWidget {
     );
   }
 
-  void _handleCreateRideCTA(
+  void _handleCreateOrFindRideCTA(
     BuildContext context,
     WidgetRef ref,
     HomeSearchState searchState,
@@ -798,38 +1026,8 @@ class HomeTab extends ConsumerWidget {
       return;
     }
 
-    final notifier = ref.read(createRideProvider.notifier);
-    if (boarding.isNotEmpty) {
-      notifier.updateBoardingLocation(boarding);
-      if (searchState.boardingPlaceId != null &&
-          searchState.boardingAddress != null) {
-        notifier.updateBoardingDetails(
-          placeId: searchState.boardingPlaceId!,
-          address: searchState.boardingAddress!,
-          lat: searchState.boardingLat,
-          lng: searchState.boardingLng,
-        );
-      }
-    }
-    if (destination.isNotEmpty) {
-      notifier.updateDestinationLocation(destination);
-      if (searchState.destinationPlaceId != null &&
-          searchState.destinationAddress != null) {
-        notifier.updateDestinationDetails(
-          placeId: searchState.destinationPlaceId!,
-          address: searchState.destinationAddress!,
-          lat: searchState.destinationLat,
-          lng: searchState.destinationLng,
-        );
-      }
-    }
-    if (searchState.departureDate != null) {
-      notifier.updateDepartureDate(searchState.departureDate!);
-    }
-    notifier.updateAvailableSeats(searchState.passengers);
-    notifier.toggleGirlsOnly(searchState.girlsOnly);
-
-    context.push('/create-ride');
+    // Switch to search tab or create ride with prefilled query
+    ref.read(homeNavigationProvider.notifier).setIndex(1);
   }
 
   void _showValidationMessage(BuildContext context, String message) {
@@ -840,12 +1038,12 @@ class HomeTab extends ConsumerWidget {
           style: GoogleFonts.inter(fontWeight: FontWeight.w600),
         ),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: const Color(0xFF202020),
+        backgroundColor: const Color(0xFF084E31),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         margin: const EdgeInsets.all(16),
         action: SnackBarAction(
           label: 'Okay',
-          textColor: const Color(0xFFFFC400),
+          textColor: const Color(0xFFFFB800),
           onPressed: () {},
         ),
       ),
@@ -901,85 +1099,30 @@ class HomeTab extends ConsumerWidget {
       ),
     );
   }
-
-  Widget _uberInput({
-    required BuildContext context,
-    required String label,
-    required bool isBold,
-    VoidCallback? onTap,
-  }) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-                  color: isBold
-                      ? theme.colorScheme.onSurface
-                      : theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _uberActionButton({
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    VoidCallback? onTap,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF202020) : const Color(0xFFF3F3F3),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 18, color: theme.colorScheme.onSurface),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _ActionCard extends StatelessWidget {
-  const _ActionCard({required this.icon, required this.label, this.onTap});
+  const _ActionCard({
+    required this.icon,
+    required this.label,
+    required this.primaryColor,
+    required this.mintBg,
+    required this.borderColor,
+    this.onTap,
+  });
 
   final IconData icon;
   final String label;
+  final Color primaryColor;
+  final Color mintBg;
+  final Color borderColor;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF181818) : Colors.white;
+    final cardBg = isDark ? const Color(0xFF18221D) : Colors.white;
 
     return Material(
       color: Colors.transparent,
@@ -987,13 +1130,11 @@ class _ActionCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
           decoration: BoxDecoration(
             color: cardBg,
             borderRadius: BorderRadius.circular(20),
-            border: isDark
-                ? Border.all(color: const Color(0xFF2A2A2A), width: 1.1)
-                : null,
+            border: Border.all(color: borderColor),
             boxShadow: isDark
                 ? []
                 : [
@@ -1007,21 +1148,26 @@ class _ActionCard extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 28,
-                color: isDark
-                    ? const Color(0xFFFFC400)
-                    : theme.colorScheme.primary,
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: mintBg,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  size: 24,
+                  color: primaryColor,
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               Text(
                 label,
                 textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w700,
                   fontSize: 13,
                   letterSpacing: -0.2,
                   color: theme.colorScheme.onSurface,
@@ -1089,16 +1235,16 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final backgroundColor = isDark ? const Color(0xFF181818) : Colors.white;
+    final backgroundColor = isDark ? const Color(0xFF18221D) : Colors.white;
     final primaryColor = isDark
-        ? const Color(0xFFFFC400)
-        : theme.colorScheme.primary;
+        ? const Color(0xFF10B981)
+        : const Color(0xFF084E31);
 
     return Container(
-      height: MediaQuery.of(context).size.height * 0.9,
+      height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -1106,19 +1252,21 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
         children: [
           Center(
             child: Container(
-              width: 40,
-              height: 4,
+              width: 44,
+              height: 5,
               decoration: BoxDecoration(
                 color: isDark ? Colors.white24 : Colors.black12,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(3),
               ),
             ),
           ),
           const SizedBox(height: 20),
           Text(
             widget.title,
-            style: theme.textTheme.titleLarge?.copyWith(
+            style: GoogleFonts.inter(
+              fontSize: 20,
               fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 20),
@@ -1130,19 +1278,27 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? const Color(0xFF202020)
-                      : const Color(0xFFF3F3F3),
+                      ? const Color(0xFF1F2D26)
+                      : const Color(0xFFF0F7F4),
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF2E4D3D)
+                        : const Color(0xFFC4E3D4),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.my_location_rounded, color: primaryColor),
+                    Icon(
+                      Icons.my_location_rounded,
+                      color: const Color(0xFFE5A93C),
+                    ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Text(
                         'Current Location',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w700,
                           color: primaryColor,
                         ),
                       ),
@@ -1164,7 +1320,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
               const SizedBox(height: 8),
               Text(
                 _errorMessage!,
-                style: theme.textTheme.bodySmall?.copyWith(color: Colors.red),
+                style: GoogleFonts.inter(fontSize: 12, color: Colors.red),
               ),
             ],
             const SizedBox(height: 16),
@@ -1179,7 +1335,8 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
                     'OR',
-                    style: theme.textTheme.bodySmall?.copyWith(
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
                       color: isDark ? Colors.white54 : Colors.black54,
                     ),
                   ),
@@ -1200,11 +1357,11 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                   : 'home_destination',
               hint: 'Search location...',
               icon: widget.isBoarding
-                  ? Icons.circle_outlined
+                  ? Icons.adjust_rounded
                   : Icons.location_on,
               iconColor: widget.isBoarding
-                  ? (isDark ? Colors.white : Colors.black)
-                  : primaryColor,
+                  ? const Color(0xFFE5A93C)
+                  : const Color(0xFFE53935),
               onPlaceSelected: (prediction, details) async {
                 widget.onSelected(prediction.description, details);
                 Navigator.pop(context);
