@@ -93,7 +93,7 @@ class _MapLocationPickerPageState extends State<MapLocationPickerPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.initialLat != null && widget.initialLng != null) {
+    if (widget.initialLat != null && widget.initialLng != null && !widget.isPickup) {
       _currentCenter = LatLng(widget.initialLat!, widget.initialLng!);
       _selectedLat = widget.initialLat;
       _selectedLng = widget.initialLng;
@@ -105,11 +105,11 @@ class _MapLocationPickerPageState extends State<MapLocationPickerPage> {
       _selectionSource = LocationSelectionSource.map;
     }
 
-    if (widget.initialAddress != null && widget.initialAddress!.trim().isNotEmpty) {
+    if (widget.initialAddress != null && widget.initialAddress!.trim().isNotEmpty && !widget.isPickup) {
       _selectedAddress = widget.initialAddress!;
     } else {
       _selectedAddress = 'Pinpointing location...';
-      if (widget.initialLat != null && widget.initialLng != null) {
+      if (widget.initialLat != null && widget.initialLng != null && !widget.isPickup) {
         _reverseGeocodeCenter();
       }
     }
@@ -331,7 +331,7 @@ class _MapLocationPickerPageState extends State<MapLocationPickerPage> {
     }
   }
 
-  Future<void> _handleCurrentLocation({bool showErrors = true}) async {
+  Future<void> _handleCurrentLocation({bool showErrors = true, bool isInitial = false}) async {
     final requestId = ++_selectionRequestId;
     _geocodeDebounce?.cancel();
     setState(() => _isFetchingGPS = true);
@@ -341,7 +341,12 @@ class _MapLocationPickerPageState extends State<MapLocationPickerPage> {
       if (loc.latitude != null &&
           loc.longitude != null &&
           mounted &&
-          requestId == _selectionRequestId) {
+          (isInitial || requestId == _selectionRequestId)) {
+          
+        if (isInitial) {
+          _selectionRequestId = requestId;
+        }
+
         final latLng = LatLng(loc.latitude!, loc.longitude!);
         setState(() {
           _selectionSource = LocationSelectionSource.currentLocation;
@@ -435,8 +440,8 @@ class _MapLocationPickerPageState extends State<MapLocationPickerPage> {
                 ),
                 onMapCreated: (controller) {
                   _mapController = controller;
-                  if (widget.initialLat == null) {
-                    _handleCurrentLocation(showErrors: false);
+                  if (widget.initialLat == null || widget.isPickup) {
+                    _handleCurrentLocation(showErrors: false, isInitial: true);
                   }
                 },
                 onCameraMoveStarted: _onCameraMoveStarted,

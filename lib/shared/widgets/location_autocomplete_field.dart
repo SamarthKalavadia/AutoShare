@@ -38,6 +38,7 @@ class LocationAutocompleteField extends StatefulWidget {
   )
   onPlaceSelected;
   final bool transparentBackground;
+  final VoidCallback? onTapOverride;
 
   const LocationAutocompleteField({
     super.key,
@@ -51,6 +52,7 @@ class LocationAutocompleteField extends StatefulWidget {
     this.onSuggestionsVisibilityChanged,
     required this.onPlaceSelected,
     this.transparentBackground = false,
+    this.onTapOverride,
   });
 
   @override
@@ -366,6 +368,8 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
     final textColor = theme.colorScheme.onSurface;
 
     return TextFormField(
+      readOnly: widget.onTapOverride != null,
+      onTap: widget.onTapOverride,
       controller: _controller,
       focusNode: _focusNode,
       onChanged: _onChanged,
@@ -409,7 +413,7 @@ class _LocationAutocompleteFieldState extends State<LocationAutocompleteField>
                           0xFFF6C000,
                         ), // Primary Yellow GPS Icon
                         tooltip: 'Use Current Location',
-                        onPressed: _fetchAndSetCurrentLocation,
+                        onPressed: widget.onTapOverride ?? _fetchAndSetCurrentLocation,
                       ),
                     )
                   : const SizedBox(width: 58)),

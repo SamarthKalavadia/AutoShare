@@ -62,7 +62,7 @@ class SearchRideFilterState {
         boardingLocation.trim().toLowerCase() !=
         destination.trim().toLowerCase();
     final validFare = maxFare > 0;
-    final validSeats = requiredSeats >= 1 && requiredSeats <= 4;
+    final validSeats = requiredSeats >= 1 && requiredSeats <= 2;
 
     // Check if future time (only if user selected both)
     bool isFutureTime = true;
@@ -115,7 +115,7 @@ class SearchRideNotifier extends Notifier<SearchRideFilterState> {
   }
 
   void updateRequiredSeats(int seats) {
-    if (seats >= 1 && seats <= 4) {
+    if (seats >= 1 && seats <= 2) {
       state = state.copyWith(requiredSeats: seats);
     }
   }

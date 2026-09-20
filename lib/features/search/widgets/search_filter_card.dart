@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../providers/search_ride_provider.dart';
 import '../../../shared/widgets/location_autocomplete_field.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
+import '../../ride_details/presentation/screens/map_location_picker_page.dart';
 
 class SearchFilterCard extends ConsumerStatefulWidget {
   const SearchFilterCard({super.key});
@@ -89,6 +90,19 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                       initialValue: state.boardingLocation,
                       showCurrentLocationButton: true,
                       transparentBackground: true,
+                      onTapOverride: () async {
+                        FocusScope.of(context).unfocus();
+                        final result = await Navigator.of(context).push<LocationPickerResult>(
+                          MaterialPageRoute(
+                            builder: (context) => const MapLocationPickerPage(
+                              isPickup: true,
+                            ),
+                          ),
+                        );
+                        if (result != null) {
+                          notifier.updateBoardingLocation(result.address);
+                        }
+                      },
                       onSuggestionsVisibilityChanged: (visible) {
                         if (_isSearchingBoarding != visible) {
                           setState(() => _isSearchingBoarding = visible);
@@ -268,7 +282,7 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                           ),
                           _StepperButton(
                             icon: Icons.add,
-                            onTap: state.requiredSeats < 4
+                            onTap: state.requiredSeats < 2
                                 ? () => notifier.updateRequiredSeats(
                                     state.requiredSeats + 1,
                                   )

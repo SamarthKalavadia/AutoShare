@@ -569,6 +569,7 @@ class _RideTextFieldState extends State<_RideTextField> {
                 border: InputBorder.none,
                 enabledBorder: InputBorder.none,
                 focusedBorder: InputBorder.none,
+                filled: false,
                 contentPadding: const EdgeInsets.only(
                   right: 16,
                   top: 16,

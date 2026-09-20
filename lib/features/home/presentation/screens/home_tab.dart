@@ -11,6 +11,7 @@ import '../../providers/home_search_provider.dart';
 import '../../../profile/providers/user_profile_provider.dart';
 import '../../../../shared/utils/avatar_utils.dart';
 import '../../../ride_details/providers/create_ride_provider.dart';
+import '../../../ride_details/providers/ride_request_provider.dart';
 import '../../../../shared/widgets/location_autocomplete_field.dart';
 import '../../../../services/location_service.dart'
     show LocationService, PermissionException, HttpException;
@@ -750,21 +751,33 @@ class HomeTab extends ConsumerWidget {
                                       },
                                     ),
                                     const Spacer(),
-                                    Text(
-                                      '₹${ride.totalFare.toInt()}',
-                                      style: theme.textTheme.titleLarge
-                                          ?.copyWith(
-                                            color: textPrimary,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                    ),
-                                    Text(
-                                      '/person',
-                                      style: theme.textTheme.labelSmall
-                                          ?.copyWith(
-                                            color: textPrimary.withValues(alpha: 0.5),
-                                            fontWeight: FontWeight.w500,
-                                          ),
+                                    Consumer(
+                                      builder: (context, ref, _) {
+                                        final dynamicFare = ref.watch(
+                                          dynamicFareProvider(ride),
+                                        );
+                                        return Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              '₹${dynamicFare.toStringAsFixed(0)}',
+                                              style: theme.textTheme.titleLarge
+                                                  ?.copyWith(
+                                                    color: textPrimary,
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
+                                            ),
+                                            Text(
+                                              ' / seat',
+                                              style: theme.textTheme.labelSmall
+                                                  ?.copyWith(
+                                                    color: textPrimary.withValues(alpha: 0.5),
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                            ),
+                                          ],
+                                        );
+                                      },
                                     ),
                                   ],
                                 ),
