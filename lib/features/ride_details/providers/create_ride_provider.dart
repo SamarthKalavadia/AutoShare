@@ -20,7 +20,11 @@ class CreateRideState {
   final DateTime? departureDate;
   final DateTime? departureTime;
   final int availableSeats;
-  final double farePerSeat;
+  final double totalFare;
+
+  /// Backward-compatible alias for existing callers.
+  double get farePerSeat => totalFare;
+
   final String vehicleNumber;
   final String driverName;
   final String rideDescription;
@@ -41,13 +45,14 @@ class CreateRideState {
     this.departureDate,
     this.departureTime,
     this.availableSeats = 1,
-    this.farePerSeat = 0.0,
+    double? totalFare,
+    double? farePerSeat,
     this.vehicleNumber = '',
     this.driverName = '',
     this.rideDescription = '',
     this.isGirlsOnly = false,
     this.isLoading = false,
-  });
+  }) : totalFare = totalFare ?? farePerSeat ?? 0.0;
 
   CreateRideState copyWith({
     String? boardingLocation,
@@ -63,6 +68,7 @@ class CreateRideState {
     DateTime? departureDate,
     DateTime? departureTime,
     int? availableSeats,
+    double? totalFare,
     double? farePerSeat,
     String? vehicleNumber,
     String? driverName,
@@ -84,7 +90,7 @@ class CreateRideState {
       departureDate: departureDate ?? this.departureDate,
       departureTime: departureTime ?? this.departureTime,
       availableSeats: availableSeats ?? this.availableSeats,
-      farePerSeat: farePerSeat ?? this.farePerSeat,
+      totalFare: totalFare ?? farePerSeat ?? this.totalFare,
       vehicleNumber: vehicleNumber ?? this.vehicleNumber,
       driverName: driverName ?? this.driverName,
       rideDescription: rideDescription ?? this.rideDescription,
@@ -117,16 +123,21 @@ class CreateRideState {
       departureTime!.hour,
       departureTime!.minute,
     );
-    if (combinedDateTime.isBefore(
-      DateTime.now().subtract(const Duration(minutes: 5)),
-    )) {
-      return 'Departure time must be in the future';
+    final now = DateTime.now();
+    if (combinedDateTime.isBefore(now)) {
+      return 'Departure time cannot be in the past';
+    }
+    if (combinedDateTime.isBefore(now.add(const Duration(minutes: 45)))) {
+      return 'Rides must be created at least 45 minutes before departure.';
     }
     if (availableSeats < 1 || availableSeats > 2) {
       return 'Available seats must be between 1 and 2';
     }
-    if (farePerSeat < 0) {
-      return 'Fare per seat cannot be negative';
+    if (totalFare <= 0) {
+      return 'Enter a fare greater than ₹0.';
+    }
+    if (totalFare > 9999) {
+      return 'Total fare cannot exceed ₹9,999';
     }
     return null;
   }
@@ -219,9 +230,11 @@ class CreateRideNotifier extends Notifier<CreateRideState> {
     }
   }
 
-  void updateFarePerSeat(double fare) {
-    state = state.copyWith(farePerSeat: fare);
+  void updateTotalFare(double fare) {
+    state = state.copyWith(totalFare: fare);
   }
+
+  void updateFarePerSeat(double fare) => updateTotalFare(fare);
 
   void updateVehicleNumber(String vehicleNumber) {
     state = state.copyWith(vehicleNumber: vehicleNumber.toUpperCase());
@@ -273,7 +286,7 @@ class CreateRideNotifier extends Notifier<CreateRideState> {
         state.departureTime!.minute,
       ),
       availableSeats: state.availableSeats,
-      farePerSeat: state.farePerSeat,
+      totalFare: state.totalFare,
       vehicleNumber: state.vehicleNumber,
       description: state.rideDescription,
       isGirlsOnly: state.isGirlsOnly,

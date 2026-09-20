@@ -242,10 +242,14 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                                   color: blackColor,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.camera_alt_rounded,
                                   size: 16,
-                                  color: Colors.white,
+                                  color:
+                                      Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? const Color(0xFF121212)
+                                          : Colors.white,
                                 ),
                               ),
                             ),
@@ -382,7 +386,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                         onPressed: _saveChanges,
                         style: FilledButton.styleFrom(
                           backgroundColor: primaryColor,
-                          foregroundColor: blackColor,
+                          foregroundColor: const Color(0xFF121212),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),

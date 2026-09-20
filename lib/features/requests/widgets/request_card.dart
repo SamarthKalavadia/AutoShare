@@ -220,7 +220,7 @@ class RequestCard extends ConsumerWidget {
                       onPressed: onAccept,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryColor,
-                        foregroundColor: blackColor,
+                        foregroundColor: const Color(0xFF121212),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -260,10 +260,10 @@ class RequestCard extends ConsumerWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.chat_bubble_outline,
                               size: 16,
-                              color: blackColor,
+                              color: Color(0xFF121212),
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -271,7 +271,7 @@ class RequestCard extends ConsumerWidget {
                               style: GoogleFonts.inter(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: blackColor,
+                                color: const Color(0xFF121212),
                               ),
                             ),
                           ],

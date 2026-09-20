@@ -15,16 +15,10 @@ class CreateRidePage extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final primaryColor = theme.colorScheme.primary;
     final blackColor = theme.colorScheme.onSurface;
     final backgroundColor = isDark
         ? const Color(0xFF0F0F0F)
         : theme.scaffoldBackgroundColor;
-    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
-    final borderColor = isDark
-        ? const Color(0xFF2A2A2A)
-        : const Color(0xFFEAE5DD);
-    const successColor = Color(0xFF2E7D32);
     const dangerColor = Color(0xFFD32F2F);
 
     final state = ref.watch(createRideProvider);
@@ -192,6 +186,16 @@ class CreateRidePage extends ConsumerWidget {
   }
 
   void _showSuccessDialog(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dialogBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final titleColor = isDark ? Colors.white : const Color(0xFF121212);
+    final bodyColor = isDark ? Colors.white70 : const Color(0xFF6F6F72);
+    final circleBg = isDark ? const Color(0xFF1A3320) : const Color(0xFFEAF5ED);
+    final primaryBtnBg = isDark ? theme.colorScheme.primary : const Color(0xFF121212);
+    final primaryBtnFg = isDark ? const Color(0xFF121212) : Colors.white;
+    final closeColor = isDark ? Colors.white70 : const Color(0xFF6F6F72);
+
     showGeneralDialog(
       context: context,
       barrierDismissible: false,
@@ -206,7 +210,7 @@ class CreateRidePage extends ConsumerWidget {
           child: FadeTransition(
             opacity: animation,
             child: Dialog(
-              backgroundColor: Colors.white,
+              backgroundColor: dialogBg,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(28),
               ),
@@ -219,8 +223,8 @@ class CreateRidePage extends ConsumerWidget {
                     Container(
                       width: 80,
                       height: 80,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEAF5ED),
+                      decoration: BoxDecoration(
+                        color: circleBg,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -236,7 +240,7 @@ class CreateRidePage extends ConsumerWidget {
                       style: GoogleFonts.inter(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF121212),
+                        color: titleColor,
                         height: 1.2,
                       ),
                     ),
@@ -247,7 +251,7 @@ class CreateRidePage extends ConsumerWidget {
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
-                        color: const Color(0xFF6F6F72),
+                        color: bodyColor,
                         height: 1.5,
                       ),
                     ),
@@ -267,8 +271,8 @@ class CreateRidePage extends ConsumerWidget {
                           context.go('/my-rides');
                         },
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF121212),
-                          foregroundColor: Colors.white,
+                          backgroundColor: primaryBtnBg,
+                          foregroundColor: primaryBtnFg,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -298,7 +302,7 @@ class CreateRidePage extends ConsumerWidget {
                           context.go('/home');
                         },
                         style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF6F6F72),
+                          foregroundColor: closeColor,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -319,40 +323,6 @@ class CreateRidePage extends ConsumerWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String text;
-
-  const _InfoRow({
-    required this.icon,
-    required this.iconColor,
-    required this.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: iconColor, size: 20),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF4C4C4F),
-              height: 1.4,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -217,9 +217,8 @@ final liveAvailableSeatsProvider = Provider.autoDispose.family<int, RideModel>((
 final dynamicFareProvider = Provider.autoDispose.family<double, RideModel>((ref, ride) {
   final liveRide = ref.watch(liveRideProvider(ride)).value ?? ride;
   final requests = ref.watch(liveRideRequestsProvider(ride.id)).value ?? [];
+  // Only count passengers whose ride requests have actually been accepted.
   final acceptedRequests = requests.where((r) => r.status == RideRequestStatus.accepted);
-  final requestedSeatsSum = acceptedRequests.fold<int>(0, (sum, req) => sum + req.requestedSeats);
-  
-  final totalConfirmed = 1 + requestedSeatsSum;
-  return liveRide.farePerSeat / totalConfirmed;
+  final acceptedPassengers = acceptedRequests.fold<int>(0, (sum, req) => sum + req.requestedSeats);
+  return liveRide.calculateFarePerPerson(acceptedPassengers: acceptedPassengers);
 });

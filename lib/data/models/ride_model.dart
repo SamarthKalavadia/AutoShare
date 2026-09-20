@@ -8,7 +8,11 @@ class RideModel extends Equatable {
   final String destination;
   final DateTime departureTime;
   final int availableSeats;
-  final double farePerSeat;
+  final double totalFare;
+
+  /// Backward-compatible alias for existing callers.
+  double get farePerSeat => totalFare;
+
   final String vehicleNumber;
   final String description;
   final bool isGirlsOnly;
@@ -26,7 +30,8 @@ class RideModel extends Equatable {
     required this.destination,
     required this.departureTime,
     required this.availableSeats,
-    required this.farePerSeat,
+    double? totalFare,
+    double? farePerSeat,
     this.vehicleNumber = '',
     this.description = '',
     this.isGirlsOnly = false,
@@ -36,7 +41,17 @@ class RideModel extends Equatable {
     this.driverRating = 0.0,
     this.estimatedDuration = '',
     this.distance = '',
-  });
+  }) : totalFare = totalFare ?? farePerSeat ?? 0.0;
+
+  /// Calculates equal share per person:
+  /// participants = 1 (creator) + acceptedPassengers (maximum 2).
+  /// farePerPerson = totalFare / participants.
+  double calculateFarePerPerson({int acceptedPassengers = 0}) {
+    final clampedPassengers = acceptedPassengers.clamp(0, 2);
+    final participants = 1 + clampedPassengers;
+    if (participants <= 0) return totalFare;
+    return totalFare / participants;
+  }
 
   factory RideModel.empty() {
     return RideModel(
@@ -46,7 +61,7 @@ class RideModel extends Equatable {
       destination: '',
       departureTime: DateTime.now(),
       availableSeats: 1,
-      farePerSeat: 0.0,
+      totalFare: 0.0,
       createdAt: DateTime.now(),
     );
   }
@@ -58,6 +73,7 @@ class RideModel extends Equatable {
     String? destination,
     DateTime? departureTime,
     int? availableSeats,
+    double? totalFare,
     double? farePerSeat,
     String? vehicleNumber,
     String? description,
@@ -76,7 +92,7 @@ class RideModel extends Equatable {
       destination: destination ?? this.destination,
       departureTime: departureTime ?? this.departureTime,
       availableSeats: availableSeats ?? this.availableSeats,
-      farePerSeat: farePerSeat ?? this.farePerSeat,
+      totalFare: totalFare ?? farePerSeat ?? this.totalFare,
       vehicleNumber: vehicleNumber ?? this.vehicleNumber,
       description: description ?? this.description,
       isGirlsOnly: isGirlsOnly ?? this.isGirlsOnly,
@@ -97,7 +113,8 @@ class RideModel extends Equatable {
       'destination': destination,
       'departureTime': Timestamp.fromDate(departureTime),
       'availableSeats': availableSeats,
-      'farePerSeat': farePerSeat,
+      'totalFare': totalFare,
+      'farePerSeat': totalFare,
       'vehicleNumber': vehicleNumber,
       'description': description,
       'isGirlsOnly': isGirlsOnly,
@@ -118,7 +135,7 @@ class RideModel extends Equatable {
       destination: map['destination'] ?? '',
       departureTime: (map['departureTime'] as Timestamp).toDate(),
       availableSeats: map['availableSeats']?.toInt() ?? 1,
-      farePerSeat: map['farePerSeat']?.toDouble() ?? 0.0,
+      totalFare: (map['totalFare'] ?? map['farePerSeat'])?.toDouble() ?? 0.0,
       vehicleNumber: map['vehicleNumber'] ?? '',
       description: map['description'] ?? '',
       isGirlsOnly: map['isGirlsOnly'] ?? false,
@@ -141,7 +158,7 @@ class RideModel extends Equatable {
     destination,
     departureTime,
     availableSeats,
-    farePerSeat,
+    totalFare,
     vehicleNumber,
     description,
     isGirlsOnly,

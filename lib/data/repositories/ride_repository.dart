@@ -352,7 +352,7 @@ class RideRepository {
 
         // Client-side filters (in order of cheapest to most expensive)
         if (ride.availableSeats < seats) continue;
-        if (ride.farePerSeat > maxFare) continue;
+        if (ride.totalFare > maxFare) continue;
         if (ride.departureTime.isBefore(cutoffTime)) continue;
         if (isGirlsOnly && !ride.isGirlsOnly) continue;
 

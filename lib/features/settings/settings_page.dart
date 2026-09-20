@@ -24,7 +24,11 @@ class SettingsPage extends ConsumerWidget {
         ),
         content: Text(
           'Are you sure you want to delete your account? This action is permanent and will delete all your data, rides, and settings.',
-          style: GoogleFonts.inter(color: const Color(0xFF6F6F72)),
+          style: GoogleFonts.inter(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white70
+                : const Color(0xFF6F6F72),
+          ),
         ),
         actions: [
           TextButton(
@@ -89,7 +93,15 @@ class SettingsPage extends ConsumerWidget {
             color: textColor,
             size: 20,
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/profile');
+            }
+          },
         ),
         title: Text(
           'Settings',

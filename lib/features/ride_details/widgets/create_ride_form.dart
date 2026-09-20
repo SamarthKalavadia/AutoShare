@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
-import '../../../shared/widgets/location_autocomplete_field.dart';
+import '../presentation/screens/map_location_picker_page.dart';
 import '../providers/create_ride_provider.dart';
 
 class CreateRideForm extends ConsumerStatefulWidget {
@@ -15,8 +15,7 @@ class CreateRideForm extends ConsumerStatefulWidget {
 }
 
 class _CreateRideFormState extends ConsumerState<CreateRideForm> {
-  bool _isSearchingBoarding = false;
-  bool _isSearchingDestination = false;
+  bool _fareEdited = false;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +42,6 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
     final state = ref.watch(createRideProvider);
     final notifier = ref.read(createRideProvider.notifier);
     final isFemale = ref.watch(isUserFemaleProvider);
-    final isSearching = _isSearchingBoarding || _isSearchingDestination;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,8 +66,8 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
             children: [
               Positioned(
                 left: 25,
-                top: 40,
-                bottom: 40,
+                top: 36,
+                bottom: 36,
                 child: Container(
                   width: 1.5,
                   color: isDark
@@ -80,31 +78,64 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  LocationAutocompleteField(
-                    fieldKey: 'create_ride_boarding',
-                    hint: 'Pickup location',
-                    icon: Icons.radio_button_checked,
-                    iconColor: primaryColor,
-                    initialValue: state.boardingLocation,
-                    showCurrentLocationButton: true,
-                    transparentBackground: true,
-                    onChanged: notifier.updateBoardingLocation,
-                    onSuggestionsVisibilityChanged: (visible) {
-                      if (_isSearchingBoarding != visible) {
-                        setState(() => _isSearchingBoarding = visible);
+                  // Pickup Location Row
+                  InkWell(
+                    onTap: () async {
+                      final result = await Navigator.of(context).push<LocationPickerResult>(
+                        MaterialPageRoute(
+                          builder: (context) => MapLocationPickerPage(
+                            isPickup: true,
+                            initialAddress: state.boardingLocation,
+                            initialLat: state.boardingLat,
+                            initialLng: state.boardingLng,
+                          ),
+                        ),
+                      );
+                      if (result != null) {
+                        notifier.updateBoardingLocation(result.address);
+                        notifier.updateBoardingDetails(
+                          placeId: result.placeId,
+                          address: result.address,
+                          lat: result.latitude,
+                          lng: result.longitude,
+                        );
                       }
                     },
-                    onPlaceSelected: (prediction, details) async {
-                      notifier.updateBoardingLocation(prediction.description);
-                      notifier.updateBoardingDetails(
-                        placeId: details.placeId,
-                        address: details.address,
-                        lat: details.latitude,
-                        lng: details.longitude,
-                      );
-                    },
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 18, 60, 18),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.radio_button_checked,
+                            color: Color(0xFFD49A00),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
+                              state.boardingLocation.isNotEmpty
+                                  ? state.boardingLocation
+                                  : 'Pickup location',
+                              style: GoogleFonts.inter(
+                                fontSize: 15,
+                                fontWeight: state.boardingLocation.isNotEmpty
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
+                                color: state.boardingLocation.isNotEmpty
+                                    ? blackColor
+                                    : (isDark
+                                        ? const Color(0xFFA1A1A1)
+                                        : const Color(0xFF9E9E9E)),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 16),
                   Divider(
                     height: 1,
                     indent: 52,
@@ -113,60 +144,89 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
                         ? const Color(0xFF333333)
                         : const Color(0xFFE0E0E0),
                   ),
-                  const SizedBox(height: 16),
-                  LocationAutocompleteField(
-                    fieldKey: 'create_ride_destination',
-                    hint: 'Dropoff location',
-                    icon: Icons.location_on,
-                    iconColor: isDark ? Colors.white : Colors.black87,
-                    initialValue: state.destination,
-                    showCurrentLocationButton: false,
-                    transparentBackground: true,
-                    onChanged: notifier.updateDestinationLocation,
-                    onSuggestionsVisibilityChanged: (visible) {
-                      if (_isSearchingDestination != visible) {
-                        setState(() => _isSearchingDestination = visible);
+                  // Dropoff Location Row
+                  InkWell(
+                    onTap: () async {
+                      final result = await Navigator.of(context).push<LocationPickerResult>(
+                        MaterialPageRoute(
+                          builder: (context) => MapLocationPickerPage(
+                            isPickup: false,
+                            initialAddress: state.destination,
+                            initialLat: state.destinationLat,
+                            initialLng: state.destinationLng,
+                          ),
+                        ),
+                      );
+                      if (result != null) {
+                        notifier.updateDestinationLocation(result.address);
+                        notifier.updateDestinationDetails(
+                          placeId: result.placeId,
+                          address: result.address,
+                          lat: result.latitude,
+                          lng: result.longitude,
+                        );
                       }
                     },
-                    onPlaceSelected: (prediction, details) async {
-                      notifier.updateDestinationLocation(
-                        prediction.description,
-                      );
-                      notifier.updateDestinationDetails(
-                        placeId: details.placeId,
-                        address: details.address,
-                        lat: details.latitude,
-                        lng: details.longitude,
-                      );
-                    },
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 18, 60, 18),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on,
+                            color: Color(0xFF2E7D32),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
+                              state.destination.isNotEmpty
+                                  ? state.destination
+                                  : 'Dropoff location',
+                              style: GoogleFonts.inter(
+                                fontSize: 15,
+                                fontWeight: state.destination.isNotEmpty
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
+                                color: state.destination.isNotEmpty
+                                    ? blackColor
+                                    : (isDark
+                                        ? const Color(0xFFA1A1A1)
+                                        : const Color(0xFF9E9E9E)),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
-              // Right-aligned Swap Button
-              if (!isSearching)
-                Positioned(
-                  right: 16,
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => notifier.swapLocations(),
-                      borderRadius: BorderRadius.circular(24),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: secondaryBg,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: borderColor),
-                        ),
-                        child: Icon(
-                          Icons.swap_vert_rounded,
-                          color: blackColor,
-                          size: 20,
-                        ),
+              Positioned(
+                right: 16,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => notifier.swapLocations(),
+                    borderRadius: BorderRadius.circular(24),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: secondaryBg,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Icon(
+                        Icons.swap_vert_rounded,
+                        color: blackColor,
+                        size: 20,
                       ),
                     ),
                   ),
                 ),
+              ),
             ],
           ),
         ),
@@ -203,6 +263,7 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
 
         // Seats & Fare
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Column(
@@ -219,18 +280,37 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _SectionTitle(title: 'Fare Per Seat'),
+                  const _SectionTitle(title: 'Total Fare'),
                   const SizedBox(height: 8),
                   _RideTextField(
                     hint: '0',
                     icon: Icons.currency_rupee_rounded,
                     iconColor: blackColor,
                     keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    maxLength: 4,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(4),
+                    ],
                     onChanged: (val) {
-                      notifier.updateFarePerSeat(double.tryParse(val) ?? 0.0);
+                      setState(() => _fareEdited = true);
+                      notifier.updateTotalFare(double.tryParse(val) ?? 0.0);
                     },
                   ),
+                  if (_fareEdited && state.totalFare <= 0) ...[
+                    const SizedBox(height: 6),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Text(
+                        'Enter a fare greater than ₹0.',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFD32F2F),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -483,6 +563,7 @@ class _RideTextFieldState extends State<_RideTextField> {
                 color: textColor,
               ),
               decoration: InputDecoration(
+                counterText: '',
                 hintText: widget.hint,
                 hintStyle: GoogleFonts.inter(fontSize: 15, color: hintColor),
                 border: InputBorder.none,
@@ -534,6 +615,32 @@ class _DatePickerField extends ConsumerWidget {
         );
         if (date != null) {
           notifier.updateDepartureDate(date);
+          if (state.departureTime != null) {
+            final combined = DateTime(
+              date.year,
+              date.month,
+              date.day,
+              state.departureTime!.hour,
+              state.departureTime!.minute,
+            );
+            final now = DateTime.now();
+            if (combined.isBefore(now.add(const Duration(minutes: 45)))) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text(
+                      'Rides must be created at least 45 minutes before departure.',
+                    ),
+                    backgroundColor: const Color(0xFFD32F2F),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                );
+              }
+            }
+          }
         }
       },
       borderRadius: BorderRadius.circular(20),
@@ -598,21 +705,45 @@ class _TimePickerField extends ConsumerWidget {
 
     return InkWell(
       onTap: () async {
+        final now = DateTime.now();
+        final defaultValidTime = now.add(const Duration(minutes: 50));
+        final initialTime = state.departureTime != null
+            ? TimeOfDay.fromDateTime(state.departureTime!)
+            : TimeOfDay.fromDateTime(defaultValidTime);
+
         final time = await showTimePicker(
           context: context,
-          initialTime: state.departureTime != null
-              ? TimeOfDay.fromDateTime(state.departureTime!)
-              : TimeOfDay.now(),
+          initialTime: initialTime,
         );
         if (time != null) {
-          final now = DateTime.now();
+          final chosenDate = state.departureDate ?? now;
           final selectedDateTime = DateTime(
-            now.year,
-            now.month,
-            now.day,
+            chosenDate.year,
+            chosenDate.month,
+            chosenDate.day,
             time.hour,
             time.minute,
           );
+
+          // Check if chosen departure time is at least 45 minutes ahead
+          final current = DateTime.now();
+          if (selectedDateTime.isBefore(current.add(const Duration(minutes: 45)))) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text(
+                    'Rides must be created at least 45 minutes before departure.',
+                  ),
+                  backgroundColor: const Color(0xFFD32F2F),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              );
+            }
+          }
+
           notifier.updateDepartureTime(selectedDateTime);
         }
       },

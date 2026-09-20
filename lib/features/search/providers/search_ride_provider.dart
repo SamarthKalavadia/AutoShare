@@ -192,7 +192,7 @@ class SearchRideNotifier extends Notifier<SearchRideFilterState> {
         sortedList.sort((a, b) => a.distance.compareTo(b.distance));
         break;
       case 'Lowest Fare':
-        sortedList.sort((a, b) => a.farePerSeat.compareTo(b.farePerSeat));
+        sortedList.sort((a, b) => a.totalFare.compareTo(b.totalFare));
         break;
       case 'Earliest Departure':
         sortedList.sort((a, b) => a.departureTime.compareTo(b.departureTime));

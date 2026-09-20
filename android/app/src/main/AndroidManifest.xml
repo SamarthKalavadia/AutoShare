@@ -14,6 +14,12 @@
         android:label="AutoShare"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+        <!-- Google Maps API Key MUST be a direct child of application -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyCIxrjdy1VSg3PGooI53QRvaP85jqAjATA" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -31,10 +37,6 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
-            <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCIxrjdy1VSg3PGooI53QRvaP85jqAjATA"
-            />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

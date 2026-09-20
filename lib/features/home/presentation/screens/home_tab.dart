@@ -751,11 +751,19 @@ class HomeTab extends ConsumerWidget {
                                     ),
                                     const Spacer(),
                                     Text(
-                                      '₹${ride.farePerSeat.toInt()}',
+                                      '₹${ride.totalFare.toInt()}',
                                       style: theme.textTheme.titleLarge
                                           ?.copyWith(
                                             color: textPrimary,
                                             fontWeight: FontWeight.w800,
+                                          ),
+                                    ),
+                                    Text(
+                                      '/person',
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            color: textPrimary.withValues(alpha: 0.5),
+                                            fontWeight: FontWeight.w500,
                                           ),
                                     ),
                                   ],

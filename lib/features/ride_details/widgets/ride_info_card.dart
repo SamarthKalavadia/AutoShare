@@ -25,6 +25,7 @@ class RideInfoCard extends ConsumerWidget {
         (isDark ? const Color(0xFF1E1E1E) : Colors.white);
 
     final state = ref.watch(rideRequestProvider);
+    final dynamicFare = ref.watch(dynamicFareProvider(ride));
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -61,8 +62,8 @@ class RideInfoCard extends ConsumerWidget {
               Expanded(
                 child: _InfoTile(
                   icon: Icons.currency_rupee_rounded,
-                  label: 'Fare / Seat',
-                  value: '₹${ride.farePerSeat.toStringAsFixed(0)}',
+                  label: 'Fare / Person',
+                  value: '₹${dynamicFare.round()}',
                   highlight: true,
                 ),
               ),
@@ -75,6 +76,17 @@ class RideInfoCard extends ConsumerWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              'Total ride fare: ₹${ride.totalFare.round()}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: mutedText,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
           const SizedBox(height: 12),
 

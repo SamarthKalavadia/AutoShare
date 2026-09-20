@@ -7,7 +7,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../chat/providers/chat_provider.dart';
-import '../../../shared/providers.dart';
 import '../../ride_details/providers/ride_request_provider.dart';
 import '../../ride_details/providers/driver_profile_provider.dart';
 import '../providers/my_rides_provider.dart';
@@ -54,7 +53,7 @@ class MyRideCard extends ConsumerWidget {
       case 'active':
       case 'pending':
         badgeColor = const Color(0xFFF6C000); // Primary Yellow
-        badgeTextColor = blackColor;
+        badgeTextColor = const Color(0xFF121212);
         break;
       case 'joined':
       case 'completed':
@@ -135,10 +134,16 @@ class MyRideCard extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8F7F4),
+                  color: isDark
+                      ? const Color(0xFF2C2C2E)
+                      : const Color(0xFFF8F7F4),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.route_outlined, color: mutedText, size: 20),
+                child: Icon(
+                  Icons.route_outlined,
+                  color: isDark ? Colors.white : mutedText,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -270,8 +275,10 @@ class MyRideCard extends ConsumerWidget {
                 child: ElevatedButton(
                   onPressed: onView,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF8F7F4),
-                    foregroundColor: blackColor,
+                    backgroundColor: isDark
+                        ? const Color(0xFF2C2C2E)
+                        : const Color(0xFFF8F7F4),
+                    foregroundColor: isDark ? Colors.white : const Color(0xFF121212),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -293,8 +300,12 @@ class MyRideCard extends ConsumerWidget {
                   child: ElevatedButton(
                     onPressed: onTrack,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: blackColor,
-                      foregroundColor: Colors.white,
+                      backgroundColor: isDark
+                          ? theme.colorScheme.primary
+                          : const Color(0xFF121212),
+                      foregroundColor: isDark
+                          ? const Color(0xFF121212)
+                          : Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -350,10 +361,10 @@ class MyRideCard extends ConsumerWidget {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.chat_bubble_outline,
                                     size: 16,
-                                    color: blackColor,
+                                    color: Color(0xFF121212),
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
@@ -361,7 +372,7 @@ class MyRideCard extends ConsumerWidget {
                                     style: GoogleFonts.inter(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: blackColor,
+                                      color: const Color(0xFF121212),
                                     ),
                                   ),
                                 ],

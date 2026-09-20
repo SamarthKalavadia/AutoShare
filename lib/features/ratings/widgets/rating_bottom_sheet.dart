@@ -74,10 +74,21 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bgSheetColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final primaryColor = theme.colorScheme.primary;
+    final textColor = isDark ? Colors.white : const Color(0xFF121212);
+    final mutedColor = isDark ? Colors.white70 : const Color(0xFF6E6E73);
+    final inputBg = isDark ? const Color(0xFF262626) : const Color(0xFFF8F8F8);
+    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
+    final dragHandleColor = isDark ? Colors.white24 : const Color(0xFFE0E0E0);
+    final unselectedStarColor = isDark ? const Color(0xFF333333) : const Color(0xFFE0E0E0);
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      decoration: BoxDecoration(
+        color: bgSheetColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
       child: Column(
@@ -88,7 +99,7 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
             width: 48,
             height: 5,
             decoration: BoxDecoration(
-              color: const Color(0xFFE0E0E0),
+              color: dragHandleColor,
               borderRadius: BorderRadius.circular(10),
             ),
           ),
@@ -98,7 +109,7 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
             style: GoogleFonts.inter(
               fontSize: 22,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF121212),
+              color: textColor,
             ),
           ),
           const SizedBox(height: 8),
@@ -106,7 +117,7 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
             'How was your trip with ${widget.prompt.toUserName}?',
             style: GoogleFonts.inter(
               fontSize: 14,
-              color: const Color(0xFF6E6E73),
+              color: mutedColor,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -128,7 +139,7 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
                     size: 52,
                     color: isSelected
                         ? const Color(0xFFF6C000)
-                        : const Color(0xFFE0E0E0),
+                        : unselectedStarColor,
                   ),
                 ),
               );
@@ -139,23 +150,35 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
             controller: _reviewController,
             maxLength: 500,
             maxLines: 3,
+            style: GoogleFonts.inter(
+              color: textColor,
+              fontSize: 15,
+            ),
             decoration: InputDecoration(
               hintText: 'Add an optional review...',
-              hintStyle: GoogleFonts.inter(color: Colors.grey[400]),
+              hintStyle: GoogleFonts.inter(
+                color: isDark ? Colors.white38 : Colors.grey[400],
+              ),
+              counterStyle: GoogleFonts.inter(
+                color: isDark ? Colors.white38 : Colors.grey[600],
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFFEAE5DD)),
+                borderSide: BorderSide(color: borderColor),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFFEAE5DD)),
+                borderSide: BorderSide(color: borderColor),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFF121212)),
+                borderSide: BorderSide(
+                  color: isDark ? primaryColor : const Color(0xFF121212),
+                  width: 1.5,
+                ),
               ),
               filled: true,
-              fillColor: const Color(0xFFF8F8F8),
+              fillColor: inputBg,
             ),
           ),
           const SizedBox(height: 24),
@@ -165,7 +188,7 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
                 child: TextButton(
                   onPressed: _isSubmitting ? null : () => _submit(true),
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF6E6E73),
+                    foregroundColor: mutedColor,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -188,20 +211,25 @@ class _RatingBottomSheetState extends ConsumerState<RatingBottomSheet> {
                       ? null
                       : () => _submit(false),
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF121212),
-                    foregroundColor: Colors.white,
+                    backgroundColor: isDark ? primaryColor : const Color(0xFF121212),
+                    foregroundColor: isDark ? const Color(0xFF121212) : Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    disabledBackgroundColor: const Color(0xFFE0E0E0),
+                    disabledBackgroundColor: isDark
+                        ? const Color(0xFF2A2A2A)
+                        : const Color(0xFFE0E0E0),
+                    disabledForegroundColor: isDark
+                        ? Colors.white30
+                        : const Color(0xFFAAAAAA),
                   ),
                   child: _isSubmitting
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
+                            color: isDark ? const Color(0xFF121212) : Colors.white,
                             strokeWidth: 2,
                           ),
                         )

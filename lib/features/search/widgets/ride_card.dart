@@ -142,10 +142,17 @@ class RideCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          '₹${ride.farePerSeat.toInt()}',
+                          '₹${ride.totalFare.toInt()}',
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.w800,
                             color: primaryColor,
+                          ),
+                        ),
+                        Text(
+                          '/person',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                         if (isOwner)

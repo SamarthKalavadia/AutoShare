@@ -1,9 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:ui';
 import 'firebase_options.dart';
 import 'core/theme/app_theme.dart';
 import 'core/routes/app_router.dart';
@@ -24,14 +24,38 @@ Future<void> main() async {
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
 
-  // Pass all uncaught "fatal" errors from the framework to Crashlytics
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  if (kDebugMode) {
+    // In development/debug mode, output errors directly to the console for fast debugging
+    FlutterError.onError = FlutterError.dumpErrorToConsole;
+    PlatformDispatcher.instance.onError = (error, stack) {
+      debugPrint('---------------- UNCAUGHT ERROR ----------------');
+      debugPrint('$error');
+      debugPrint('$stack');
+      debugPrint('------------------------------------------------');
+      return true;
+    };
+    try {
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(false);
+    } catch (_) {}
+  } else {
+    // In production/release mode, pass uncaught errors to Crashlytics safely
+    FlutterError.onError = (details) {
+      try {
+        FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+      } catch (e) {
+        debugPrint('Crashlytics recordFlutterFatalError error: $e');
+      }
+    };
 
-  // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
-  PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return true;
-  };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      try {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      } catch (e) {
+        debugPrint('Crashlytics recordError error: $e');
+      }
+      return true;
+    };
+  }
 
   runApp(const ProviderScope(child: AutoShareApp()));
 }

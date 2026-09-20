@@ -17,6 +17,9 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
   bool _isResetting = false;
 
   void _showResetConfirmation(String email) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -27,12 +30,19 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
         ),
         content: Text(
           'Send a password reset link to:\n\n$email',
-          style: GoogleFonts.inter(color: const Color(0xFF6F6F72)),
+          style: GoogleFonts.inter(
+            color: isDark ? Colors.white70 : const Color(0xFF6F6F72),
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(
+                color: isDark ? Colors.white70 : const Color(0xFF6F6F72),
+              ),
+            ),
           ),
           FilledButton(
             onPressed: () {
@@ -40,7 +50,8 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
               _sendResetLink(email);
             },
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF121212),
+              backgroundColor: isDark ? primaryColor : const Color(0xFF121212),
+              foregroundColor: isDark ? const Color(0xFF121212) : Colors.white,
             ),
             child: const Text('Send Reset Link'),
           ),
@@ -66,6 +77,9 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
   }
 
   void _showSuccessDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -82,14 +96,17 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
         content: Text(
           'Password reset email sent successfully.\n\nPlease check your inbox and follow the instructions to create a new password.',
           textAlign: TextAlign.center,
-          style: GoogleFonts.inter(color: const Color(0xFF6F6F72)),
+          style: GoogleFonts.inter(
+            color: isDark ? Colors.white70 : const Color(0xFF6F6F72),
+          ),
         ),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
           FilledButton(
             onPressed: () => Navigator.pop(ctx),
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF121212),
+              backgroundColor: isDark ? primaryColor : const Color(0xFF121212),
+              foregroundColor: isDark ? const Color(0xFF121212) : Colors.white,
               minimumSize: const Size(120, 48),
             ),
             child: const Text('OK'),
@@ -157,8 +174,9 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                _buildSectionTitle('Authentication'),
+                _buildSectionTitle('Authentication', context),
                 _buildListTile(
+                  context: context,
                   icon: Icons.lock_reset_rounded,
                   title: 'Change Password',
                   subtitle: 'Send a reset link to your email',
@@ -177,8 +195,14 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
                           color: Color(0xFF8E8E93),
                         ),
                 ),
-                const Divider(height: 1, color: Color(0xFFEAE5DD)),
+                Divider(
+                  height: 1,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF2A2A2A)
+                      : const Color(0xFFEAE5DD),
+                ),
                 _buildListTile(
+                  context: context,
                   icon: Icons.verified_user_rounded,
                   title: 'Email Verification Status',
                   subtitle: user.emailVerified ? 'Verified' : 'Unverified',
@@ -193,8 +217,9 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
                 ),
 
                 const SizedBox(height: 32),
-                _buildSectionTitle('Session'),
+                _buildSectionTitle('Session', context),
                 _buildListTile(
+                  context: context,
                   icon: Icons.devices_rounded,
                   title: 'Current Session',
                   subtitle: 'Logged in as ${user.email}',
@@ -204,7 +229,8 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, left: 4),
       child: Text(
@@ -212,36 +238,44 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
         style: GoogleFonts.inter(
           fontSize: 14,
           fontWeight: FontWeight.w700,
-          color: const Color(0xFF6F6F72),
+          color: isDark ? Colors.white60 : const Color(0xFF6F6F72),
         ),
       ),
     );
   }
 
   Widget _buildListTile({
+    required BuildContext context,
     required IconData icon,
     required String title,
     String? subtitle,
     Widget? trailing,
     VoidCallback? onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = Theme.of(context).colorScheme.onSurface;
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: const Color(0xFFF0EDE9),
+          color: isDark ? const Color(0xFF222222) : const Color(0xFFF0EDE9),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(icon, color: const Color(0xFF121212), size: 22),
+        child: Icon(
+          icon,
+          color: isDark ? Colors.white : const Color(0xFF121212),
+          size: 22,
+        ),
       ),
       title: Text(
         title,
         style: GoogleFonts.inter(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          color: const Color(0xFF121212),
+          color: textColor,
         ),
       ),
       subtitle: subtitle != null
@@ -249,7 +283,7 @@ class _SecuritySettingsPageState extends ConsumerState<SecuritySettingsPage> {
               subtitle,
               style: GoogleFonts.inter(
                 fontSize: 13,
-                color: const Color(0xFF6F6F72),
+                color: isDark ? Colors.white70 : const Color(0xFF6F6F72),
               ),
             )
           : null,

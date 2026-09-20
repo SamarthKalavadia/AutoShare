@@ -96,14 +96,14 @@ class RideSummaryBanner extends StatelessWidget {
                   ],
                 ),
               ),
-              if (ride.farePerSeat > 0) ...[
+              if (ride.totalFare > 0) ...[
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '₹${ride.farePerSeat.toInt()}',
+                      '₹${ride.totalFare.toInt()}',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: blackColor,
@@ -111,7 +111,7 @@ class RideSummaryBanner extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'per seat',
+                      'per person',
                       style: theme.textTheme.labelSmall?.copyWith(
                         fontSize: 10,
                         color: mutedText,

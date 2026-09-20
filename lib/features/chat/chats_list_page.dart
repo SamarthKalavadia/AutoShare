@@ -243,7 +243,7 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
           driverId: otherUid.isNotEmpty ? otherUid : currentUid,
           boardingLocation: 'Shared Route',
           destination: 'Destination',
-          farePerSeat: 0,
+          totalFare: 0,
           availableSeats: 0,
           departureTime: room.lastMessageAt ?? DateTime.now(),
           createdAt: DateTime.now(),

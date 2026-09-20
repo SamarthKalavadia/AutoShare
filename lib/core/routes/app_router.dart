@@ -12,6 +12,7 @@ import '../../features/auth/email_verification_page.dart';
 import '../../features/auth/presentation/screens/profile_completion_page.dart';
 import '../../features/home/presentation/screens/home_page.dart';
 import '../../features/ride_details/create_ride_page.dart';
+import '../../features/ride_details/presentation/screens/map_location_picker_page.dart';
 import '../../features/ride_details/ride_details_page.dart';
 import '../../features/search/search_page.dart';
 import '../../features/profile/profile_page.dart';
@@ -22,6 +23,7 @@ import '../../features/requests/requests_page.dart';
 import '../../features/my_rides/my_rides_page.dart';
 import '../../features/chat/chat_page.dart';
 import '../../features/chat/providers/chat_provider.dart';
+import '../../features/settings/about_page.dart';
 import '../../data/models/ride_model.dart';
 
 class AppRouter {
@@ -104,6 +106,19 @@ class AppRouter {
         builder: (context, state) => const CreateRidePage(),
       ),
       GoRoute(
+        path: '/map-location-picker',
+        builder: (context, state) {
+          final args = state.extra as MapLocationPickerArgs? ??
+              const MapLocationPickerArgs(isPickup: true);
+          return MapLocationPickerPage(
+            isPickup: args.isPickup,
+            initialAddress: args.initialAddress,
+            initialLat: args.initialLat,
+            initialLng: args.initialLng,
+          );
+        },
+      ),
+      GoRoute(
         path: '/ride-details',
         builder: (context, state) {
           final ride = state.extra is RideModel
@@ -135,6 +150,10 @@ class AppRouter {
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsPage(),
+      ),
+      GoRoute(
+        path: '/about',
+        builder: (context, state) => const AboutPage(),
       ),
       GoRoute(
         path: '/incoming-requests',

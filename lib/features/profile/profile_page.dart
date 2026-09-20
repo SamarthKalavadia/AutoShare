@@ -11,7 +11,6 @@ import '../settings/providers/settings_provider.dart';
 import '../settings/security_settings_page.dart';
 import '../settings/privacy_settings_page.dart';
 import '../settings/language_settings_page.dart';
-import '../settings/about_page.dart';
 import '../settings/help_support_page.dart';
 import '../settings/terms_conditions_page.dart';
 import '../settings/privacy_policy_page.dart';
@@ -319,12 +318,7 @@ class _ProfileBody extends ConsumerWidget {
                           context,
                           icon: Icons.info_outline,
                           title: 'About AutoShare',
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const AboutPage(),
-                            ),
-                          ),
+                          onTap: () => context.push('/about'),
                         ),
                         _buildProfileTile(
                           context,
@@ -901,7 +895,14 @@ class _MoreMenu extends StatelessWidget {
                 }
               },
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF121212),
+                backgroundColor:
+                    Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(context).colorScheme.primary
+                        : const Color(0xFF121212),
+                foregroundColor:
+                    Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF121212)
+                        : Colors.white,
               ),
               child: const Text('Submit Report'),
             ),
@@ -964,8 +965,12 @@ class _MoreMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF121212)),
+      icon: Icon(
+        Icons.more_vert_rounded,
+        color: isDark ? Colors.white : const Color(0xFF121212),
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       onSelected: (value) {
         if (value == 'report') _showReportDialog(context);
