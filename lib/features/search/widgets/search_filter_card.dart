@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 import '../providers/search_ride_provider.dart';
 import '../../../shared/widgets/location_autocomplete_field.dart';
@@ -84,7 +85,7 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                   children: [
                     LocationAutocompleteField(
                       fieldKey: 'search_boarding',
-                      hint: 'Pickup location',
+                      hint: context.l10n.pickupLocationHint,
                       icon: Icons.radio_button_checked,
                       iconColor: primaryColor,
                       initialValue: state.boardingLocation,
@@ -124,7 +125,7 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                     const SizedBox(height: 16),
                     LocationAutocompleteField(
                       fieldKey: 'search_destination',
-                      hint: 'Dropoff location',
+                      hint: context.l10n.dropoffDestinationHint,
                       icon: Icons.location_on,
                       iconColor: isDark ? Colors.white : Colors.black87,
                       initialValue: state.destination,
@@ -179,7 +180,7 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                   icon: Icons.calendar_month_rounded,
                   text: state.departureDate != null
                       ? DateFormat('MMM dd').format(state.departureDate!)
-                      : 'Date',
+                      : context.l10n.date,
                   onTap: () async {
                     final date = await showDatePicker(
                       context: context,
@@ -197,7 +198,7 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                   icon: Icons.access_time_rounded,
                   text: state.departureTime != null
                       ? DateFormat('hh:mm a').format(state.departureTime!)
-                      : 'Time',
+                      : context.l10n.time,
                   onTap: () async {
                     final time = await showTimePicker(
                       context: context,
@@ -226,13 +227,14 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
 
           // Required Seats and Max Fare
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Required Seats',
+                      context.l10n.requiredSeats,
                       style: theme.textTheme.labelMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: mutedText,
@@ -240,6 +242,7 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                     ),
                     const SizedBox(height: 8),
                     Container(
+                      height: 48,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 8,
@@ -300,16 +303,18 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Max Fare (₹${state.maxFare.toInt()})',
+                      '${context.l10n.maxFare} (₹${state.maxFare.toInt()})',
                       style: theme.textTheme.labelMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: mutedText,
                       ),
                     ),
+                    const SizedBox(height: 8),
                     Container(
+                      height: 48,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 4,
+                        horizontal: 8,
+                        vertical: 8,
                       ),
                       decoration: BoxDecoration(
                         color: cardColor,
@@ -386,7 +391,7 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Girls Only Rides',
+                      context.l10n.womenOnlyRides,
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: blackColor,
                       ),
@@ -428,7 +433,7 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                       ),
                     )
                   : Text(
-                      'Search Rides',
+                      context.l10n.searchRides,
                       style: GoogleFonts.inter(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,

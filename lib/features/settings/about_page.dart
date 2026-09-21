@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../../core/localization/app_localizations.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -72,7 +73,7 @@ class _AboutPageState extends State<AboutPage> {
         backgroundColor: backgroundColor,
         appBar: AppBar(
           title: Text(
-            'About AutoShare',
+            context.l10n.aboutAutoShare,
             style: GoogleFonts.inter(
               fontSize: 18,
               fontWeight: FontWeight.w600,

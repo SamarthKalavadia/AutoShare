@@ -11,6 +11,7 @@ import 'presentation/widgets/divider_with_text.dart';
 import 'presentation/widgets/google_button.dart';
 import 'presentation/widgets/loading_button.dart';
 import 'presentation/widgets/password_field.dart';
+import '../../core/localization/app_localizations.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -105,28 +106,28 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 12),
-                const AuthHeader(
+                AuthHeader(
                   showLogo: true,
-                  title: 'Welcome to AutoShare',
-                  subtitle: 'Share rides. Save money. Travel together.',
+                  title: context.l10n.welcomeToAutoShare,
+                  subtitle: context.l10n.loginSubtitle,
                 ),
                 const SizedBox(height: 32),
 
                 // Email Field
                 AppTextField(
                   controller: _emailController,
-                  labelText: 'Email address',
-                  hintText: 'Enter your email address',
+                  labelText: context.l10n.emailAddress,
+                  hintText: context.l10n.enterEmail,
                   prefixIcon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your email';
+                      return context.l10n.pleaseEnterEmail;
                     }
                     if (!RegExp(
                       r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                     ).hasMatch(value.trim())) {
-                      return 'Enter a valid email address';
+                      return context.l10n.enterValidEmail;
                     }
                     return null;
                   },
@@ -136,14 +137,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 // Password Field
                 PasswordField(
                   controller: _passwordController,
-                  labelText: 'Password',
-                  hintText: 'Enter your password',
+                  labelText: context.l10n.password,
+                  hintText: context.l10n.enterPassword,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
+                      return context.l10n.pleaseEnterPassword;
                     }
                     if (value.length < 6) {
-                      return 'Password must be at least 6 characters';
+                      return context.l10n.passwordMinLength;
                     }
                     return null;
                   },
@@ -173,7 +174,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Remember me',
+                          context.l10n.rememberMe,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurface.withValues(
                               alpha: 0.8,
@@ -185,7 +186,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     TextButton(
                       onPressed: () => context.push('/forgot-password'),
                       child: Text(
-                        'Forgot password?',
+                        context.l10n.forgotPassword,
                         style: TextStyle(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.w600,
@@ -198,7 +199,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                 // Login Button
                 LoadingButton(
-                  text: 'Sign In',
+                  text: context.l10n.signIn,
                   isLoading: _authAction == AuthAction.email,
                   onPressed: _authAction == AuthAction.idle
                       ? _submitLogin
@@ -206,7 +207,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ),
                 const SizedBox(height: 24),
 
-                const DividerWithText(text: 'OR'),
+                DividerWithText(text: context.l10n.orContinueWith),
                 const SizedBox(height: 24),
 
                 // Google Button
@@ -223,7 +224,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "Don't have an account? ",
+                      '${context.l10n.dontHaveAccount} ',
                       style: TextStyle(
                         color: theme.colorScheme.onSurface.withValues(
                           alpha: 0.7,
@@ -233,7 +234,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     GestureDetector(
                       onTap: () => context.push('/register'),
                       child: Text(
-                        'Create Account',
+                        context.l10n.createAccount,
                         style: TextStyle(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.bold,

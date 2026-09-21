@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/localization/app_localizations.dart';
 import 'providers/settings_provider.dart';
 
 class LanguageSettingsPage extends ConsumerWidget {
@@ -29,7 +30,7 @@ class LanguageSettingsPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: const Text('Language'),
+        title: Text(context.l10n.language),
         centerTitle: false,
         backgroundColor: backgroundColor,
         scrolledUnderElevation: 0,
@@ -40,7 +41,7 @@ class LanguageSettingsPage extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
-              'SELECT APP LANGUAGE',
+              context.l10n.selectAppLanguage,
               style: theme.textTheme.labelSmall?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: mutedText,
@@ -64,12 +65,8 @@ class LanguageSettingsPage extends ConsumerWidget {
                   children: [
                     InkWell(
                       onTap: () {
-                        // Persist the selected language using the existing settings provider
+                        // Persist the selected language and dynamically rebuild app tree
                         settingsNotifier.setLanguage(lang['name']!);
-                        
-                        // NOTE: Proper localization architecture (e.g. flutter_localizations)
-                        // should be implemented to reload the app language strings. 
-                        // For now, this persists the selection for when translations are added.
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -90,7 +87,7 @@ class LanguageSettingsPage extends ConsumerWidget {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: isSelected ? primaryColor : mutedText.withOpacity(0.5),
+                                  color: isSelected ? primaryColor : mutedText.withValues(alpha: 0.5),
                                   width: isSelected ? 6 : 2,
                                 ),
                                 color: backgroundColor, // Transparent center when unselected
@@ -111,7 +108,7 @@ class LanguageSettingsPage extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Text(
-              'English is currently fully supported. Additional languages will be available in future updates.',
+              context.l10n.languageSubtext,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: mutedText,
               ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'providers/driver_provider.dart';
+import '../../core/localization/app_localizations.dart';
 
 class DriverDirectoryPage extends ConsumerWidget {
   const DriverDirectoryPage({super.key});
@@ -84,7 +85,7 @@ class DriverDirectoryPage extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Driver Directory',
+              context.l10n.driverDirectory,
               style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -111,7 +112,7 @@ class DriverDirectoryPage extends ConsumerWidget {
           if (drivers.isEmpty) {
             return Center(
               child: Text(
-                'No drivers available',
+                context.l10n.noDriversFound,
                 style: GoogleFonts.inter(fontSize: 16, color: mutedText),
               ),
             );
@@ -212,9 +213,9 @@ class DriverDirectoryPage extends ConsumerWidget {
                                   size: 18,
                                   color: Colors.white,
                                 ),
-                                label: const Text(
-                                  'Call',
-                                  style: TextStyle(
+                                label: Text(
+                                  context.l10n.call,
+                                  style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                   ),

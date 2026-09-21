@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../../../services/location_service.dart';
 
 enum LocationSelectionSource {
@@ -73,6 +74,7 @@ class _MapLocationPickerPageState extends State<MapLocationPickerPage> {
   bool _isProgrammaticCameraMove = false;
   bool _hasUserGesture = false;
   int _selectionRequestId = 0;
+  int _activeGpsRequestId = 0;
 
   bool _isCameraMoving = false;
   bool _isGeocoding = false;
@@ -93,7 +95,7 @@ class _MapLocationPickerPageState extends State<MapLocationPickerPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.initialLat != null && widget.initialLng != null && !widget.isPickup) {
+    if (widget.initialLat != null && widget.initialLng != null) {
       _currentCenter = LatLng(widget.initialLat!, widget.initialLng!);
       _selectedLat = widget.initialLat;
       _selectedLng = widget.initialLng;
@@ -105,11 +107,11 @@ class _MapLocationPickerPageState extends State<MapLocationPickerPage> {
       _selectionSource = LocationSelectionSource.map;
     }
 
-    if (widget.initialAddress != null && widget.initialAddress!.trim().isNotEmpty && !widget.isPickup) {
+    if (widget.initialAddress != null && widget.initialAddress!.trim().isNotEmpty) {
       _selectedAddress = widget.initialAddress!;
     } else {
       _selectedAddress = 'Pinpointing location...';
-      if (widget.initialLat != null && widget.initialLng != null && !widget.isPickup) {
+      if (widget.initialLat != null && widget.initialLng != null) {
         _reverseGeocodeCenter();
       }
     }
@@ -332,62 +334,134 @@ class _MapLocationPickerPageState extends State<MapLocationPickerPage> {
   }
 
   Future<void> _handleCurrentLocation({bool showErrors = true, bool isInitial = false}) async {
+    final gpsRequestId = ++_activeGpsRequestId;
     final requestId = ++_selectionRequestId;
     _geocodeDebounce?.cancel();
     setState(() => _isFetchingGPS = true);
 
     try {
-      final loc = await LocationService.getCurrentLocation();
-      if (loc.latitude != null &&
-          loc.longitude != null &&
-          mounted &&
-          (isInitial || requestId == _selectionRequestId)) {
-          
-        if (isInitial) {
-          _selectionRequestId = requestId;
-        }
+      debugPrint('[LOCATION] requesting current position...');
+      final position = await LocationService.getCurrentPosition();
 
-        final latLng = LatLng(loc.latitude!, loc.longitude!);
-        setState(() {
-          _selectionSource = LocationSelectionSource.currentLocation;
-          _currentCenter = latLng;
-          _selectedLat = loc.latitude!;
-          _selectedLng = loc.longitude!;
-          _selectedAddress = loc.description.isNotEmpty
-              ? loc.description
-              : '${loc.latitude!.toStringAsFixed(4)}, ${loc.longitude!.toStringAsFixed(4)}';
-          _selectedPlaceId = loc.placeId;
-        });
+      if (!mounted) return;
 
-        _isProgrammaticCameraMove = true;
-        try {
-          await _mapController?.animateCamera(
-            CameraUpdate.newLatLngZoom(latLng, 16.5),
-          );
-        } catch (_) {
-        } finally {
-          Future.delayed(const Duration(milliseconds: 150), () {
-            if (mounted && !_hasUserGesture) {
-              _isProgrammaticCameraMove = false;
-            }
-          });
-        }
+      // If initial background fetch was running, but user already searched or moved map:
+      if (isInitial &&
+          (_selectionSource == LocationSelectionSource.search ||
+              _searchController.text.trim().isNotEmpty ||
+              _hasUserGesture)) {
+        debugPrint('[LOCATION] initial background GPS fix ignored because user has interacted');
+        return;
       }
+
+      if (!isInitial) {
+        // User explicitly tapped Current Location button
+        _searchController.clear();
+        _suggestions = [];
+        _searchFocusNode.unfocus();
+      }
+
+      final latLng = LatLng(position.latitude, position.longitude);
+
+      // 1. Move the map camera to the current coordinates.
+      // 2. Update the center marker (screen center marker points to current coordinates).
+      // 5 (initial coords). Update latitude/longitude in existing location state.
+      setState(() {
+        _selectionSource = LocationSelectionSource.currentLocation;
+        _currentCenter = latLng;
+        _selectedLat = position.latitude;
+        _selectedLng = position.longitude;
+        _selectedAddress = 'Pinpointing current location...';
+        _isGeocoding = true;
+      });
+
+      _isProgrammaticCameraMove = true;
+      try {
+        await _mapController?.animateCamera(
+          CameraUpdate.newLatLngZoom(latLng, 16.5),
+        );
+      } catch (_) {
+      } finally {
+        Future.delayed(const Duration(milliseconds: 150), () {
+          if (mounted && !_hasUserGesture) {
+            _isProgrammaticCameraMove = false;
+          }
+        });
+      }
+
+      // 3. Reverse-geocode the coordinates.
+      debugPrint('[LOCATION] reverse geocoding...');
+      final prediction = await LocationService.reverseGeocode(
+        position.latitude,
+        position.longitude,
+      );
+      debugPrint('[LOCATION] resolved address: ${prediction.description}');
+      debugPrint('[LOCATION] success');
+
+      if (!mounted) return;
+      if (gpsRequestId != _activeGpsRequestId) return;
+      if (isInitial && _selectionSource != LocationSelectionSource.currentLocation) return;
+
+      _selectionRequestId = requestId;
+
+      // 4. Update the selected address.
+      // 5. Update latitude/longitude & placeId in the existing location state.
+      // 6. Update the bottom confirmation panel.
+      setState(() {
+        _selectedAddress = prediction.description.isNotEmpty
+            ? prediction.description
+            : '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
+        _selectedLat = position.latitude;
+        _selectedLng = position.longitude;
+        _selectedPlaceId = prediction.placeId;
+        _isGeocoding = false;
+      });
     } catch (e) {
+      debugPrint('[LOCATION] ERROR: $e');
+      if (mounted) {
+        setState(() => _isGeocoding = false);
+      }
       if (mounted && showErrors) {
-        final message =
-            e is PermissionException ? e.message : 'Could not obtain current location.';
+        String message = 'Could not obtain current location.';
+        SnackBarAction? action;
+
+        if (e is AppLocationServiceDisabledException || e is LocationServiceDisabledException) {
+          message = e is PermissionException
+              ? e.message
+              : 'Location services are disabled. Please turn on device location.';
+          action = SnackBarAction(
+            label: 'Enable',
+            textColor: _primaryYellow,
+            onPressed: () => Geolocator.openLocationSettings(),
+          );
+        } else if (e is AppLocationPermissionPermanentlyDeniedException) {
+          message = e.message;
+          action = SnackBarAction(
+            label: 'Settings',
+            textColor: _primaryYellow,
+            onPressed: () => Geolocator.openAppSettings(),
+          );
+        } else if (e is AppLocationPermissionDeniedException) {
+          message = e.message;
+        } else if (e is AppLocationTimeoutException) {
+          message = e.message;
+        } else if (e is PermissionException) {
+          message = e.message;
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),
             backgroundColor: _dangerRed,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            action: action,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
     } finally {
-      if (mounted && requestId == _selectionRequestId) {
+      if (mounted && gpsRequestId == _activeGpsRequestId) {
         setState(() => _isFetchingGPS = false);
       }
     }
@@ -440,7 +514,7 @@ class _MapLocationPickerPageState extends State<MapLocationPickerPage> {
                 ),
                 onMapCreated: (controller) {
                   _mapController = controller;
-                  if (widget.initialLat == null || widget.isPickup) {
+                  if (widget.initialLat == null) {
                     _handleCurrentLocation(showErrors: false, isInitial: true);
                   }
                 },
@@ -660,7 +734,7 @@ class _MapLocationPickerPageState extends State<MapLocationPickerPage> {
           // Floating Current Location GPS Button
           Positioned(
             right: 16,
-            bottom: 184, // Sits comfortably above bottom confirmation panel
+            bottom: MediaQuery.of(context).padding.bottom + 212,
             child: InkWell(
               onTap: _isFetchingGPS ? null : _handleCurrentLocation,
               borderRadius: BorderRadius.circular(28),

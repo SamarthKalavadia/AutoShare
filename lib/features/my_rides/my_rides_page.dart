@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/localization/app_localizations.dart';
 
 import '../../core/utils/result.dart';
 import '../requests/providers/incoming_requests_provider.dart';
@@ -57,7 +58,7 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage> {
         ),
         centerTitle: true,
         title: Text(
-          'My Rides',
+          context.l10n.navMyRides,
           style: GoogleFonts.outfit(
             fontSize: 20,
             fontWeight: FontWeight.w600,
@@ -119,7 +120,7 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage> {
         children: [
           Expanded(
             child: _SegmentButton(
-              title: 'My Activity',
+              title: context.l10n.myActivity,
               isSelected: _selectedSegment == 0,
               onTap: () => setState(() => _selectedSegment = 0),
               primaryColor: primaryColor,
@@ -128,7 +129,7 @@ class _MyRidesPageState extends ConsumerState<MyRidesPage> {
           ),
           Expanded(
             child: _SegmentButton(
-              title: 'Requests',
+              title: context.l10n.requests,
               isSelected: _selectedSegment == 1,
               badgeCount: pendingCount,
               onTap: () => setState(() => _selectedSegment = 1),

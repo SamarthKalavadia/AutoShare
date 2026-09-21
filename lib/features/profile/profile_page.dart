@@ -19,6 +19,7 @@ import '../../data/models/rating_model.dart';
 import '../../data/repositories/rating_repository.dart';
 import '../../data/models/report_model.dart';
 import '../../shared/utils/avatar_utils.dart';
+import '../../core/localization/app_localizations.dart';
 
 /// The current logged-in user's own profile page (for bottom nav tab).
 class ProfilePage extends ConsumerWidget {
@@ -71,14 +72,14 @@ class _ProfileBody extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          'Delete Account',
+          context.l10n.deleteAccount,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w700,
             color: const Color(0xFFD32F2F),
           ),
         ),
         content: Text(
-          'Are you sure you want to delete your account? This action is permanent and will delete all your data, rides, and settings.',
+          context.l10n.deleteAccountConfirm,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: Theme.of(context).brightness == Brightness.dark
                 ? Colors.white70
@@ -88,7 +89,7 @@ class _ProfileBody extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -115,7 +116,7 @@ class _ProfileBody extends ConsumerWidget {
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFD32F2F),
             ),
-            child: const Text('Delete'),
+            child: Text(context.l10n.delete),
           ),
         ],
       ),
@@ -187,7 +188,7 @@ class _ProfileBody extends ConsumerWidget {
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildSectionTitle(context, 'Ride Activity'),
+                                _buildSectionTitle(context, context.l10n.rideActivity),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 16,
@@ -203,7 +204,7 @@ class _ProfileBody extends ConsumerWidget {
                                     children: [
                                       _buildActivityStat(
                                         context,
-                                        'Created',
+                                        context.l10n.created,
                                         stats.createdRides.toString(),
                                       ),
                                       Container(
@@ -213,7 +214,7 @@ class _ProfileBody extends ConsumerWidget {
                                       ),
                                       _buildActivityStat(
                                         context,
-                                        'Joined',
+                                        context.l10n.joined,
                                         stats.joinedRides.toString(),
                                       ),
                                       Container(
@@ -223,7 +224,7 @@ class _ProfileBody extends ConsumerWidget {
                                       ),
                                       _buildActivityStat(
                                         context,
-                                        'Completed',
+                                        context.l10n.completed,
                                         stats.completedRides.toString(),
                                       ),
                                     ],
@@ -235,11 +236,11 @@ class _ProfileBody extends ConsumerWidget {
                         ),
                         const SizedBox(height: 32),
 
-                        _buildSectionTitle(context, 'Account'),
+                        _buildSectionTitle(context, context.l10n.account),
                         _buildProfileTile(
                           context,
                           icon: Icons.person_outline,
-                          title: 'Edit Profile',
+                          title: context.l10n.editProfile,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -250,7 +251,7 @@ class _ProfileBody extends ConsumerWidget {
                         _buildProfileTile(
                           context,
                           icon: Icons.shield_outlined,
-                          title: 'Password & Security',
+                          title: context.l10n.passwordAndSecurity,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -261,10 +262,10 @@ class _ProfileBody extends ConsumerWidget {
                         _buildProfileTile(
                           context,
                           icon: Icons.mark_email_read_outlined,
-                          title: 'Email & Verification',
+                          title: context.l10n.emailAndVerification,
                           trailingText: user.emailVerified
-                              ? 'Verified'
-                              : 'Unverified',
+                              ? context.l10n.verified
+                              : context.l10n.unverified,
                           onTap: () {
                             if (!user.emailVerified) {
                               context.push('/email-verification');
@@ -273,25 +274,25 @@ class _ProfileBody extends ConsumerWidget {
                         ),
 
                         const SizedBox(height: 32),
-                        _buildSectionTitle(context, 'Settings'),
+                        _buildSectionTitle(context, context.l10n.settings),
                         _buildSwitchTile(
                           context,
                           icon: Icons.notifications_none,
-                          title: 'Notifications',
+                          title: context.l10n.pushNotifications,
                           value: settings.pushNotifications,
                           onChanged: settingsNotifier.togglePushNotifications,
                         ),
                         _buildSwitchTile(
                           context,
                           icon: Icons.dark_mode_outlined,
-                          title: 'Dark Mode',
+                          title: context.l10n.darkMode,
                           value: settings.isDarkMode,
                           onChanged: settingsNotifier.toggleDarkMode,
                         ),
                         _buildProfileTile(
                           context,
                           icon: Icons.privacy_tip_outlined,
-                          title: 'Privacy',
+                          title: context.l10n.privacySettings,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -302,7 +303,7 @@ class _ProfileBody extends ConsumerWidget {
                         _buildProfileTile(
                           context,
                           icon: Icons.language,
-                          title: 'Language',
+                          title: context.l10n.language,
                           trailingText: settings.language,
                           onTap: () => Navigator.push(
                             context,
@@ -313,17 +314,17 @@ class _ProfileBody extends ConsumerWidget {
                         ),
 
                         const SizedBox(height: 32),
-                        _buildSectionTitle(context, 'About & Support'),
+                        _buildSectionTitle(context, context.l10n.aboutAndSupport),
                         _buildProfileTile(
                           context,
                           icon: Icons.info_outline,
-                          title: 'About AutoShare',
+                          title: context.l10n.aboutAutoShare,
                           onTap: () => context.push('/about'),
                         ),
                         _buildProfileTile(
                           context,
                           icon: Icons.help_outline,
-                          title: 'Help & Support',
+                          title: context.l10n.helpSupport,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -334,7 +335,7 @@ class _ProfileBody extends ConsumerWidget {
                         _buildProfileTile(
                           context,
                           icon: Icons.description_outlined,
-                          title: 'Terms & Conditions',
+                          title: context.l10n.termsConditions,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -345,7 +346,7 @@ class _ProfileBody extends ConsumerWidget {
                         _buildProfileTile(
                           context,
                           icon: Icons.gavel_outlined,
-                          title: 'Privacy Policy',
+                          title: context.l10n.privacyPolicy,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -355,18 +356,18 @@ class _ProfileBody extends ConsumerWidget {
                         ),
 
                         const SizedBox(height: 40),
-                        _buildSectionTitle(context, 'Account Actions'),
+                        _buildSectionTitle(context, context.l10n.accountActions),
                         _buildProfileTile(
                           context,
                           icon: Icons.delete_outline,
-                          title: 'Delete Account',
+                          title: context.l10n.deleteAccount,
                           color: const Color(0xFFD32F2F),
                           onTap: () => _showDeleteAccountDialog(context, ref),
                         ),
                         _buildProfileTile(
                           context,
                           icon: Icons.logout_rounded,
-                          title: 'Logout',
+                          title: context.l10n.logOut,
                           onTap: () async {
                             showDialog(
                               context: context,

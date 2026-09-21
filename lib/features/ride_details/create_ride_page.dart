@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/localization/app_localizations.dart';
 
 import '../../core/utils/result.dart';
 import 'providers/create_ride_provider.dart';
@@ -57,7 +58,7 @@ class CreateRidePage extends ConsumerWidget {
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
                 child: Text(
-                  'Cancel',
+                  context.l10n.cancel,
                   style: GoogleFonts.inter(
                     fontWeight: FontWeight.w600,
                     color: isDark ? Colors.white60 : const Color(0xFF6F6F72),
@@ -94,7 +95,7 @@ class CreateRidePage extends ConsumerWidget {
             onPressed: () => Navigator.maybePop(context),
           ),
           title: Text(
-            'Create Ride',
+            context.l10n.createRide,
             style: GoogleFonts.inter(
               fontSize: 20,
               fontWeight: FontWeight.w700,
@@ -169,7 +170,7 @@ class CreateRidePage extends ConsumerWidget {
                             ),
                           )
                         : Text(
-                            'Create Ride',
+                            context.l10n.publishRide,
                             style: GoogleFonts.inter(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -278,7 +279,7 @@ class CreateRidePage extends ConsumerWidget {
                           ),
                         ),
                         child: Text(
-                          'View My Ride',
+                          context.l10n.navMyRides,
                           style: GoogleFonts.inter(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -308,7 +309,7 @@ class CreateRidePage extends ConsumerWidget {
                           ),
                         ),
                         child: Text(
-                          'Close',
+                          context.l10n.close,
                           style: GoogleFonts.inter(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,

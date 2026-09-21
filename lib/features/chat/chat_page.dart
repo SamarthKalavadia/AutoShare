@@ -10,6 +10,7 @@ import 'package:autoshare/features/chat/widgets/message_bubble.dart';
 import 'package:autoshare/features/chat/widgets/ride_summary_banner.dart';
 import 'package:autoshare/shared/utils/avatar_utils.dart';
 import 'package:autoshare/shared/providers.dart';
+import 'package:autoshare/core/localization/app_localizations.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
   final ChatPageArgs args;
@@ -249,7 +250,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   ),
                   const SizedBox(height: 1),
                   Text(
-                    typingUids.isNotEmpty ? 'typing...' : 'Ride partner',
+                    typingUids.isNotEmpty ? context.l10n.typing : 'Ride partner',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: typingUids.isNotEmpty ? primaryColor : (isDark ? Colors.white54 : const Color(0xFF8E8E93)),
                       fontStyle: typingUids.isNotEmpty ? FontStyle.italic : FontStyle.normal,
@@ -627,7 +628,7 @@ class _ChatInputBar extends StatelessWidget {
               textCapitalization: TextCapitalization.sentences,
               style: theme.textTheme.bodyLarge?.copyWith(color: blackColor, fontSize: 16),
               decoration: InputDecoration(
-                hintText: 'Type a message...',
+                hintText: context.l10n.typeMessage,
                 hintStyle: theme.textTheme.bodyLarge?.copyWith(
                   color: isDark ? Colors.white38 : const Color(0xFF9E9E9E),
                   fontSize: 16,

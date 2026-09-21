@@ -9,6 +9,8 @@ import 'core/theme/app_theme.dart';
 import 'core/routes/app_router.dart';
 
 import 'core/services/notification_service.dart';
+import 'core/localization/app_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'features/settings/providers/settings_provider.dart';
 
 Future<void> main() async {
@@ -72,7 +74,15 @@ class AutoShareApp extends ConsumerWidget {
       title: 'AutoShare',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      themeMode: settings.themeMode,
+      locale: settings.locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       routerConfig: AppRouter.router,
     );
   }

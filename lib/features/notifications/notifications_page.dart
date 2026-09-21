@@ -9,6 +9,7 @@ import '../auth/presentation/controllers/auth_controller.dart';
 import 'providers/notification_provider.dart';
 import '../chat/providers/chat_provider.dart';
 import '../../shared/utils/avatar_utils.dart';
+import '../../core/localization/app_localizations.dart';
 
 class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
@@ -172,7 +173,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       elevation: 0,
       automaticallyImplyLeading: false,
       title: Text(
-        'Notifications',
+        context.l10n.navNotifications,
         style: GoogleFonts.inter(
           fontSize: 17,
           fontWeight: FontWeight.w700,
@@ -216,7 +217,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         onPressed: _clearSelection,
       ),
       title: Text(
-        '${_selectedIds.length} selected',
+        '${_selectedIds.length} ${context.l10n.selectedCountText}',
         style: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w500,
@@ -226,12 +227,12 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       actions: [
         IconButton(
           icon: Icon(allSelected ? Icons.deselect : Icons.select_all, color: blackColor),
-          tooltip: allSelected ? 'Deselect all' : 'Select all',
+          tooltip: allSelected ? context.l10n.deselectAll : context.l10n.selectAll,
           onPressed: () => _selectAll(allNotifications),
         ),
         IconButton(
           icon: Icon(Icons.delete_outline, color: blackColor),
-          tooltip: 'Delete',
+          tooltip: context.l10n.delete,
           onPressed: () => _confirmDelete(),
         ),
         PopupMenuButton<String>(
@@ -272,7 +273,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    allSelected ? 'Deselect all' : 'Select all',
+                    allSelected ? context.l10n.deselectAll : context.l10n.selectAll,
                     style: textStyle,
                   ),
                 ],
@@ -289,7 +290,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                     size: 20,
                   ),
                   const SizedBox(width: 12),
-                  Text('Mark as read', style: textStyle),
+                  Text(context.l10n.markAsRead, style: textStyle),
                 ],
               ),
             ),
@@ -304,7 +305,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                     size: 20,
                   ),
                   const SizedBox(width: 12),
-                  Text('Mark as unread', style: textStyle),
+                  Text(context.l10n.markAsUnread, style: textStyle),
                 ],
               ),
             ),
@@ -320,7 +321,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Delete',
+                    context.l10n.delete,
                     style: textStyle.copyWith(color: const Color(0xFFD32F2F)),
                   ),
                 ],
@@ -345,13 +346,13 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           style: GoogleFonts.inter(fontWeight: FontWeight.w700),
         ),
         content: Text(
-          'Delete $count selected notification${count > 1 ? 's' : ''}?',
+          'Delete $count ${context.l10n.selectedCountText} notification${count > 1 ? 's' : ''}?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
-              'Cancel',
+              context.l10n.cancel,
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.w600,
                 color: isDark ? Colors.white60 : const Color(0xFF6F6F72),
@@ -363,7 +364,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFD32F2F),
             ),
-            child: const Text('Delete'),
+            child: Text(context.l10n.delete),
           ),
         ],
       ),
@@ -385,7 +386,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       padding: const EdgeInsets.only(bottom: 24),
       children: [
         if (grouped.today.isNotEmpty) ...[
-          const _SectionHeader(label: 'TODAY'),
+          _SectionHeader(label: context.l10n.today.toUpperCase()),
           ...grouped.today.map(
             (n) => _NotificationTile(
               notification: n,
@@ -407,7 +408,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           ),
         ],
         if (grouped.yesterday.isNotEmpty) ...[
-          const _SectionHeader(label: 'YESTERDAY'),
+          _SectionHeader(label: context.l10n.yesterday.toUpperCase()),
           ...grouped.yesterday.map(
             (n) => _NotificationTile(
               notification: n,
@@ -429,7 +430,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           ),
         ],
         if (grouped.older.isNotEmpty) ...[
-          const _SectionHeader(label: 'EARLIER'),
+          _SectionHeader(label: context.l10n.earlier.toUpperCase()),
           ...grouped.older.map(
             (n) => _NotificationTile(
               notification: n,
@@ -491,7 +492,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           ),
           const SizedBox(height: 24),
           Text(
-            'You\'re all caught up',
+            context.l10n.noNotifications,
             style: GoogleFonts.inter(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -500,7 +501,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'New ride updates and activity\nwill appear here.',
+            context.l10n.noNotificationsSubtitle,
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 14,
