@@ -11,6 +11,7 @@ import 'package:autoshare/features/my_rides/providers/my_rides_provider.dart';
 import 'package:autoshare/features/chat/providers/chat_provider.dart';
 import 'package:autoshare/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:autoshare/shared/utils/avatar_utils.dart';
+import 'package:autoshare/core/localization/app_localizations.dart';
 
 class ChatsListPage extends ConsumerStatefulWidget {
   const ChatsListPage({super.key});
@@ -94,14 +95,14 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'No active chats yet',
+                      context.l10n.noMessagesYet,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Conversations with drivers and riders will appear here.',
+                      context.l10n.noChatsSubtitle,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.brightness == Brightness.dark
                             ? Colors.white54
@@ -311,7 +312,7 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
       title: Padding(
         padding: const EdgeInsets.only(top: 8.0, left: 8.0),
         child: Text(
-          'Chats',
+          context.l10n.navChats,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             color: textColor,
             fontWeight: FontWeight.w700,
@@ -349,7 +350,7 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
         onPressed: _clearSelection,
       ),
       title: Text(
-        '${_selectedIds.length} selected',
+        '${_selectedIds.length} ${context.l10n.selectedCountText}',
         style: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w500,
@@ -359,12 +360,12 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
       actions: [
         IconButton(
           icon: Icon(allSelected ? Icons.deselect : Icons.select_all, color: blackColor),
-          tooltip: allSelected ? 'Deselect all' : 'Select all',
+          tooltip: allSelected ? context.l10n.deselectAll : context.l10n.selectAll,
           onPressed: () => _selectAll(allIds),
         ),
         IconButton(
           icon: Icon(Icons.delete_outline, color: blackColor),
-          tooltip: 'Delete',
+          tooltip: context.l10n.delete,
           onPressed: () => _confirmDelete(),
         ),
         PopupMenuButton<String>(
@@ -401,7 +402,7 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    allSelected ? 'Deselect all' : 'Select all',
+                    allSelected ? context.l10n.deselectAll : context.l10n.selectAll,
                     style: textStyle,
                   ),
                 ],
@@ -418,7 +419,7 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
                     size: 20,
                   ),
                   const SizedBox(width: 12),
-                  Text('Mark as read', style: textStyle),
+                  Text(context.l10n.markAsRead, style: textStyle),
                 ],
               ),
             ),
@@ -433,7 +434,7 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
                     size: 20,
                   ),
                   const SizedBox(width: 12),
-                  Text('Mark as unread', style: textStyle),
+                  Text(context.l10n.markAsUnread, style: textStyle),
                 ],
               ),
             ),
@@ -449,7 +450,7 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Delete',
+                    context.l10n.delete,
                     style: textStyle.copyWith(color: const Color(0xFFD32F2F)),
                   ),
                 ],
@@ -477,7 +478,7 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
           ),
         ),
         content: Text(
-          'Delete $count selected conversation${count > 1 ? 's' : ''}?',
+          'Delete $count ${context.l10n.selectedCountText} conversation${count > 1 ? 's' : ''}?',
           style: GoogleFonts.inter(
             color: isDark ? Colors.white70 : const Color(0xFF6F6F72),
           ),
@@ -486,7 +487,7 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
-              'Cancel',
+              context.l10n.cancel,
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.w600,
                 color: isDark ? Colors.white60 : const Color(0xFF6F6F72),
@@ -498,7 +499,7 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFD32F2F),
             ),
-            child: const Text('Delete'),
+            child: Text(context.l10n.delete),
           ),
         ],
       ),
@@ -738,7 +739,7 @@ class _ChatCard extends ConsumerWidget {
                           )
                         else if (lastMessageAt != null && !isSelected)
                           Text(
-                            _formatTime(lastMessageAt),
+                            _formatTime(context, lastMessageAt),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: subtextColor,
                               fontSize: 12,
@@ -749,10 +750,10 @@ class _ChatCard extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Text(
                       isTyping
-                          ? 'typing...'
+                          ? context.l10n.typing
                           : (realLastMessageText.isNotEmpty
                               ? realLastMessageText
-                              : 'Start a conversation'),
+                              : context.l10n.startConversation),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: isTyping
                             ? primaryColor
@@ -775,12 +776,12 @@ class _ChatCard extends ConsumerWidget {
     );
   }
 
-  String _formatTime(DateTime time) {
+  String _formatTime(BuildContext context, DateTime time) {
     final now = DateTime.now();
     if (time.year == now.year && time.month == now.month && time.day == now.day) {
       return DateFormat('h:mm a').format(time);
     } else if (time.year == now.year && time.month == now.month && time.day == now.day - 1) {
-      return 'Yesterday';
+      return context.l10n.yesterday;
     } else {
       return DateFormat('MMM d').format(time);
     }

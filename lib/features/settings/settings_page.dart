@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../auth/presentation/controllers/auth_controller.dart';
 import 'providers/settings_provider.dart';
 import 'security_settings_page.dart';
+import 'language_settings_page.dart';
+import '../../core/localization/app_localizations.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -16,14 +18,14 @@ class SettingsPage extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          'Delete Account',
+          context.l10n.deleteAccount,
           style: GoogleFonts.inter(
             fontWeight: FontWeight.w700,
             color: const Color(0xFFD32F2F),
           ),
         ),
         content: Text(
-          'Are you sure you want to delete your account? This action is permanent and will delete all your data, rides, and settings.',
+          context.l10n.deleteAccountConfirm,
           style: GoogleFonts.inter(
             color: Theme.of(context).brightness == Brightness.dark
                 ? Colors.white70
@@ -33,7 +35,7 @@ class SettingsPage extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -62,7 +64,7 @@ class SettingsPage extends ConsumerWidget {
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFD32F2F),
             ),
-            child: const Text('Delete'),
+            child: Text(context.l10n.delete),
           ),
         ],
       ),
@@ -104,7 +106,7 @@ class SettingsPage extends ConsumerWidget {
           },
         ),
         title: Text(
-          'Settings',
+          context.l10n.settings,
           style: GoogleFonts.inter(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -115,44 +117,47 @@ class SettingsPage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         children: [
-          _buildSectionTitle('Preferences', context),
+          _buildSectionTitle(context.l10n.preferences, context),
           _buildSwitchTile(
             context: context,
             icon: Icons.dark_mode_outlined,
-            title: 'Dark Mode',
+            title: context.l10n.darkMode,
             value: settings.isDarkMode,
             onChanged: notifier.toggleDarkMode,
           ),
           _buildSwitchTile(
             context: context,
             icon: Icons.notifications_none_rounded,
-            title: 'Push Notifications',
+            title: context.l10n.pushNotifications,
             value: settings.pushNotifications,
             onChanged: notifier.togglePushNotifications,
           ),
           _buildSwitchTile(
             context: context,
             icon: Icons.email_outlined,
-            title: 'Email Notifications',
+            title: context.l10n.emailNotifications,
             value: settings.emailNotifications,
             onChanged: notifier.toggleEmailNotifications,
           ),
           _buildListTile(
             context: context,
             icon: Icons.language_rounded,
-            title: 'Language',
+            title: context.l10n.language,
             trailingText: settings.language,
             onTap: () {
-              // Placeholder for language picker
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LanguageSettingsPage()),
+              );
             },
           ),
           const SizedBox(height: 24),
 
-          _buildSectionTitle('Security & Privacy', context),
+          _buildSectionTitle(context.l10n.securityPrivacy, context),
           _buildListTile(
             context: context,
             icon: Icons.security_rounded,
-            title: 'Security',
+            title: context.l10n.security,
             onTap: () {
               Navigator.push(
                 context,
@@ -163,28 +168,28 @@ class SettingsPage extends ConsumerWidget {
           _buildListTile(
             context: context,
             icon: Icons.privacy_tip_outlined,
-            title: 'Privacy Settings',
+            title: context.l10n.privacySettings,
             onTap: () {},
           ),
           const SizedBox(height: 24),
 
-          _buildSectionTitle('About', context),
+          _buildSectionTitle(context.l10n.about, context),
           _buildListTile(
             context: context,
             icon: Icons.help_outline_rounded,
-            title: 'Help & Support',
+            title: context.l10n.helpSupport,
             onTap: () {},
           ),
           _buildListTile(
             context: context,
             icon: Icons.description_outlined,
-            title: 'Terms & Conditions',
+            title: context.l10n.termsConditions,
             onTap: () {},
           ),
           _buildListTile(
             context: context,
             icon: Icons.shield_outlined,
-            title: 'Privacy Policy',
+            title: context.l10n.privacyPolicy,
             onTap: () {},
           ),
           const SizedBox(height: 32),
@@ -221,7 +226,7 @@ class SettingsPage extends ConsumerWidget {
                 ),
               ),
               child: Text(
-                'Logout',
+                context.l10n.logOut,
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -234,7 +239,7 @@ class SettingsPage extends ConsumerWidget {
             child: TextButton(
               onPressed: () => _showDeleteAccountDialog(context, ref),
               child: Text(
-                'Delete Account',
+                context.l10n.deleteAccount,
                 style: GoogleFonts.inter(
                   color: const Color(0xFFD32F2F),
                   fontWeight: FontWeight.w600,

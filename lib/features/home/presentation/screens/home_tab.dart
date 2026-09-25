@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../notifications/providers/notification_provider.dart';
@@ -48,12 +49,12 @@ class HomeTab extends ConsumerWidget {
     final searchState = ref.watch(homeSearchProvider);
     final isFemale = user?.gender.toLowerCase() == 'female';
 
-    String greeting = 'Good Morning,';
+    String greeting = context.l10n.greetingMorning;
     final hour = DateTime.now().hour;
     if (hour >= 12 && hour < 17) {
-      greeting = 'Good Afternoon,';
+      greeting = context.l10n.greetingAfternoon;
     } else if (hour >= 17) {
-      greeting = 'Good Evening,';
+      greeting = context.l10n.greetingEvening;
     }
 
     return Scaffold(
@@ -226,7 +227,7 @@ class HomeTab extends ConsumerWidget {
                   duration: const Duration(milliseconds: 400),
                   curve: Curves.easeOut,
                   child: Text(
-                    'Where to next?',
+                    context.l10n.whereGoing,
                     style: theme.textTheme.headlineMedium?.copyWith(
                       color: textPrimary,
                       fontWeight: FontWeight.w800,
@@ -296,7 +297,7 @@ class HomeTab extends ConsumerWidget {
                                   children: [
                                     LocationAutocompleteField(
                                       fieldKey: 'home_dummy_boarding',
-                                      hint: 'Pickup location',
+                                      hint: context.l10n.pickupLocationHint,
                                       icon: Icons.radio_button_checked,
                                       iconColor: primaryColor,
                                       initialValue: searchState.boarding.isEmpty
@@ -319,7 +320,7 @@ class HomeTab extends ConsumerWidget {
                                     const SizedBox(height: 16),
                                     LocationAutocompleteField(
                                       fieldKey: 'home_dummy_destination',
-                                      hint: 'Dropoff location',
+                                      hint: context.l10n.dropoffDestinationHint,
                                       icon: Icons.location_on,
                                       iconColor: isDark
                                           ? Colors.white
@@ -378,7 +379,7 @@ class HomeTab extends ConsumerWidget {
                               context: context,
                               icon: Icons.calendar_today_rounded,
                               label: searchState.departureDate == null
-                                  ? 'Today'
+                                  ? context.l10n.today
                                   : DateFormat(
                                       'MMM d',
                                     ).format(searchState.departureDate!),
@@ -448,7 +449,7 @@ class HomeTab extends ConsumerWidget {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  'Girls Only Ride',
+                                  context.l10n.womenOnlyRides,
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     color: textPrimary,
                                   ),
@@ -473,7 +474,7 @@ class HomeTab extends ConsumerWidget {
                         child: FilledButton(
                           onPressed: () =>
                               _handleCreateRideCTA(context, ref, searchState),
-                          child: const Text('Create Ride'),
+                          child: Text(context.l10n.createRide),
                         ),
                       ),
                     ],
@@ -482,7 +483,7 @@ class HomeTab extends ConsumerWidget {
               ),
               const SizedBox(height: 32),
               Text(
-                'Quick Actions',
+                context.l10n.quickActions,
                 style: theme.textTheme.titleLarge?.copyWith(color: textPrimary),
               ),
               const SizedBox(height: 16),
@@ -491,7 +492,7 @@ class HomeTab extends ConsumerWidget {
                   Expanded(
                     child: _ActionCard(
                       icon: Icons.search_rounded,
-                      label: 'Find Ride',
+                      label: context.l10n.findRide,
                       onTap: () {
                         ref.read(homeNavigationProvider.notifier).setIndex(1);
                       },
@@ -501,7 +502,7 @@ class HomeTab extends ConsumerWidget {
                   Expanded(
                     child: _ActionCard(
                       icon: Icons.directions_car_filled_rounded,
-                      label: 'My Rides',
+                      label: context.l10n.navMyRides,
                       onTap: () => context.push('/my-rides'),
                     ),
                   ),
@@ -509,7 +510,7 @@ class HomeTab extends ConsumerWidget {
                   Expanded(
                     child: _ActionCard(
                       icon: Icons.person_rounded,
-                      label: 'Drivers',
+                      label: context.l10n.driverDirectory,
                       onTap: () => context.push('/driver-directory'),
                     ),
                   ),
@@ -517,7 +518,7 @@ class HomeTab extends ConsumerWidget {
               ),
               const SizedBox(height: 32),
               Text(
-                'Active Ride',
+                context.l10n.activeRides,
                 style: theme.textTheme.titleLarge?.copyWith(color: textPrimary),
               ),
               const SizedBox(height: 16),

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../core/config/maps_config.dart';
 import 'package:geolocator/geolocator.dart';
@@ -681,67 +682,90 @@ class LocationService {
     return fallback;
   }
 
-  /// Get device current location with high-precision GPS hardware fix.
-  static Future<PlacePrediction> getCurrentLocation() async {
+  /// Get raw device current GPS position with robust timeout and permission handling.
+  static Future<Position> getCurrentPosition() async {
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    debugPrint('[LOCATION] service enabled: $serviceEnabled');
     if (!serviceEnabled) {
-      throw PermissionException(
-        'Location services are turned off. Please enable them or search manually.',
-      );
+      debugPrint('[LOCATION] ERROR: Location services are turned off');
+      debugPrint('[LOCATION] error code: SERVICE_DISABLED');
+      throw const AppLocationServiceDisabledException();
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
+    debugPrint('[LOCATION] permission status: $permission');
+
     if (permission == LocationPermission.denied) {
+      debugPrint('[LOCATION] requesting location permission...');
       permission = await Geolocator.requestPermission();
+      debugPrint('[LOCATION] permission status: $permission');
       if (permission == LocationPermission.denied) {
-        throw PermissionException(
-          'Location permission is required to use your current location.',
-        );
+        debugPrint('[LOCATION] ERROR: Location permission denied');
+        debugPrint('[LOCATION] error code: PERMISSION_DENIED');
+        throw const AppLocationPermissionDeniedException();
       }
     }
+
     if (permission == LocationPermission.deniedForever) {
-      throw PermissionException(
-        'Location permission is disabled. Enable it in Settings or search for a location manually.',
-      );
+      debugPrint('[LOCATION] ERROR: Location permission permanently denied');
+      debugPrint('[LOCATION] error code: PERMISSION_PERMANENTLY_DENIED');
+      throw const AppLocationPermissionPermanentlyDeniedException();
     }
 
-    Position? bestPosition;
-    const int maxRetries = 3;
+    debugPrint('[LOCATION] requesting current position...');
+    Position? position;
 
-    for (int i = 0; i < maxRetries; i++) {
+    try {
+      position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      ).timeout(const Duration(seconds: 10));
+    } catch (e) {
+      debugPrint('[LOCATION] getCurrentPosition notice: $e, checking last known position...');
       try {
-        final position = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.best,
-            timeLimit: Duration(seconds: 8),
-          ),
-        );
-
-        if (bestPosition == null || position.accuracy < bestPosition.accuracy) {
-          bestPosition = position;
-        }
-
-        if (bestPosition.accuracy <= 50.0) {
-          break;
-        }
-      } catch (_) {
-        // Ignore timeout or errors and retry
-      }
+        position = await Geolocator.getLastKnownPosition().timeout(const Duration(seconds: 3));
+      } catch (_) {}
     }
 
-    if (bestPosition == null || bestPosition.accuracy > 100.0) {
-      throw const PermissionException(
-        'Unable to get an accurate current location. Please move to an open area and try again.',
+    if (position == null) {
+      debugPrint('[LOCATION] ERROR: Unable to get GPS position within timeout');
+      debugPrint('[LOCATION] error code: TIMEOUT');
+      throw const AppLocationTimeoutException();
+    }
+
+    debugPrint('[LOCATION] latitude: ${position.latitude}');
+    debugPrint('[LOCATION] longitude: ${position.longitude}');
+    return position;
+  }
+
+  /// Get device current location and reverse-geocode to a PlacePrediction.
+  static Future<PlacePrediction> getCurrentLocation() async {
+    final position = await getCurrentPosition();
+
+    debugPrint('[LOCATION] reverse geocoding...');
+    try {
+      final prediction = await reverseGeocode(position.latitude, position.longitude);
+      debugPrint('[LOCATION] resolved address: ${prediction.description}');
+      debugPrint('[LOCATION] success');
+      return prediction.copyWith(
+        latitude: position.latitude,
+        longitude: position.longitude,
       );
+    } catch (e) {
+      debugPrint('[LOCATION] reverse geocode fallback due to error: $e');
+      final fallback = PlacePrediction(
+        placeId: 'current_loc_${position.latitude.toStringAsFixed(4)}_${position.longitude.toStringAsFixed(4)}',
+        description: 'Current Location (${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)})',
+        primaryText: 'Current Location',
+        secondaryText: '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}',
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+      debugPrint('[LOCATION] resolved address: ${fallback.description}');
+      debugPrint('[LOCATION] success');
+      return fallback;
     }
-
-    print('GPS LATITUDE: ${bestPosition.latitude}');
-    print('GPS LONGITUDE: ${bestPosition.longitude}');
-    print('GPS ACCURACY: ${bestPosition.accuracy}');
-    print('GPS TIMESTAMP: ${bestPosition.timestamp}');
-    print('GPS IS MOCKED: ${bestPosition.isMocked}');
-
-    return reverseGeocode(bestPosition.latitude, bestPosition.longitude);
   }
 }
 
@@ -754,7 +778,32 @@ class HttpException implements Exception {
 
 class PermissionException implements Exception {
   final String message;
-  const PermissionException(this.message);
+  final String? code;
+  const PermissionException(this.message, {this.code});
   @override
-  String toString() => 'PermissionException: $message';
+  String toString() => message;
+}
+
+class AppLocationServiceDisabledException extends PermissionException {
+  const AppLocationServiceDisabledException([
+    super.message = 'Location services are turned off. Please enable device location.',
+  ]) : super(code: 'SERVICE_DISABLED');
+}
+
+class AppLocationPermissionDeniedException extends PermissionException {
+  const AppLocationPermissionDeniedException([
+    super.message = 'Location permission was denied. Please allow location access.',
+  ]) : super(code: 'PERMISSION_DENIED');
+}
+
+class AppLocationPermissionPermanentlyDeniedException extends PermissionException {
+  const AppLocationPermissionPermanentlyDeniedException([
+    super.message = 'Location permission is permanently disabled. Please enable it in Settings.',
+  ]) : super(code: 'PERMISSION_PERMANENTLY_DENIED');
+}
+
+class AppLocationTimeoutException extends PermissionException {
+  const AppLocationTimeoutException([
+    super.message = 'Unable to get your current location. Please try again.',
+  ]) : super(code: 'TIMEOUT');
 }

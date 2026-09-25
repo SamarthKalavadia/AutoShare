@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/localization/app_localizations.dart';
 
 class TermsConditionsPage extends StatelessWidget {
   const TermsConditionsPage({super.key});
@@ -6,7 +7,7 @@ class TermsConditionsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Terms & Conditions')),
+      appBar: AppBar(title: Text(context.l10n.termsConditions)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(

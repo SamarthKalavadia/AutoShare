@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/localization/app_localizations.dart';
 
 import 'providers/search_ride_provider.dart';
 import 'widgets/search_filter_card.dart';
@@ -69,7 +70,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   )
                 : null,
             title: Text(
-              'Find Ride',
+              context.l10n.findRide,
               style: GoogleFonts.inter(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
@@ -91,7 +92,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Available Rides',
+                      context.l10n.availableRides,
                       style: GoogleFonts.inter(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -120,7 +121,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                'Sort',
+                                context.l10n.sortBy,
                                 style: GoogleFonts.inter(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,

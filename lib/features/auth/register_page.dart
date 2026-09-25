@@ -16,6 +16,7 @@ import 'presentation/widgets/loading_button.dart';
 import 'presentation/widgets/password_field.dart';
 import 'presentation/widgets/profile_avatar_picker.dart';
 import 'presentation/widgets/validation_text.dart';
+import '../../core/localization/app_localizations.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -57,7 +58,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     if (!_acceptedTerms) {
       SnackbarHelper.show(
         context,
-        'Please accept the Terms of Service & Privacy Policy to proceed.',
+        context.l10n.acceptTermsPrompt,
       );
       return;
     }
@@ -134,10 +135,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const AuthHeader(
+                AuthHeader(
                   showLogo: true,
-                  title: 'Create your account',
-                  subtitle: 'Join AutoShare and start sharing rides.',
+                  title: context.l10n.createAccount,
+                  subtitle: context.l10n.joinAutoShareSubtitle,
                 ),
                 const SizedBox(height: 12),
 
@@ -161,12 +162,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 // Full Name
                 AppTextField(
                   controller: _nameController,
-                  labelText: 'Full name',
-                  hintText: 'Enter your full name',
+                  labelText: context.l10n.fullName,
+                  hintText: context.l10n.enterFullName,
                   prefixIcon: Icons.person_outline_rounded,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your full name';
+                      return context.l10n.pleaseEnterName;
                     }
                     return null;
                   },
@@ -176,18 +177,18 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 // Email Address
                 AppTextField(
                   controller: _emailController,
-                  labelText: 'Email address',
-                  hintText: 'Enter your email address',
+                  labelText: context.l10n.emailAddress,
+                  hintText: context.l10n.enterEmail,
                   prefixIcon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your email';
+                      return context.l10n.pleaseEnterEmail;
                     }
                     if (!RegExp(
                       r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                     ).hasMatch(value.trim())) {
-                      return 'Enter a valid email address';
+                      return context.l10n.enterValidEmail;
                     }
                     return null;
                   },
@@ -197,8 +198,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 // Phone Number
                 AppTextField(
                   controller: _phoneController,
-                  labelText: 'Phone number',
-                  hintText: 'Enter your phone number',
+                  labelText: context.l10n.phoneNumber,
+                  hintText: context.l10n.enterPhoneNumber,
                   prefixIcon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
                   inputFormatters: [
@@ -207,18 +208,18 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   ],
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your phone number';
+                      return context.l10n.pleaseEnterPhone;
                     }
                     final cleanValue = value.trim();
                     if (cleanValue.length != 10) {
-                      return 'Please enter a valid 10-digit phone number';
+                      return context.l10n.enterValidPhone;
                     }
                     final firstChar = cleanValue[0];
                     if (firstChar != '6' &&
                         firstChar != '7' &&
                         firstChar != '8' &&
                         firstChar != '9') {
-                      return 'Please enter a valid 10-digit mobile number';
+                      return context.l10n.enterValidPhone;
                     }
                     return null;
                   },
@@ -228,13 +229,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 // Gender
                 AppDropdownField<String>(
                   value: _selectedGender,
-                  labelText: 'Gender',
-                  hintText: 'Select your gender',
+                  labelText: context.l10n.gender,
+                  hintText: context.l10n.gender,
                   prefixIcon: Icons.person_outline_rounded,
-                  items: const [
-                    DropdownMenuItem(value: 'Male', child: Text('Male')),
-                    DropdownMenuItem(value: 'Female', child: Text('Female')),
-                    DropdownMenuItem(value: 'Other', child: Text('Other')),
+                  items: [
+                    DropdownMenuItem(value: 'Male', child: Text(context.l10n.genderMale)),
+                    DropdownMenuItem(value: 'Female', child: Text(context.l10n.genderFemale)),
+                    DropdownMenuItem(value: 'Other', child: Text(context.l10n.genderOther)),
                   ],
                   onChanged: (value) {
                     setState(() {
@@ -243,7 +244,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please select your gender';
+                      return context.l10n.gender;
                     }
                     return null;
                   },
@@ -253,15 +254,15 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 // Password
                 PasswordField(
                   controller: _passwordController,
-                  labelText: 'Password',
-                  hintText: 'Create a password',
+                  labelText: context.l10n.password,
+                  hintText: context.l10n.enterPassword,
                   onChanged: (_) => setState(() {}),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter a password';
+                      return context.l10n.pleaseEnterPassword;
                     }
                     if (value.length < 8) {
-                      return 'Password must be at least 8 characters';
+                      return context.l10n.passwordMinLength;
                     }
                     return null;
                   },
@@ -272,14 +273,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 // Confirm Password
                 PasswordField(
                   controller: _confirmPasswordController,
-                  labelText: 'Confirm password',
-                  hintText: 'Re-enter your password',
+                  labelText: context.l10n.confirmPassword,
+                  hintText: context.l10n.reEnterPassword,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please confirm your password';
+                      return context.l10n.confirmPassword;
                     }
                     if (value != _passwordController.text) {
-                      return 'Passwords do not match';
+                      return context.l10n.passwordsDoNotMatch;
                     }
                     return null;
                   },
@@ -340,7 +341,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
                 // Register Button
                 LoadingButton(
-                  text: 'Register Account',
+                  text: context.l10n.createAccount,
                   isLoading: _authAction == AuthAction.email,
                   onPressed: _authAction == AuthAction.idle
                       ? _submitRegister
@@ -348,12 +349,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 ),
                 const SizedBox(height: 24),
 
-                const DividerWithText(text: 'OR'),
+                DividerWithText(text: context.l10n.orContinueWith),
                 const SizedBox(height: 24),
 
                 // Google Sign Up
                 GoogleButton(
-                  text: 'Continue with Google',
+                  text: context.l10n.signInWithGoogle,
                   onPressed: _authAction == AuthAction.idle
                       ? _handleGoogleSignUp
                       : null,

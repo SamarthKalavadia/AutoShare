@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 import '../presentation/screens/map_location_picker_page.dart';
 import '../providers/create_ride_provider.dart';
@@ -46,7 +47,7 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _MainSectionTitle(title: 'ROUTE'),
+        _MainSectionTitle(title: context.l10n.route),
         // Boarding Location & Destination with Centered Swap Button
         Container(
           decoration: BoxDecoration(
@@ -116,7 +117,7 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
                             child: Text(
                               state.boardingLocation.isNotEmpty
                                   ? state.boardingLocation
-                                  : 'Pickup location',
+                                  : context.l10n.pickupLocationHint,
                               style: GoogleFonts.inter(
                                 fontSize: 15,
                                 fontWeight: state.boardingLocation.isNotEmpty
@@ -182,7 +183,7 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
                             child: Text(
                               state.destination.isNotEmpty
                                   ? state.destination
-                                  : 'Dropoff location',
+                                  : context.l10n.dropoffDestinationHint,
                               style: GoogleFonts.inter(
                                 fontSize: 15,
                                 fontWeight: state.destination.isNotEmpty
@@ -232,7 +233,7 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
         ),
         const SizedBox(height: 28),
 
-        _MainSectionTitle(title: 'TRIP DETAILS'),
+        _MainSectionTitle(title: context.l10n.dateTime),
         // Date & Time
         Row(
           children: [
@@ -240,7 +241,7 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _SectionTitle(title: 'Departure Date'),
+                  _SectionTitle(title: context.l10n.date),
                   const SizedBox(height: 8),
                   _DatePickerField(),
                 ],
@@ -251,7 +252,7 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _SectionTitle(title: 'Departure Time'),
+                  _SectionTitle(title: context.l10n.time),
                   const SizedBox(height: 8),
                   _TimePickerField(),
                 ],
@@ -269,7 +270,7 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _SectionTitle(title: 'Available Seats'),
+                  _SectionTitle(title: context.l10n.availableSeats),
                   const SizedBox(height: 8),
                   _SeatsStepper(),
                 ],
@@ -280,7 +281,7 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _SectionTitle(title: 'Total Fare'),
+                  _SectionTitle(title: context.l10n.farePerSeat),
                   const SizedBox(height: 8),
                   _RideTextField(
                     hint: '0',
@@ -354,7 +355,7 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Girls Only Ride',
+                        context.l10n.womenOnlyRide,
                         style: GoogleFonts.inter(
                           fontSize: 15,
                           color: blackColor,
@@ -363,7 +364,7 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Only verified female passengers can discover and request this ride.',
+                        context.l10n.womenOnlyRideDesc,
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: mutedText,
@@ -386,8 +387,8 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
           const SizedBox(height: 28),
         ],
 
-        _MainSectionTitle(title: 'ADDITIONAL DETAILS'),
-        const _SectionTitle(title: 'Vehicle Number'),
+        _MainSectionTitle(title: context.l10n.additionalDetailsOptional),
+        _SectionTitle(title: context.l10n.vehicleNumber),
         const SizedBox(height: 8),
         _RideTextField(
           hint: 'Enter vehicle number',
@@ -398,10 +399,10 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
         ),
         const SizedBox(height: 16),
 
-        const _SectionTitle(title: 'Ride Description'),
+        _SectionTitle(title: context.l10n.rideDescription),
         const SizedBox(height: 8),
         _RideTextField(
-          hint: 'Add notes for passengers (optional)',
+          hint: context.l10n.addNotesPassengers,
           icon: Icons.description_outlined,
           iconColor: blackColor,
           maxLines: 3,

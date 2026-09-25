@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/localization/app_localizations.dart';
 
 import '../../../data/models/request_model.dart';
 import 'providers/incoming_requests_provider.dart';
@@ -52,7 +53,7 @@ class _RequestsPageState extends ConsumerState<RequestsPage>
         elevation: 0,
         centerTitle: true,
         title: Text(
-          'Requests',
+          context.l10n.requests,
           style: GoogleFonts.outfit(
             fontSize: 20,
             fontWeight: FontWeight.w600,
@@ -79,10 +80,10 @@ class _RequestsPageState extends ConsumerState<RequestsPage>
               ),
               indicatorColor: primaryColor,
               indicatorWeight: 3,
-              tabs: const [
-                Tab(text: 'Pending'),
-                Tab(text: 'Accepted'),
-                Tab(text: 'Rejected'),
+              tabs: [
+                Tab(text: context.l10n.pending),
+                Tab(text: context.l10n.accepted),
+                Tab(text: context.l10n.rejected),
               ],
             ),
           ),
@@ -158,7 +159,7 @@ class _RequestListView extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'No $type requests',
+              context.l10n.noRequestsFound,
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,

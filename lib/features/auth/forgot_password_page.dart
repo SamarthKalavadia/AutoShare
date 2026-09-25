@@ -8,6 +8,7 @@ import 'presentation/widgets/app_text_field.dart';
 import 'presentation/widgets/auth_header.dart';
 import 'presentation/widgets/loading_button.dart';
 import 'presentation/widgets/primary_button.dart';
+import '../../core/localization/app_localizations.dart';
 
 class ForgotPasswordPage extends ConsumerStatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -78,28 +79,27 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AuthHeader(
-            title: 'Forgot Password 🔑',
-            subtitle:
-                "Enter your registered email address and we'll send you instructions to reset your password.",
+          AuthHeader(
+            title: context.l10n.forgotPassword,
+            subtitle: context.l10n.resetPasswordSubtitle,
           ),
           const SizedBox(height: 36),
 
           // Email Field
           AppTextField(
             controller: _emailController,
-            labelText: 'Email Address',
-            hintText: 'name@example.com',
+            labelText: context.l10n.emailAddress,
+            hintText: context.l10n.enterEmail,
             prefixIcon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Please enter your email';
+                return context.l10n.pleaseEnterEmail;
               }
               if (!RegExp(
                 r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
               ).hasMatch(value.trim())) {
-                return 'Enter a valid email address';
+                return context.l10n.enterValidEmail;
               }
               return null;
             },
@@ -108,7 +108,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
 
           // Reset Button
           LoadingButton(
-            text: 'Send Reset Link',
+            text: context.l10n.sendResetLink,
             isLoading: _isLoading,
             onPressed: _submitForgotPassword,
           ),
@@ -154,7 +154,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
         ),
         const SizedBox(height: 36),
         PrimaryButton(
-          text: 'Back to Login',
+          text: context.l10n.backToLogin,
           onPressed: () => context.go('/login'),
         ),
       ],

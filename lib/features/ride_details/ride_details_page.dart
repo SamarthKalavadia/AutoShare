@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/localization/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/models/ride_model.dart';
@@ -71,15 +72,15 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
   bool get _isClosed =>
       widget.ride.status == 'completed' || widget.ride.status == 'cancelled';
 
-  String? get _disabledReason {
-    if (_isOwnRide) return 'This is your own ride';
+  String? _getDisabledReason(BuildContext context) {
+    if (_isOwnRide) return context.l10n.thisIsYourOwnRide;
     if (_isClosed) {
       return widget.ride.status == 'completed'
-          ? 'Ride already completed'
-          : 'Ride was cancelled';
+          ? context.l10n.rideAlreadyCompleted
+          : context.l10n.rideWasCancelled;
     }
-    if (_isExpired) return 'Ride has already departed';
-    if (widget.ride.availableSeats <= 0) return 'No seats available';
+    if (_isExpired) return context.l10n.rideAlreadyDeparted;
+    if (widget.ride.availableSeats <= 0) return context.l10n.noSeatsAvailable;
     return null;
   }
 
@@ -113,12 +114,12 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
     );
     final existingReq = existingReqAsync.value;
 
-    String? disabledReason = _disabledReason;
+    String? disabledReason = _getDisabledReason(context);
     if (disabledReason == null && existingReq != null) {
       if (existingReq.status == RideRequestStatus.pending) {
-        disabledReason = 'Request Pending - Waiting for driver response';
+        disabledReason = context.l10n.pending;
       } else if (existingReq.status == RideRequestStatus.accepted) {
-        disabledReason = 'Request Accepted - You have joined this ride';
+        disabledReason = context.l10n.accepted;
       }
     }
 
@@ -265,7 +266,7 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
       elevation: 0,
       automaticallyImplyLeading: false,
       title: Text(
-        'Ride Details',
+        context.l10n.rideDetails,
         style: theme.textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w700,
         ),
@@ -294,13 +295,13 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
         ? const Color(0xFF28282A)
         : const Color(0xFFF3F3F3);
 
-    String buttonLabel = 'Request Ride';
+    String buttonLabel = context.l10n.requestSeat;
     if (_isOwnRide) {
-      buttonLabel = 'Your Ride';
+      buttonLabel = context.l10n.thisIsYourOwnRide;
     } else if (existingReq != null) {
       buttonLabel = existingReq.status == RideRequestStatus.accepted
-          ? 'Already Joined'
-          : 'Request Pending';
+          ? context.l10n.accepted
+          : context.l10n.pending;
     }
 
     return Container(

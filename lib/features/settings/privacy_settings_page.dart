@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/localization/app_localizations.dart';
 import '../auth/presentation/controllers/auth_controller.dart';
 import 'privacy_policy_page.dart';
 
@@ -13,14 +14,14 @@ class PrivacySettingsPage extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          'Delete Account',
+          context.l10n.deleteAccount,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: const Color(0xFFD32F2F),
               ),
         ),
         content: Text(
-          'Are you sure you want to delete your account? This action is permanent and will delete all your data, rides, and settings.',
+          context.l10n.deleteAccountConfirm,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? Colors.white70
@@ -30,7 +31,7 @@ class PrivacySettingsPage extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -57,7 +58,7 @@ class PrivacySettingsPage extends ConsumerWidget {
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFD32F2F),
             ),
-            child: const Text('Delete'),
+            child: Text(context.l10n.delete),
           ),
         ],
       ),
@@ -133,7 +134,7 @@ class PrivacySettingsPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: const Text('Privacy'),
+        title: Text(context.l10n.privacySettings),
         centerTitle: false,
         backgroundColor: backgroundColor,
         scrolledUnderElevation: 0,
@@ -174,7 +175,7 @@ class PrivacySettingsPage extends ConsumerWidget {
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(
-              'Privacy Policy',
+              context.l10n.privacyPolicy,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: textColor,
@@ -187,7 +188,7 @@ class PrivacySettingsPage extends ConsumerWidget {
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(
-              'Delete Account',
+              context.l10n.deleteAccount,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFFD32F2F),

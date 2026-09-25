@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/localization/app_localizations.dart';
+
 class HelpSupportPage extends StatelessWidget {
   const HelpSupportPage({super.key});
 
@@ -55,7 +57,7 @@ class HelpSupportPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: const Text('Help & Support'),
+        title: Text(context.l10n.helpSupport),
         centerTitle: false,
         backgroundColor: backgroundColor,
         scrolledUnderElevation: 0,

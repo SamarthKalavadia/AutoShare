@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 import 'home_tab.dart';
 import '../../../search/search_page.dart';
@@ -126,7 +127,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             children: [
               _buildNavItem(
                 0,
-                'Home',
+                context.l10n.navHome,
                 Icons.home_rounded,
                 Icons.home_outlined,
                 isDark,
@@ -134,7 +135,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
               _buildNavItem(
                 1,
-                'Search',
+                context.l10n.navSearch,
                 Icons.search_rounded,
                 Icons.search_outlined,
                 isDark,
@@ -142,7 +143,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
               _buildNavItem(
                 2,
-                'Chats',
+                context.l10n.navChats,
                 Icons.chat_bubble_rounded,
                 Icons.chat_bubble_outline_rounded,
                 isDark,
@@ -151,7 +152,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
               _buildNavItem(
                 4,
-                'Profile',
+                context.l10n.navProfile,
                 Icons.person_rounded,
                 Icons.person_outline_rounded,
                 isDark,
