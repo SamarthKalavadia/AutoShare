@@ -142,11 +142,14 @@ class ChatNotifier extends Notifier<ChatInputState> {
         return false;
       }
 
-      final senderName = (user?.name.isNotEmpty == true)
-          ? user!.name
-          : (FirebaseAuth.instance.currentUser?.displayName?.isNotEmpty == true
+      final senderName = (user?.name.isNotEmpty == true && user!.name.toLowerCase() != 'user')
+          ? user.name
+          : (FirebaseAuth.instance.currentUser?.displayName?.isNotEmpty == true &&
+                  FirebaseAuth.instance.currentUser!.displayName!.toLowerCase() != 'user'
               ? FirebaseAuth.instance.currentUser!.displayName!
-              : 'User');
+              : (user?.email.isNotEmpty == true
+                  ? user!.email.split('@').first
+                  : 'Ride Partner'));
 
       var targetReceiverUid = _receiverUid ?? '';
       if (targetReceiverUid.isEmpty) {

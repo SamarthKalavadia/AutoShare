@@ -49,14 +49,14 @@ class SecurityInfoCard extends ConsumerWidget {
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: successColor, width: 1.5),
+        border: isDark ? Border.all(color: borderColor, width: 1.1) : null,
         boxShadow: isDark
             ? []
-            : [
+            : const [
                 BoxShadow(
-                  color: successColor.withValues(alpha: 0.1),
+                  color: Color(0x0A121212),
                   blurRadius: 16,
-                  offset: const Offset(0, 4),
+                  offset: Offset(0, 4),
                 ),
               ],
       ),

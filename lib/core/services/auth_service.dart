@@ -198,10 +198,17 @@ class AuthService {
       UserModel userModel;
       final existingResult = await _userRepository.getUser(user.uid);
       if (existingResult is Success<UserModel>) {
+        final existingName = existingResult.data.name;
+        final resolvedName = (existingName.isNotEmpty && existingName.toLowerCase() != 'user')
+            ? existingName
+            : ((user.displayName?.isNotEmpty == true && user.displayName!.toLowerCase() != 'user')
+                ? user.displayName!
+                : (user.email != null && user.email!.contains('@')
+                    ? user.email!.split('@').first
+                    : (existingName.isNotEmpty ? existingName : 'Ride Partner')));
+
         userModel = existingResult.data.copyWith(
-          name: existingResult.data.name.isNotEmpty
-              ? existingResult.data.name
-              : (user.displayName ?? 'User'),
+          name: resolvedName,
           email: user.email ?? existingResult.data.email,
           profileImage: existingResult.data.profileImage.isNotEmpty
               ? existingResult.data.profileImage
@@ -213,10 +220,15 @@ class AuthService {
         );
         await _userRepository.updateUser(userModel);
       } else {
+        final resolvedName = (user.displayName != null && user.displayName!.isNotEmpty && user.displayName!.toLowerCase() != 'user')
+            ? user.displayName!
+            : (user.email != null && user.email!.contains('@')
+                ? user.email!.split('@').first
+                : 'Ride Partner');
+
         userModel = UserModel(
           uid: user.uid,
-          name: user.displayName ??
-              (user.email != null ? user.email!.split('@').first : 'User'),
+          name: resolvedName,
           email: user.email ?? '',
           phone: user.phoneNumber ?? '',
           profileImage: user.photoURL ?? '',

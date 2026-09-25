@@ -76,7 +76,7 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
             return _buildNormalAppBar(context, textColor);
           },
           loading: () => _buildNormalAppBar(context, textColor),
-          error: (_, __) => _buildNormalAppBar(context, textColor),
+          error: (error, _) => _buildNormalAppBar(context, textColor),
         ),
         body: userChatsAsync.when(
           data: (chatRooms) {
@@ -132,6 +132,13 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
                       _handleNormalTap(room);
                     }
                   },
+                  onTapWithDetails: (pName, pUid) {
+                    if (_isSelectionMode) {
+                      _toggleSelection(chatId);
+                    } else {
+                      _handleNormalTap(room, participantName: pName, participantUid: pUid);
+                    }
+                  },
                   onLongPress: () {
                     if (!_isSelectionMode) {
                       _toggleSelection(chatId);
@@ -170,6 +177,12 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
                 final otherUid = r.role == 'driver'
                     ? (r.request?.requesterUid ?? '')
                     : r.ride.driverId;
+                final driverName = (r.role == 'passenger' &&
+                        r.ride.driverName.isNotEmpty &&
+                        r.ride.driverName != 'Unknown Driver' &&
+                        r.ride.driverName.toLowerCase() != 'driver')
+                    ? r.ride.driverName
+                    : '';
                 return _ChatCard(
                   chatRoom: ChatRoom(
                     chatId: r.ride.id,
@@ -180,13 +193,20 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
                   ),
                   isSelectionMode: false,
                   isSelected: false,
-                  onTap: () {
+                  onTapWithDetails: (pName, pUid) {
+                    final cleanPName = (pName.isNotEmpty &&
+                            pName.toLowerCase() != 'user' &&
+                            pName.toLowerCase() != 'driver')
+                        ? pName
+                        : '';
                     context.push(
                       '/chat',
                       extra: ChatPageArgs(
                         ride: r.ride,
-                        otherParticipantUid: otherUid,
-                        otherParticipantName: '',
+                        otherParticipantUid: otherUid.isNotEmpty ? otherUid : pUid,
+                        otherParticipantName: cleanPName.isNotEmpty
+                            ? cleanPName
+                            : (driverName.isNotEmpty ? driverName : ''),
                       ),
                     );
                   },
@@ -198,7 +218,9 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
           error: (err, _) => Center(
             child: Text(
               'Error loading chats: $err',
-              style: theme.textTheme.bodyMedium,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.brightness == Brightness.dark ? Colors.white70 : const Color(0xFF121212),
+              ),
             ),
           ),
         ),
@@ -206,12 +228,15 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
     );
   }
 
-  void _handleNormalTap(ChatRoom room) {
-    final currentUid = ref.read(authControllerProvider).value?.uid ?? '';
-    var otherUid = room.participants.firstWhere(
-      (p) => p.isNotEmpty && p != currentUid,
-      orElse: () => '',
-    );
+  void _handleNormalTap(ChatRoom room, {String? participantName, String? participantUid}) {
+    final currentUid = ref.read(authControllerProvider).value?.uid ??
+        FirebaseAuth.instance.currentUser?.uid ??
+        '';
+    var otherUid = participantUid ??
+        room.participants.firstWhere(
+          (p) => p.isNotEmpty && p != currentUid,
+          orElse: () => '',
+        );
 
     // Check if we have the full ride model in myRidesProvider
     final myRides = ref.read(myRidesProvider).value ?? [];
@@ -237,10 +262,25 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
       }
     }
 
+    String resolvedName = participantName ?? '';
+    if (resolvedName.isEmpty ||
+        resolvedName.toLowerCase() == 'user' ||
+        resolvedName.toLowerCase() == 'driver' ||
+        resolvedName == 'Ride Partner') {
+      if (matchingRide != null &&
+          matchingRide.role == 'passenger' &&
+          matchingRide.ride.driverName.isNotEmpty &&
+          matchingRide.ride.driverName != 'Unknown Driver' &&
+          matchingRide.ride.driverName.toLowerCase() != 'driver') {
+        resolvedName = matchingRide.ride.driverName;
+      }
+    }
+
     final ride = matchingRide?.ride ??
         RideModel(
           id: room.rideId,
           driverId: otherUid.isNotEmpty ? otherUid : currentUid,
+          driverName: resolvedName.isNotEmpty ? resolvedName : 'Ride Partner',
           boardingLocation: 'Shared Route',
           destination: 'Destination',
           totalFare: 0,
@@ -254,7 +294,7 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
       extra: ChatPageArgs(
         ride: ride,
         otherParticipantUid: otherUid,
-        otherParticipantName: '',
+        otherParticipantName: resolvedName.isNotEmpty && resolvedName != 'User' ? resolvedName : '',
       ),
     );
   }
@@ -431,10 +471,16 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Delete conversations?',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white : const Color(0xFF121212),
+          ),
         ),
         content: Text(
           'Delete $count selected conversation${count > 1 ? 's' : ''}?',
+          style: GoogleFonts.inter(
+            color: isDark ? Colors.white70 : const Color(0xFF6F6F72),
+          ),
         ),
         actions: [
           TextButton(
@@ -462,7 +508,7 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
         await ref.read(chatsListActionsProvider.notifier).deleteMultiple(_selectedIds.toList());
         _clearSelection();
       } catch (e) {
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Couldn't delete conversation. Please try again.")),
           );
@@ -476,14 +522,16 @@ class _ChatCard extends ConsumerWidget {
   final ChatRoom chatRoom;
   final bool isSelectionMode;
   final bool isSelected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final void Function(String participantName, String participantUid)? onTapWithDetails;
   final VoidCallback onLongPress;
 
   const _ChatCard({
     required this.chatRoom,
     required this.isSelectionMode,
     required this.isSelected,
-    required this.onTap,
+    this.onTap,
+    this.onTapWithDetails,
     required this.onLongPress,
   });
 
@@ -527,18 +575,53 @@ class _ChatCard extends ConsumerWidget {
     }
 
     final otherUserAsync = ref.watch(chatUserProvider(otherUid));
+    final messagesAsync = ref.watch(chatMessagesProvider(rideId));
 
-    final participantName = otherUserAsync.when(
-      data: (user) {
-        if (user != null && user.name.isNotEmpty) return user.name;
-        return 'User';
-      },
-      loading: () => 'Loading...',
-      error: (_, __) => 'User',
-    );
+    final participantName = () {
+      final user = otherUserAsync.value;
+      if (user != null &&
+          user.name.trim().isNotEmpty &&
+          user.name.trim().toLowerCase() != 'user' &&
+          user.name.trim().toLowerCase() != 'driver') {
+        return user.name.trim();
+      }
+      if (user != null && user.email.trim().isNotEmpty) {
+        final emailPart = user.email.trim().split('@').first;
+        if (emailPart.isNotEmpty &&
+            emailPart.toLowerCase() != 'user' &&
+            emailPart.toLowerCase() != 'driver') {
+          return emailPart[0].toUpperCase() + emailPart.substring(1);
+        }
+      }
+      final myRides = ref.watch(myRidesProvider).value ?? [];
+      final match = myRides.where((r) => r.ride.id == chatRoom.rideId).firstOrNull;
+      if (match != null &&
+          match.role == 'passenger' &&
+          match.ride.driverName.trim().isNotEmpty &&
+          match.ride.driverName.trim() != 'Unknown Driver' &&
+          match.ride.driverName.trim().toLowerCase() != 'driver' &&
+          match.ride.driverName.trim().toLowerCase() != 'user') {
+        return match.ride.driverName.trim();
+      }
+      final msgs = messagesAsync.value ?? [];
+      for (final m in msgs) {
+        if (m.senderId.isNotEmpty &&
+            m.senderId != currentUid &&
+            m.senderName.trim().isNotEmpty &&
+            m.senderName.trim().toLowerCase() != 'user' &&
+            m.senderName.trim().toLowerCase() != 'driver') {
+          return m.senderName.trim();
+        }
+      }
+      if (user != null &&
+          user.name.trim().isNotEmpty &&
+          user.name.trim().toLowerCase() != 'driver') {
+        return user.name.trim();
+      }
+      return otherUserAsync.isLoading ? 'Loading...' : 'Ride Partner';
+    }();
     final participantAvatar = otherUserAsync.value?.profileImage;
 
-    final messagesAsync = ref.watch(chatMessagesProvider(rideId));
     final unreadCount = messagesAsync.value
             ?.where((m) => m.senderId != currentUid && !m.isReadBy(currentUid))
             .length ??
@@ -562,13 +645,19 @@ class _ChatCard extends ConsumerWidget {
         : (isDark ? const Color(0xFF1E1E1E) : Colors.white);
 
     final primaryColor = theme.colorScheme.primary;
-    final textColor = theme.colorScheme.onSurface;
-    final subtextColor = isDark ? Colors.white60 : const Color(0xFF6F6F72);
+    final textColor = isDark ? Colors.white : const Color(0xFF121212);
+    final subtextColor = isDark ? Colors.white70 : const Color(0xFF6F6F72);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          if (onTapWithDetails != null) {
+            onTapWithDetails!(participantName, otherUid);
+          } else {
+            onTap?.call();
+          }
+        },
         onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(20),
         child: Container(
@@ -714,7 +803,7 @@ class _UserAvatar extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final bgColor = isDark ? const Color(0xFF2C2C2E) : const Color(0xFFEAE5DD);
-    final textColor = theme.colorScheme.onSurface;
+    final textColor = isDark ? Colors.white : const Color(0xFF121212);
     final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?';
 
     final imageProvider = getAvatarImageProvider(imageUrl);

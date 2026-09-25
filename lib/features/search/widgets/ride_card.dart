@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/models/ride_model.dart';
+import '../../../shared/utils/avatar_utils.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
+import '../../ride_details/providers/driver_profile_provider.dart';
 
 class RideCard extends ConsumerWidget {
   final RideModel ride;
@@ -26,6 +28,32 @@ class RideCard extends ConsumerWidget {
     final cardBg =
         theme.cardTheme.color ??
         (isDark ? const Color(0xFF1E1E1E) : Colors.white);
+
+    final driverUser = ref.watch(userProfileProvider(ride.driverId)).value;
+    String resolvedDriverName = '';
+    if (driverUser != null &&
+        driverUser.name.trim().isNotEmpty &&
+        driverUser.name.trim().toLowerCase() != 'driver' &&
+        driverUser.name.trim().toLowerCase() != 'user') {
+      resolvedDriverName = driverUser.name.trim();
+    } else if (ride.driverName.trim().isNotEmpty &&
+        ride.driverName.trim().toLowerCase() != 'driver' &&
+        ride.driverName.trim().toLowerCase() != 'unknown driver' &&
+        ride.driverName.trim().toLowerCase() != 'user') {
+      resolvedDriverName = ride.driverName.trim();
+    } else if (driverUser != null && driverUser.email.trim().isNotEmpty) {
+      final emailPart = driverUser.email.trim().split('@').first;
+      if (emailPart.isNotEmpty && emailPart.toLowerCase() != 'driver') {
+        resolvedDriverName =
+            emailPart[0].toUpperCase() + emailPart.substring(1);
+      }
+    }
+    if (resolvedDriverName.isEmpty) {
+      resolvedDriverName =
+          driverUser?.name.isNotEmpty == true ? driverUser!.name : 'User';
+    }
+
+    final avatarProvider = getAvatarImageProvider(driverUser?.profileImage);
 
     final currentUserId = ref.read(authControllerProvider).value?.uid ?? '';
     final isOwner = ride.driverId == currentUserId;
@@ -200,14 +228,17 @@ class RideCard extends ConsumerWidget {
                           backgroundColor: isDark
                               ? const Color(0xFF2A2A2C)
                               : const Color(0xFFF3F3F3),
-                          child: Text(
-                            ride.driverName.isNotEmpty
-                                ? ride.driverName[0].toUpperCase()
-                                : 'U',
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                          backgroundImage: avatarProvider,
+                          child: avatarProvider == null
+                              ? Text(
+                                  resolvedDriverName.isNotEmpty
+                                      ? resolvedDriverName[0].toUpperCase()
+                                      : 'U',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                )
+                              : null,
                         ),
                         const SizedBox(width: 12),
                         Column(
@@ -216,7 +247,7 @@ class RideCard extends ConsumerWidget {
                             Row(
                               children: [
                                 Text(
-                                  ride.driverName.split(' ').first,
+                                  resolvedDriverName.split(' ').first,
                                   style: theme.textTheme.titleSmall?.copyWith(
                                     fontWeight: FontWeight.w600,
                                   ),

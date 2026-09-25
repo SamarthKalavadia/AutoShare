@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -139,38 +138,73 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final backgroundColor = theme.scaffoldBackgroundColor;
     final blackColor = theme.colorScheme.onSurface;
     final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
-    final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFEAE5DD);
     final appBarBg = theme.scaffoldBackgroundColor;
 
-    final currentUid = ref.watch(authControllerProvider).value?.uid ?? '';
+    final currentUid = ref.watch(authControllerProvider).value?.uid ??
+        FirebaseAuth.instance.currentUser?.uid ??
+        '';
     final chatInput = ref.watch(chatProvider);
     
     final chatRoomAsync = ref.watch(chatRoomProvider(_rideId));
     final resolvedOtherUid = widget.args.otherParticipantUid.isNotEmpty
         ? widget.args.otherParticipantUid
         : (chatRoomAsync.value?.participants.firstWhere(
-            (p) => p != currentUid,
+            (p) => p.isNotEmpty && p != currentUid,
             orElse: () => '',
           ) ?? '');
 
     final otherUserAsync = ref.watch(chatUserProvider(resolvedOtherUid));
-    
-    final participantName = otherUserAsync.when(
-      data: (user) {
-        if (user != null && user.name.isNotEmpty) return user.name;
-        if (widget.args.otherParticipantName.isNotEmpty) return widget.args.otherParticipantName;
-        return 'User';
-      },
-      loading: () => widget.args.otherParticipantName.isNotEmpty
-          ? widget.args.otherParticipantName
-          : 'Loading...',
-      error: (_, __) => widget.args.otherParticipantName.isNotEmpty
-          ? widget.args.otherParticipantName
-          : 'User',
-    );
-    final participantAvatar = otherUserAsync.value?.profileImage;
-
     final messagesAsync = ref.watch(chatMessagesProvider(_rideId));
+    
+    final participantName = () {
+      final user = otherUserAsync.value;
+      if (user != null &&
+          user.name.trim().isNotEmpty &&
+          user.name.trim().toLowerCase() != 'user' &&
+          user.name.trim().toLowerCase() != 'driver') {
+        return user.name.trim();
+      }
+      if (widget.args.otherParticipantName.trim().isNotEmpty &&
+          widget.args.otherParticipantName.trim().toLowerCase() != 'user' &&
+          widget.args.otherParticipantName.trim().toLowerCase() != 'driver') {
+        return widget.args.otherParticipantName.trim();
+      }
+      if (user != null && user.email.trim().isNotEmpty) {
+        final emailPart = user.email.trim().split('@').first;
+        if (emailPart.isNotEmpty &&
+            emailPart.toLowerCase() != 'user' &&
+            emailPart.toLowerCase() != 'driver') {
+          return emailPart[0].toUpperCase() + emailPart.substring(1);
+        }
+      }
+      // If the other participant is the driver of the ride
+      if (widget.args.ride.driverName.trim().isNotEmpty &&
+          widget.args.ride.driverName.trim() != 'Unknown Driver' &&
+          widget.args.ride.driverName.trim().toLowerCase() != 'driver' &&
+          widget.args.ride.driverName.trim().toLowerCase() != 'user' &&
+          (widget.args.ride.driverId == resolvedOtherUid ||
+              (currentUid.isNotEmpty && currentUid != widget.args.ride.driverId))) {
+        return widget.args.ride.driverName.trim();
+      }
+      // Try finding from messages
+      final msgs = messagesAsync.value ?? [];
+      for (final m in msgs) {
+        if (m.senderId.isNotEmpty &&
+            m.senderId != currentUid &&
+            m.senderName.trim().isNotEmpty &&
+            m.senderName.trim().toLowerCase() != 'user' &&
+            m.senderName.trim().toLowerCase() != 'driver') {
+          return m.senderName.trim();
+        }
+      }
+      if (user != null &&
+          user.name.trim().isNotEmpty &&
+          user.name.trim().toLowerCase() != 'driver') {
+        return user.name.trim();
+      }
+      return otherUserAsync.isLoading ? 'Loading...' : 'Ride Partner';
+    }();
+    final participantAvatar = otherUserAsync.value?.profileImage;
 
     final typingUids = chatRoomAsync.value?.typing.entries
         .where((e) => e.value && e.key != currentUid)
@@ -314,7 +348,10 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                         }(),
                         Text(
                           'Start a conversation with $participantName',
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: blackColor,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         Text(
@@ -590,7 +627,7 @@ class _ChatInputBar extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final primaryColor = theme.colorScheme.primary;
-    final blackColor = theme.colorScheme.onSurface;
+    final blackColor = isDark ? Colors.white : const Color(0xFF121212);
     final borderColor = isDark ? const Color(0xFF333333) : const Color(0xFFE5E5EA);
     final inputBg = isDark ? const Color(0xFF1C1C1E) : Colors.white;
     final shadowColor = isDark ? Colors.transparent : Colors.black.withAlpha(8);
@@ -625,7 +662,11 @@ class _ChatInputBar extends StatelessWidget {
               maxLines: 5,
               minLines: 1,
               textCapitalization: TextCapitalization.sentences,
-              style: theme.textTheme.bodyLarge?.copyWith(color: blackColor, fontSize: 16),
+              cursorColor: primaryColor,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: blackColor,
+                fontSize: 16,
+              ),
               decoration: InputDecoration(
                 hintText: 'Type a message...',
                 hintStyle: theme.textTheme.bodyLarge?.copyWith(

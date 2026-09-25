@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:autoshare/data/models/ride_model.dart';
@@ -16,8 +15,8 @@ class RideSummaryBanner extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final blackColor = theme.colorScheme.onSurface;
-    final mutedText = isDark ? Colors.white60 : const Color(0xFF8E8E93);
+    final blackColor = isDark ? Colors.white : const Color(0xFF121212);
+    final mutedText = isDark ? Colors.white70 : const Color(0xFF8E8E93);
     final cardBg = isDark ? const Color(0xFF1C1C1E) : Colors.white;
 
     final hasRoute = ride.boardingLocation.isNotEmpty &&

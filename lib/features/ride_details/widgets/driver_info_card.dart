@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/models/ride_model.dart';
+import '../../../shared/utils/avatar_utils.dart';
+import '../providers/driver_profile_provider.dart';
 
-class DriverInfoCard extends StatelessWidget {
+class DriverInfoCard extends ConsumerWidget {
   final RideModel ride;
 
   const DriverInfoCard({super.key, required this.ride});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -21,10 +23,44 @@ class DriverInfoCard extends StatelessWidget {
     final cardBg =
         theme.cardTheme.color ??
         (isDark ? const Color(0xFF1E1E1E) : Colors.white);
-    final primaryColor = theme.colorScheme.primary;
 
-    final initials = _getInitials(ride.driverName);
-    final rating = ride.driverRating;
+    // Fetch the actual user profile for the driver
+    final driverUserAsync = ref.watch(userProfileProvider(ride.driverId));
+    final driverUser = driverUserAsync.value;
+
+    String resolvedDriverName = '';
+    if (driverUser != null &&
+        driverUser.name.trim().isNotEmpty &&
+        driverUser.name.trim().toLowerCase() != 'driver' &&
+        driverUser.name.trim().toLowerCase() != 'user') {
+      resolvedDriverName = driverUser.name.trim();
+    } else if (ride.driverName.trim().isNotEmpty &&
+        ride.driverName.trim().toLowerCase() != 'driver' &&
+        ride.driverName.trim().toLowerCase() != 'unknown driver' &&
+        ride.driverName.trim().toLowerCase() != 'user') {
+      resolvedDriverName = ride.driverName.trim();
+    } else if (driverUser != null && driverUser.email.trim().isNotEmpty) {
+      final emailPart = driverUser.email.trim().split('@').first;
+      if (emailPart.isNotEmpty && emailPart.toLowerCase() != 'driver') {
+        resolvedDriverName =
+            emailPart[0].toUpperCase() + emailPart.substring(1);
+      }
+    }
+
+    if (resolvedDriverName.isEmpty) {
+      resolvedDriverName = driverUserAsync.isLoading
+          ? 'Loading...'
+          : (driverUser?.name.isNotEmpty == true
+              ? driverUser!.name
+              : 'Ride Partner');
+    }
+
+    final initials = _getInitials(resolvedDriverName);
+    final rating = (driverUser != null && driverUser.averageRating > 0)
+        ? driverUser.averageRating
+        : ride.driverRating;
+
+    final avatarProvider = getAvatarImageProvider(driverUser?.profileImage);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -55,16 +91,24 @@ class DriverInfoCard extends StatelessWidget {
                     ? const Color(0xFF2A2A2C)
                     : const Color(0xFFF3F3F3),
                 shape: BoxShape.circle,
+                image: avatarProvider != null
+                    ? DecorationImage(
+                        image: avatarProvider,
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
-              child: Center(
-                child: Text(
-                  initials,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: blackColor,
-                  ),
-                ),
-              ),
+              child: avatarProvider == null
+                  ? Center(
+                      child: Text(
+                        initials,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: blackColor,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
           ),
           const SizedBox(width: 16),
@@ -79,9 +123,10 @@ class DriverInfoCard extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        ride.driverName,
+                        resolvedDriverName,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
+                          color: blackColor,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -164,7 +209,6 @@ class _VerifiedBadge extends StatelessWidget {
 class _GirlsOnlyBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Container(

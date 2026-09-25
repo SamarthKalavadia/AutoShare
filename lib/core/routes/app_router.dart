@@ -173,8 +173,12 @@ class AppRouter {
             return ChatPage(
               args: ChatPageArgs(
                 ride: ride,
-                otherParticipantUid: '',
-                otherParticipantName: '',
+                otherParticipantUid: ride.driverId,
+                otherParticipantName: ride.driverName.isNotEmpty &&
+                        ride.driverName != 'Unknown Driver' &&
+                        ride.driverName != 'Driver'
+                    ? ride.driverName
+                    : '',
               ),
             );
           } else if (state.extra is String) {

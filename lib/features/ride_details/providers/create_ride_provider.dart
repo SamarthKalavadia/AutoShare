@@ -274,7 +274,12 @@ class CreateRideNotifier extends Notifier<CreateRideState> {
     final ride = RideModel(
       id: '',
       driverId: user.uid,
-      driverName: user.name.isNotEmpty ? user.name : 'Driver',
+      driverName: (user.name.trim().isNotEmpty &&
+              user.name.trim().toLowerCase() != 'driver')
+          ? user.name.trim()
+          : (user.email.contains('@')
+              ? user.email.split('@').first
+              : (user.name.isNotEmpty ? user.name : 'User')),
       driverRating: user.averageRating,
       boardingLocation: state.boardingLocation,
       destination: state.destination,

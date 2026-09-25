@@ -6,11 +6,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:googleapis_auth/auth_io.dart';
+import 'package:http/http.dart' as http;
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../data/models/ride_model.dart';
+import '../../firebase_options.dart';
 import '../routes/app_router.dart';
 import '../../features/chat/providers/chat_provider.dart';
 
@@ -25,8 +29,11 @@ const String kReminderChannelName = 'Ride Reminders';
 /// Runs in an isolated background Dart VM thread when the app is in the background or killed/closed.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  WidgetsFlutterBinding.ensureInitialized();
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } catch (_) {}
 
   debugPrint('[FCM BACKGROUND] Push notification received: ${message.messageId}');
@@ -38,7 +45,11 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   final type = data['type'] as String? ?? 'general';
   final relatedId = data['relatedId'] as String? ?? data['rideId'] as String? ?? '';
 
-  if (body.isNotEmpty || title.isNotEmpty) {
+  // If the remote message already included a notification payload, Android's
+  // system notification manager displays it automatically.
+  // We only display via local notifications if it is a data-only message.
+  final isDataOnly = notification == null;
+  if (isDataOnly && (body.isNotEmpty || title.isNotEmpty)) {
     try {
       final plugin = FlutterLocalNotificationsPlugin();
       const initializationSettingsAndroid =
@@ -463,7 +474,19 @@ class NotificationService {
       debugPrint(
           '[FCM PUSH DISPATCH] Recipient: $recipientUid, Title: "$title", Tokens found: ${tokens.length}');
 
-      // Save push delivery record in Firestore to ensure reliable delivery queue
+      // 1. Dispatch high-priority FCM v1 push to each registered device token
+      // This wakes up terminated devices and displays system notifications directly
+      for (final token in tokens) {
+        unawaited(_dispatchFcmV1(
+          token: token,
+          title: title,
+          body: body,
+          type: type,
+          relatedId: relatedId,
+        ));
+      }
+
+      // 2. Save push delivery record in Firestore to ensure reliable delivery queue
       try {
         await FirebaseFirestore.instance.collection('push_notifications').add({
           'recipientUid': recipientUid,
@@ -478,6 +501,114 @@ class NotificationService {
       } catch (_) {}
     } catch (e) {
       debugPrint('[FCM PUSH DISPATCH ERROR] $e');
+    }
+  }
+
+  static String? _cachedAccessToken;
+  static DateTime? _tokenExpiry;
+
+  /// Retrieves an OAuth2 Access Token for Google Cloud Messaging (HTTP v1)
+  /// using the Firebase Service Account JSON credentials.
+  Future<String?> _getFcmAccessToken() async {
+    if (_cachedAccessToken != null &&
+        _tokenExpiry != null &&
+        DateTime.now().isBefore(_tokenExpiry!)) {
+      return _cachedAccessToken;
+    }
+
+    try {
+      String? jsonStr;
+      try {
+        jsonStr =
+            await rootBundle.loadString('assets/firebase/service-account.json');
+      } catch (_) {}
+
+      if (jsonStr == null || jsonStr.trim().isEmpty || jsonStr.trim() == '{}') {
+        debugPrint(
+            '[FCM v1] No service-account.json found in assets/firebase/. Please place your Firebase service-account.json in assets/firebase/service-account.json to enable notifications for closed apps.');
+        return null;
+      }
+
+      final creds = ServiceAccountCredentials.fromJson(jsonStr);
+      final scopes = ['https://www.googleapis.com/auth/firebase.messaging'];
+      final client = await clientViaServiceAccount(creds, scopes);
+      _cachedAccessToken = client.credentials.accessToken.data;
+      _tokenExpiry =
+          client.credentials.accessToken.expiry.subtract(const Duration(minutes: 5));
+      client.close();
+      return _cachedAccessToken;
+    } catch (e) {
+      debugPrint('[FCM v1 AUTH ERROR] Could not get OAuth token: $e');
+      return null;
+    }
+  }
+
+  /// Sends a high-priority heads-up FCM v1 push notification to a device token.
+  /// When received, Google Play Services automatically wakes up the device
+  /// and shows the heads-up notification in the system notification bar,
+  /// even if the app is completely closed / terminated.
+  Future<void> _dispatchFcmV1({
+    required String token,
+    required String title,
+    required String body,
+    required String type,
+    String? relatedId,
+  }) async {
+    try {
+      final accessToken = await _getFcmAccessToken();
+      if (accessToken == null) return;
+
+      final isChat = type == 'chat';
+      final channelId = isChat ? kChatChannelId : kDefaultChannelId;
+      final projectId = DefaultFirebaseOptions.currentPlatform.projectId;
+
+      final url = Uri.parse(
+          'https://fcm.googleapis.com/v1/projects/$projectId/messages:send');
+
+      final payload = {
+        'message': {
+          'token': token,
+          'notification': {
+            'title': title,
+            'body': body,
+          },
+          'android': {
+            'priority': 'HIGH',
+            'notification': {
+              'channel_id': channelId,
+              'sound': 'default',
+              'default_sound': true,
+              'default_vibrate_timings': true,
+              'notification_priority': 'PRIORITY_MAX',
+              'visibility': 'PUBLIC',
+              'icon': '@mipmap/ic_launcher',
+              'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+            },
+          },
+          'data': {
+            'type': type,
+            'relatedId': relatedId ?? '',
+            'rideId': relatedId ?? '',
+            'title': title,
+            'body': body,
+            'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+          },
+        }
+      };
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(payload),
+      );
+
+      debugPrint(
+          '[FCM v1 DISPATCH RESULT] Token: ${token.length > 12 ? token.substring(0, 12) : token}... Status: ${response.statusCode}');
+    } catch (e) {
+      debugPrint('[FCM v1 DISPATCH ERROR] $e');
     }
   }
 
@@ -516,12 +647,17 @@ class NotificationService {
             final ride = RideModel.fromMap(rideDoc.data()!, rideDoc.id);
             final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
             final otherUid = ride.driverId == currentUid ? '' : ride.driverId;
+            final otherName = (ride.driverId != currentUid &&
+                    ride.driverName.isNotEmpty &&
+                    ride.driverName != 'Unknown Driver')
+                ? ride.driverName
+                : '';
             AppRouter.router.push(
               '/chat',
               extra: ChatPageArgs(
                 ride: ride,
                 otherParticipantUid: otherUid,
-                otherParticipantName: '',
+                otherParticipantName: otherName,
               ),
             );
             return;

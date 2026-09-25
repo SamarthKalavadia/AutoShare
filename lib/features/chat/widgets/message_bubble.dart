@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,10 +26,12 @@ class MessageBubble extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final primaryColor = theme.colorScheme.primary;
-    final blackColor = theme.colorScheme.onSurface;
-    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
+    final blackColor = isDark ? Colors.white : const Color(0xFF121212);
+    final mutedText = isDark ? Colors.white70 : const Color(0xFF6F6F72);
     
-    final currentUid = ref.watch(authControllerProvider).value?.uid ?? '';
+    final currentUid = ref.watch(authControllerProvider).value?.uid ??
+        FirebaseAuth.instance.currentUser?.uid ??
+        '';
     final isMe = message.senderId == currentUid;
     final rideId = message.rideId;
 
@@ -116,7 +119,9 @@ class MessageBubble extends ConsumerWidget {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        message.senderName,
+                        (message.senderName.isNotEmpty && message.senderName.toLowerCase() != 'user')
+                            ? message.senderName
+                            : 'Ride Partner',
                         style: theme.textTheme.labelSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: isDark ? primaryColor : const Color(0xFFDB9900),

@@ -155,10 +155,16 @@ class RequestCard extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8F7F4),
+                  color: isDark
+                      ? const Color(0xFF2A2A2C)
+                      : const Color(0xFFF8F7F4),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.route_outlined, color: mutedText, size: 20),
+                child: Icon(
+                  Icons.route_outlined,
+                  color: isDark ? Colors.white70 : const Color(0xFF6F6F72),
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(

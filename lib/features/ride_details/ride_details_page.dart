@@ -153,106 +153,102 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
       }
     });
 
-    return Theme(
-      data: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: primaryColor,
-          primary: primaryColor,
-          surface: Colors.white,
-        ),
-        textTheme: GoogleFonts.interTextTheme(Theme.of(context).textTheme),
-      ),
-      child: Scaffold(
-        backgroundColor: backgroundColor,
-        body: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            _buildAppBar(context),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  FadeTransition(
-                    opacity: _fadeAnim,
-                    child: SlideTransition(
-                      position: _slideAnim,
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 20),
-                          DriverInfoCard(ride: widget.ride),
-                          const SizedBox(height: 16),
-                          RouteInfoCard(ride: widget.ride),
-                          const SizedBox(height: 16),
-                          RideInfoCard(ride: widget.ride),
-                          const SizedBox(height: 16),
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          _buildAppBar(context),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                FadeTransition(
+                  opacity: _fadeAnim,
+                  child: SlideTransition(
+                    position: _slideAnim,
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 20),
+                        DriverInfoCard(ride: widget.ride),
+                        const SizedBox(height: 16),
+                        RouteInfoCard(ride: widget.ride),
+                        const SizedBox(height: 16),
+                        RideInfoCard(ride: widget.ride),
+                        const SizedBox(height: 16),
 
-                          // Security or Privacy notice card
-                          Consumer(
-                            builder: (context, ref, _) {
-                              final existingRequestAsync = ref.watch(
-                                currentRideRequestProvider(widget.ride.id),
-                              );
-                              final currentUser = ref
-                                  .watch(authControllerProvider)
-                                  .value;
+                        // Security or Privacy notice card
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final existingRequestAsync = ref.watch(
+                              currentRideRequestProvider(widget.ride.id),
+                            );
+                            final currentUser = ref
+                                .watch(authControllerProvider)
+                                .value;
 
-                              if (currentUser == null)
-                                return const SizedBox.shrink();
+                            if (currentUser == null) {
+                              return const SizedBox.shrink();
+                            }
 
-                              return existingRequestAsync.when(
-                                data: (request) {
-                                  if (request != null &&
-                                      request.status ==
-                                          RideRequestStatus.accepted) {
-                                    final driverAsync = ref.watch(
-                                      userProfileProvider(widget.ride.driverId),
-                                    );
-
-                                    return driverAsync.when(
-                                      data: (driver) => SecurityInfoCard(
-                                        ride: widget.ride,
-                                        driver: driver,
-                                        passenger: currentUser,
-                                      ),
-                                      loading: () => const Center(
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                      error: (err, stack) => Text(
-                                        'Error loading contact info: $err',
-                                      ),
-                                    );
-                                  }
-
-                                      return widget.isFromChat ? const SizedBox.shrink() : _PrivacyNoticeCard();
-                                    },
-                                    loading: () => widget.isFromChat ? const SizedBox.shrink() : _PrivacyNoticeCard(),
-                                    error: (err, stack) => widget.isFromChat ? const SizedBox.shrink() : _PrivacyNoticeCard(),
+                            return existingRequestAsync.when(
+                              data: (request) {
+                                if (request != null &&
+                                    request.status ==
+                                        RideRequestStatus.accepted) {
+                                  final driverAsync = ref.watch(
+                                    userProfileProvider(widget.ride.driverId),
                                   );
-                            },
-                          ),
-                        ],
-                      ),
+
+                                  return driverAsync.when(
+                                    data: (driver) => SecurityInfoCard(
+                                      ride: widget.ride,
+                                      driver: driver,
+                                      passenger: currentUser,
+                                    ),
+                                    loading: () => const Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                    error: (err, stack) => Text(
+                                      'Error loading contact info: $err',
+                                    ),
+                                  );
+                                }
+
+                                return widget.isFromChat
+                                    ? const SizedBox.shrink()
+                                    : _PrivacyNoticeCard();
+                              },
+                              loading: () => widget.isFromChat
+                                  ? const SizedBox.shrink()
+                                  : _PrivacyNoticeCard(),
+                              error: (err, stack) => widget.isFromChat
+                                  ? const SizedBox.shrink()
+                                  : _PrivacyNoticeCard(),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ),
-                ]),
-              ),
+                ),
+              ]),
             ),
-          ],
-        ),
-
-        // Sticky bottom button
-        bottomSheet: widget.isFromChat 
-            ? null 
-            : _buildBottomButton(
-                context: context,
-                canRequest: canRequest,
-                disabledReason: disabledReason,
-                existingReq: existingReq,
-                isLoading: state.isLoading,
-                backgroundColor: backgroundColor,
-              ),
+          ),
+        ],
       ),
+
+      // Sticky bottom button
+      bottomSheet: widget.isFromChat
+          ? null
+          : _buildBottomButton(
+              context: context,
+              canRequest: canRequest,
+              disabledReason: disabledReason,
+              existingReq: existingReq,
+              isLoading: state.isLoading,
+              backgroundColor: backgroundColor,
+            ),
     );
   }
 

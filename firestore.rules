@@ -103,6 +103,11 @@ service cloud.firestore {
                     && resource.data.userId == request.auth.uid;
     }
 
+    // ─── Push Notifications Queue ─────────────────────────────────────────────
+    match /push_notifications/{pushId} {
+      allow read, write: if isAuthenticated();
+    }
+
     // ─── Chats ────────────────────────────────────────────────────────────────
     // Document path: chats/{chatId}
     
