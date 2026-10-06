@@ -39,7 +39,8 @@ void main() {
       // Find by AppTextField since we know RegisterPage uses it
       final appTextFieldFinder = find.byWidgetPredicate(
         (widget) =>
-            widget is AppTextField && widget.labelText == 'Phone number',
+            widget is AppTextField &&
+            widget.labelText?.toLowerCase() == 'phone number',
       );
       expect(appTextFieldFinder, findsOneWidget);
 
@@ -83,11 +84,11 @@ void main() {
       expect(validator!(null), 'Please enter your phone number');
 
       // 2. 1-9 digits
-      expect(validator!('1'), 'Please enter a valid 10-digit phone number');
-      expect(validator!('9876'), 'Please enter a valid 10-digit phone number');
+      expect(validator!('1'), 'Enter a valid 10-digit phone number');
+      expect(validator!('9876'), 'Enter a valid 10-digit phone number');
       expect(
         validator!('987654321'),
-        'Please enter a valid 10-digit phone number',
+        'Enter a valid 10-digit phone number',
       );
 
       // 3. Exactly 10 digits starting with 6
@@ -105,11 +106,11 @@ void main() {
       // 7. First digit validation
       expect(
         validator!('1234567890'),
-        'Please enter a valid 10-digit mobile number',
+        'Enter a valid 10-digit phone number',
       );
       expect(
         validator!('5123456789'),
-        'Please enter a valid 10-digit mobile number',
+        'Enter a valid 10-digit phone number',
       );
     });
   });

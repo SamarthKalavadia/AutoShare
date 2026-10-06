@@ -154,42 +154,89 @@ class UserModel extends Equatable {
 
   /// Creates a model from a JSON map.
   factory UserModel.fromMap(Map<String, dynamic> map) {
-    final photo = (map['profileImage'] as String?)?.trim() ??
-        (map['photoURL'] as String?)?.trim() ??
-        (map['photoUrl'] as String?)?.trim() ??
-        (map['avatar'] as String?)?.trim() ??
-        (map['profile_image'] as String?)?.trim() ??
-        (map['profilePic'] as String?)?.trim() ??
-        (map['image'] as String?)?.trim() ??
-        '';
+    String photo = '';
+    final photoKeys = [
+      'profileImage',
+      'photoURL',
+      'photoUrl',
+      'avatar',
+      'avatarUrl',
+      'profile_image',
+      'profile_picture',
+      'picture',
+      'profilePic',
+      'photo',
+      'image',
+    ];
+    for (final k in photoKeys) {
+      final v = map[k];
+      if (v != null && v.toString().trim().isNotEmpty) {
+        photo = v.toString().trim();
+        break;
+      }
+    }
 
-    final userName = (map['name'] as String?)?.trim() ??
-        (map['displayName'] as String?)?.trim() ??
-        (map['fullName'] as String?)?.trim() ??
-        '';
+    final userName = (map['name']?.toString() ??
+        map['displayName']?.toString() ??
+        map['fullName']?.toString() ??
+        '').trim();
+
+    final uid = (map['uid']?.toString() ?? map['id']?.toString() ?? '').trim();
+    final email = (map['email']?.toString() ?? '').trim();
+    final phone = (map['phone']?.toString() ?? map['phoneNumber']?.toString() ?? '').trim();
+    final gender = (map['gender']?.toString() ?? '').trim();
+    final city = (map['city']?.toString() ?? '').trim();
+    final emergencyContact = (map['emergencyContact']?.toString() ?? '').trim();
+    final bio = (map['bio']?.toString() ?? '').trim();
+
+    final emailVerified = map['emailVerified'] == true ||
+        map['emailVerified']?.toString().toLowerCase() == 'true' ||
+        map['emailVerified'] == 1;
+
+    final isOnline = map['isOnline'] == true ||
+        map['isOnline']?.toString().toLowerCase() == 'true' ||
+        map['isOnline'] == 1;
+
+    double averageRating = 0.0;
+    if (map['averageRating'] is num) {
+      averageRating = (map['averageRating'] as num).toDouble();
+    } else if (map['averageRating'] != null) {
+      averageRating = double.tryParse(map['averageRating'].toString()) ?? 0.0;
+    }
+
+    int totalReviews = 0;
+    if (map['totalReviews'] is num) {
+      totalReviews = (map['totalReviews'] as num).toInt();
+    } else if (map['totalReviews'] != null) {
+      totalReviews = int.tryParse(map['totalReviews'].toString()) ?? 0;
+    }
+
+    List<String> blockedUsers = [];
+    if (map['blockedUsers'] is List) {
+      blockedUsers = (map['blockedUsers'] as List)
+          .map((e) => e?.toString() ?? '')
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
 
     return UserModel(
-      uid: map['uid'] as String? ?? '',
+      uid: uid,
       name: userName,
-      email: map['email'] as String? ?? '',
-      phone: map['phone'] as String? ?? '',
+      email: email,
+      phone: phone,
       profileImage: photo,
-      emailVerified: map['emailVerified'] as bool? ?? false,
+      emailVerified: emailVerified,
       createdAt: _parseTimestamp(map['createdAt']),
       updatedAt: _parseTimestamp(map['updatedAt']),
       lastSeen: _parseTimestamp(map['lastSeen']),
-      isOnline: map['isOnline'] as bool? ?? false,
-      gender: map['gender'] as String? ?? '',
-      averageRating: (map['averageRating'] as num?)?.toDouble() ?? 0.0,
-      totalReviews: map['totalReviews'] as int? ?? 0,
-      blockedUsers:
-          (map['blockedUsers'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
-      city: map['city'] as String? ?? '',
-      emergencyContact: map['emergencyContact'] as String? ?? '',
-      bio: map['bio'] as String? ?? '',
+      isOnline: isOnline,
+      gender: gender,
+      averageRating: averageRating,
+      totalReviews: totalReviews,
+      blockedUsers: blockedUsers,
+      city: city,
+      emergencyContact: emergencyContact,
+      bio: bio,
     );
   }
 
@@ -199,12 +246,24 @@ class UserModel extends Equatable {
 
   /// Creates a model from a Firestore DocumentSnapshot.
   factory UserModel.fromDocument(DocumentSnapshot doc) {
-    if (doc.data() == null) {
+    try {
+      final rawData = doc.data();
+      if (rawData == null) {
+        return UserModel.empty().copyWith(uid: doc.id);
+      }
+      final Map<String, dynamic> data = {};
+      if (rawData is Map) {
+        rawData.forEach((key, value) {
+          data[key.toString()] = value;
+        });
+      }
+      if (!data.containsKey('uid') || data['uid'] == null || data['uid'].toString().isEmpty) {
+        data['uid'] = doc.id;
+      }
+      return UserModel.fromMap(data);
+    } catch (_) {
       return UserModel.empty().copyWith(uid: doc.id);
     }
-    final data = doc.data() as Map<String, dynamic>;
-    data['uid'] = doc.id; // Ensure UID is always present
-    return UserModel.fromMap(data);
   }
 
   /// Helper to safely parse Timestamps.
@@ -213,6 +272,8 @@ class UserModel extends Equatable {
       return timestamp.toDate();
     } else if (timestamp is String) {
       return DateTime.tryParse(timestamp) ?? DateTime.now();
+    } else if (timestamp is int) {
+      return DateTime.fromMillisecondsSinceEpoch(timestamp);
     }
     return DateTime.now();
   }

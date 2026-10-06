@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/app_seat_icon.dart';
 import '../../chat/providers/chat_provider.dart';
 import '../../ride_details/providers/ride_request_provider.dart';
 import '../../ride_details/providers/driver_profile_provider.dart';
@@ -202,7 +203,7 @@ class MyRideCard extends ConsumerWidget {
                   ),
                   Row(
                     children: [
-                      Icon(Icons.event_seat, size: 16, color: mutedText),
+                      AppSeatIcon(size: 16, color: mutedText),
                       const SizedBox(width: 4),
                       Text(
                         data.role == 'passenger'
@@ -335,144 +336,180 @@ class MyRideCard extends ConsumerWidget {
                 );
                 return driverAsync.when(
                   data: (driver) {
-                    return Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () {
-                              context.push(
-                                '/chat',
-                                extra: ChatPageArgs(
-                                  ride: ride,
-                                  otherParticipantUid: driver.uid,
-                                  otherParticipantName: driver.name,
+                    return SizedBox(
+                      width: double.infinity,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () {
+                                context.push(
+                                  '/chat',
+                                  extra: ChatPageArgs(
+                                    ride: ride,
+                                    otherParticipantUid: driver.uid,
+                                    otherParticipantName: driver.name,
+                                  ),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 4,
                                 ),
-                              );
-                            },
-                            borderRadius: BorderRadius.circular(14),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFFF6C000,
-                                ), // Primary Yellow
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.chat_bubble_outline,
-                                    size: 16,
-                                    color: Color(0xFF121212),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Chat',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF121212),
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFFF6C000,
+                                  ), // Primary Yellow
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.chat_bubble_outline,
+                                          size: 16,
+                                          color: Color(0xFF121212),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Chat',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF121212),
+                                          ),
+                                          maxLines: 1,
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () async {
-                              final url = Uri.parse('tel:${driver.phone}');
-                              if (await canLaunchUrl(url)) {
-                                await launchUrl(
-                                  url,
-                                  mode: LaunchMode.externalApplication,
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () async {
+                                final url = Uri.parse('tel:${driver.phone}');
+                                if (await canLaunchUrl(url)) {
+                                  await launchUrl(
+                                    url,
+                                    mode: LaunchMode.externalApplication,
+                                  );
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? const Color(0xFF2C2C2E)
+                                      : const Color(0xFFF2F2F7),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.phone_outlined,
+                                          size: 16,
+                                          color: blackColor,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Call',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: blackColor,
+                                          ),
+                                          maxLines: 1,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () async {
+                                final cleanPhone = driver.phone.replaceAll(
+                                  RegExp(r'[^\d+]'),
+                                  '',
                                 );
-                              }
-                            },
-                            borderRadius: BorderRadius.circular(14),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? const Color(0xFF2C2C2E)
-                                    : const Color(0xFFF2F2F7),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.phone_outlined,
-                                    size: 16,
-                                    color: blackColor,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Call',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: blackColor,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () async {
-                              final cleanPhone = driver.phone.replaceAll(
-                                RegExp(r'[^\d+]'),
-                                '',
-                              );
-                              final url = Uri.parse(
-                                'https://wa.me/$cleanPhone',
-                              );
-                              if (await canLaunchUrl(url)) {
-                                await launchUrl(
-                                  url,
-                                  mode: LaunchMode.externalApplication,
+                                final url = Uri.parse(
+                                  'https://wa.me/$cleanPhone',
                                 );
-                              }
-                            },
-                            borderRadius: BorderRadius.circular(14),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFF25D366,
-                                ), // WhatsApp Green
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.message_outlined,
-                                    size: 16,
-                                    color: Colors.white,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'WhatsApp',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
+                                if (await canLaunchUrl(url)) {
+                                  await launchUrl(
+                                    url,
+                                    mode: LaunchMode.externalApplication,
+                                  );
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFF25D366,
+                                  ), // WhatsApp Green
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.message_outlined,
+                                          size: 16,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'WhatsApp',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                          maxLines: 1,
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     );
                   },
                   loading: () => const SizedBox.shrink(),

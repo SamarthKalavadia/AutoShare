@@ -28,13 +28,12 @@ class ChatRepository {
   }) async {
     try {
       final docRef = _fs.chatsCollection.doc(rideId);
+      final cleanParticipants = participants.where((p) => p.isNotEmpty).toList();
       await docRef.set({
         'chatId': rideId,
         'rideId': rideId,
-        'participants': participants,
-        'typing': {},
-        'lastMessageAt': null,
-        'lastMessageText': '',
+        if (cleanParticipants.isNotEmpty)
+          'participants': FieldValue.arrayUnion(cleanParticipants),
       }, SetOptions(merge: true));
       return const Success(null);
     } on FirebaseException catch (e) {
@@ -110,27 +109,34 @@ class ChatRepository {
       final rootDocRef = _fs.messagesCollection.doc();
       final withId = message.copyWith(messageId: rootDocRef.id);
 
-      final participantsUpdate = [message.senderId];
+      final participantsUpdate = <String>{message.senderId};
       if (message.receiverUid.isNotEmpty && message.receiverUid != message.senderId) {
         participantsUpdate.add(message.receiverUid);
+      }
+
+      // If receiverUid was empty, resolve other participant from the ride document
+      if (participantsUpdate.length == 1) {
+        try {
+          final rideDoc = await _fs.ridesCollection.doc(message.rideId).get();
+          if (rideDoc.exists) {
+            final data = rideDoc.data() as Map<String, dynamic>?;
+            final driverId = data?['driverId'] as String? ?? '';
+            if (driverId.isNotEmpty && driverId != message.senderId) {
+              participantsUpdate.add(driverId);
+            }
+          }
+        } catch (_) {}
       }
 
       // 1. Write to root messages collection (matches deployed Firebase security rules)
       await rootDocRef.set(withId.toMap());
 
-      // 2. Also write to subcollection in try-catch for dual compatibility
-      try {
-        await _messagesRef(message.rideId).doc(rootDocRef.id).set(withId.toMap());
-      } catch (e) {
-        debugPrint('[SUBCOLLECTION WRITE SKIPPED]: $e');
-      }
-
-      // 3. Update top-level chat room document with latest message info
+      // 2. Update top-level chat room document with latest message info and participants
       try {
         await _fs.chatsCollection.doc(message.rideId).set({
           'chatId': message.rideId,
           'rideId': message.rideId,
-          'participants': FieldValue.arrayUnion(participantsUpdate),
+          'participants': FieldValue.arrayUnion(participantsUpdate.toList()),
           'lastMessageAt': Timestamp.fromDate(message.sentAt),
           'lastMessageText': message.text,
         }, SetOptions(merge: true));
@@ -247,19 +253,25 @@ class ChatRepository {
   Future<void> deleteChatRooms(List<String> rideIds) async {
     for (final rideId in rideIds) {
       try {
-        final rootMsgs = await _fs.messagesCollection.where('rideId', isEqualTo: rideId).get();
-        for (final doc in rootMsgs.docs) {
-          await doc.reference.delete();
+        try {
+          final rootMsgs = await _fs.messagesCollection.where('rideId', isEqualTo: rideId).get();
+          for (final doc in rootMsgs.docs) {
+            await doc.reference.delete();
+          }
+        } catch (e) {
+          debugPrint('[DELETE ROOT MESSAGES SILENT ERROR]: $e');
         }
         try {
           final msgsSnap = await _messagesRef(rideId).get();
           for (final doc in msgsSnap.docs) {
             await doc.reference.delete();
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('[DELETE SUBCOLLECTION MESSAGES SILENT ERROR]: $e');
+        }
         await _fs.chatsCollection.doc(rideId).delete();
       } catch (e) {
-        throw FirestoreException('Failed to delete chat $rideId: $e');
+        debugPrint('[DELETE CHAT ROOM ERROR]: $e');
       }
     }
   }

@@ -29,6 +29,11 @@
 -keep class com.dexterous.flutterlocalnotifications.** { *; }
 -keepclassmembers class com.dexterous.flutterlocalnotifications.** { *; }
 
+# Firebase Messaging
+-keep class com.google.firebase.messaging.** { *; }
+-keepclassmembers class com.google.firebase.messaging.** { *; }
+-dontwarn com.google.firebase.messaging.**
+
 # Google Play Core (Flutter Deferred Components)
 -dontwarn com.google.android.play.core.**
 -keep class com.google.android.play.core.** { *; }

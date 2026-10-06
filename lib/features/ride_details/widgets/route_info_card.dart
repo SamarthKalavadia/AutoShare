@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../data/models/ride_model.dart';
+import '../providers/ride_request_provider.dart';
 
-class RouteInfoCard extends StatelessWidget {
+class RouteInfoCard extends ConsumerWidget {
   final RideModel ride;
 
   const RouteInfoCard({super.key, required this.ride});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final liveRide = ref.watch(liveRideProvider(ride)).value ?? ride;
+    final effectiveRide = (liveRide.destination.isNotEmpty ||
+            (liveRide.boardingLocation.isNotEmpty &&
+                liveRide.boardingLocation != 'Requested Ride'))
+        ? liveRide
+        : ride;
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -29,8 +37,8 @@ class RouteInfoCard extends StatelessWidget {
         ? const Color(0xFFEF5350)
         : const Color(0xFFD32F2F);
 
-    final dateStr = DateFormat('EEE, d MMM yyyy').format(ride.departureTime);
-    final timeStr = DateFormat('h:mm a').format(ride.departureTime);
+    final dateStr = DateFormat('EEE, d MMM yyyy').format(effectiveRide.departureTime);
+    final timeStr = DateFormat('h:mm a').format(effectiveRide.departureTime);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -113,13 +121,13 @@ class RouteInfoCard extends StatelessWidget {
                     children: [
                       _LocationLabel(
                         label: 'Boarding',
-                        value: ride.boardingLocation,
+                        value: effectiveRide.boardingLocation,
                         color: successColor,
                       ),
                       const SizedBox(height: 20),
                       _LocationLabel(
                         label: 'Destination',
-                        value: ride.destination,
+                        value: effectiveRide.destination,
                         color: dangerColor,
                       ),
                     ],
@@ -159,28 +167,28 @@ class RouteInfoCard extends StatelessWidget {
             ],
           ),
 
-          if (ride.distance.isNotEmpty ||
-              ride.estimatedDuration.isNotEmpty) ...[
+          if (effectiveRide.distance.isNotEmpty ||
+              effectiveRide.estimatedDuration.isNotEmpty) ...[
             const SizedBox(height: 12),
             Row(
               children: [
-                if (ride.distance.isNotEmpty)
+                if (effectiveRide.distance.isNotEmpty)
                   Expanded(
                     child: _MetaChip(
                       icon: Icons.straighten_rounded,
                       label: 'Distance',
-                      value: ride.distance,
+                      value: effectiveRide.distance,
                     ),
                   ),
-                if (ride.distance.isNotEmpty &&
-                    ride.estimatedDuration.isNotEmpty)
+                if (effectiveRide.distance.isNotEmpty &&
+                    effectiveRide.estimatedDuration.isNotEmpty)
                   const SizedBox(width: 12),
-                if (ride.estimatedDuration.isNotEmpty)
+                if (effectiveRide.estimatedDuration.isNotEmpty)
                   Expanded(
                     child: _MetaChip(
                       icon: Icons.timer_rounded,
                       label: 'Est. Duration',
-                      value: ride.estimatedDuration,
+                      value: effectiveRide.estimatedDuration,
                     ),
                   ),
               ],

@@ -133,9 +133,9 @@ class AuthController extends Notifier<AsyncValue<UserModel?>> {
   }
 
   /// Sign in with Google
-  Future<Result<UserModel>> signInWithGoogle() async {
+  Future<Result<UserModel>> signInWithGoogle({bool isSignUp = false}) async {
     state = const AsyncValue.loading();
-    final result = await _authService.signInWithGoogle();
+    final result = await _authService.signInWithGoogle(isSignUp: isSignUp);
 
     if (result is Success<UserModel>) {
       UserModel userModel = result.data;

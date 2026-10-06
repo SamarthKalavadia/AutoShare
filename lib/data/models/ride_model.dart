@@ -43,10 +43,14 @@ class RideModel extends Equatable {
     this.distance = '',
   }) : totalFare = totalFare ?? farePerSeat ?? 0.0;
 
-  /// Calculates equal share per person:
-  /// participants = 1 (creator) + acceptedPassengers (maximum 2).
-  /// farePerPerson = totalFare / participants.
-  double calculateFarePerPerson({int acceptedPassengers = 0}) {
+  /// Calculates fare per seat/person based on available seats or participants:
+  /// When seats are available: farePerSeat = totalFare / availableSeats.
+  /// When availableSeats is 0: falls back to totalFare / (1 + acceptedPassengers).
+  double calculateFarePerPerson({int acceptedPassengers = 0, int? customSeats}) {
+    final seats = customSeats ?? availableSeats;
+    if (seats > 0) {
+      return totalFare / seats;
+    }
     final clampedPassengers = acceptedPassengers.clamp(0, 2);
     final participants = 1 + clampedPassengers;
     if (participants <= 0) return totalFare;

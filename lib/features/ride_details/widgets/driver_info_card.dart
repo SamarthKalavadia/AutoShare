@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/models/ride_model.dart';
+import '../../../data/models/user_model.dart';
 import '../../../shared/utils/avatar_utils.dart';
+import '../../my_rides/providers/my_rides_provider.dart';
 import '../providers/driver_profile_provider.dart';
+import '../providers/ride_request_provider.dart';
 
 class DriverInfoCard extends ConsumerWidget {
   final RideModel ride;
@@ -24,20 +27,48 @@ class DriverInfoCard extends ConsumerWidget {
         theme.cardTheme.color ??
         (isDark ? const Color(0xFF1E1E1E) : Colors.white);
 
+    final liveRide = ref.watch(liveRideProvider(ride)).value ?? ride;
+
+    // Resolve effective driver ID from ride, live ride, or matching ride/request
+    String effectiveDriverId = ride.driverId.isNotEmpty ? ride.driverId : liveRide.driverId;
+    if (effectiveDriverId.isEmpty) {
+      final myRides = ref.watch(myRidesProvider).value ?? [];
+      final match = myRides.where((m) => m.ride.id == ride.id || m.request?.rideId == ride.id).firstOrNull;
+      if (match != null) {
+        if (match.role == 'driver' && match.ride.driverId.isNotEmpty) {
+          effectiveDriverId = match.ride.driverId;
+        } else if (match.request?.ownerUid != null && match.request!.ownerUid.isNotEmpty) {
+          effectiveDriverId = match.request!.ownerUid;
+        } else if (match.ride.driverId.isNotEmpty) {
+          effectiveDriverId = match.ride.driverId;
+        }
+      }
+    }
+
     // Fetch the actual user profile for the driver
-    final driverUserAsync = ref.watch(userProfileProvider(ride.driverId));
+    final driverUserAsync = effectiveDriverId.isNotEmpty
+        ? ref.watch(userProfileProvider(effectiveDriverId))
+        : const AsyncValue<UserModel?>.data(null);
     final driverUser = driverUserAsync.value;
 
     String resolvedDriverName = '';
     if (driverUser != null &&
         driverUser.name.trim().isNotEmpty &&
         driverUser.name.trim().toLowerCase() != 'driver' &&
-        driverUser.name.trim().toLowerCase() != 'user') {
+        driverUser.name.trim().toLowerCase() != 'user' &&
+        driverUser.name.trim().toLowerCase() != 'ride partner') {
       resolvedDriverName = driverUser.name.trim();
+    } else if (liveRide.driverName.trim().isNotEmpty &&
+        liveRide.driverName.trim().toLowerCase() != 'driver' &&
+        liveRide.driverName.trim().toLowerCase() != 'unknown driver' &&
+        liveRide.driverName.trim().toLowerCase() != 'user' &&
+        liveRide.driverName.trim().toLowerCase() != 'ride partner') {
+      resolvedDriverName = liveRide.driverName.trim();
     } else if (ride.driverName.trim().isNotEmpty &&
         ride.driverName.trim().toLowerCase() != 'driver' &&
         ride.driverName.trim().toLowerCase() != 'unknown driver' &&
-        ride.driverName.trim().toLowerCase() != 'user') {
+        ride.driverName.trim().toLowerCase() != 'user' &&
+        ride.driverName.trim().toLowerCase() != 'ride partner') {
       resolvedDriverName = ride.driverName.trim();
     } else if (driverUser != null && driverUser.email.trim().isNotEmpty) {
       final emailPart = driverUser.email.trim().split('@').first;
@@ -50,15 +81,17 @@ class DriverInfoCard extends ConsumerWidget {
     if (resolvedDriverName.isEmpty) {
       resolvedDriverName = driverUserAsync.isLoading
           ? 'Loading...'
-          : (driverUser?.name.isNotEmpty == true
-              ? driverUser!.name
+          : (driverUser != null &&
+                  driverUser.name.isNotEmpty &&
+                  driverUser.name.trim().toLowerCase() != 'ride partner'
+              ? driverUser.name
               : 'Ride Partner');
     }
 
     final initials = _getInitials(resolvedDriverName);
     final rating = (driverUser != null && driverUser.averageRating > 0)
         ? driverUser.averageRating
-        : ride.driverRating;
+        : (liveRide.driverRating > 0 ? liveRide.driverRating : ride.driverRating);
 
     final avatarProvider = getAvatarImageProvider(driverUser?.profileImage);
 

@@ -8,6 +8,7 @@ import '../../core/utils/result.dart';
 import '../requests/providers/incoming_requests_provider.dart';
 import '../requests/widgets/request_card.dart';
 import 'providers/my_rides_provider.dart';
+import '../search/providers/search_ride_provider.dart';
 import 'widgets/my_ride_card.dart';
 
 class MyRidesPage extends ConsumerStatefulWidget {
@@ -673,6 +674,9 @@ class _RideListView extends ConsumerWidget {
         const SnackBar(content: Text('Request cancelled successfully.')),
       );
       ref.invalidate(myRidesProvider);
+      if (ref.read(searchRideProvider).hasSearched) {
+        ref.read(searchRideProvider.notifier).searchRides();
+      }
     } else if (result is Failure<void>) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

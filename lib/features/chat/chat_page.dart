@@ -10,6 +10,9 @@ import 'package:autoshare/features/chat/widgets/ride_summary_banner.dart';
 import 'package:autoshare/shared/utils/avatar_utils.dart';
 import 'package:autoshare/shared/providers.dart';
 import 'package:autoshare/core/localization/app_localizations.dart';
+import 'package:autoshare/features/notifications/providers/notification_provider.dart';
+import 'package:autoshare/features/profile/providers/user_profile_provider.dart';
+import 'package:autoshare/data/models/user_model.dart';
 
 class ChatPage extends ConsumerStatefulWidget {
   final ChatPageArgs args;
@@ -55,6 +58,18 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         }).catchError((e) {
           debugPrint('[CHAT DEBUG] ensureChatRoom error: $e');
         });
+      }
+
+      // Mark unread chat notifications for this ride as read
+      if (uid.isNotEmpty) {
+        try {
+          final notifs = ref.read(rawNotificationsStreamProvider).value ?? [];
+          for (final n in notifs) {
+            if (!n.isRead && n.type == 'chat' && n.relatedId == _rideId) {
+              ref.read(notificationRepositoryProvider).markAsRead(uid, n.id);
+            }
+          }
+        } catch (_) {}
       }
     });
 
@@ -146,32 +161,77 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         '';
     final chatInput = ref.watch(chatProvider);
     
+    final messagesAsync = ref.watch(chatMessagesProvider(_rideId));
+    final messagesList = messagesAsync.value ?? [];
     final chatRoomAsync = ref.watch(chatRoomProvider(_rideId));
-    final resolvedOtherUid = widget.args.otherParticipantUid.isNotEmpty
-        ? widget.args.otherParticipantUid
-        : (chatRoomAsync.value?.participants.firstWhere(
-            (p) => p.isNotEmpty && p != currentUid,
-            orElse: () => '',
-          ) ?? '');
+
+    String resolvedOtherUid = widget.args.otherParticipantUid;
+    if (resolvedOtherUid.isEmpty && messagesList.isNotEmpty) {
+      final latestMsg = messagesList.reduce((a, b) => a.sentAt.isAfter(b.sentAt) ? a : b);
+      if (latestMsg.senderId.isNotEmpty && latestMsg.senderId != currentUid) {
+        resolvedOtherUid = latestMsg.senderId;
+      } else if (latestMsg.receiverUid.isNotEmpty && latestMsg.receiverUid != currentUid) {
+        resolvedOtherUid = latestMsg.receiverUid;
+      }
+      if (resolvedOtherUid.isEmpty) {
+        for (final m in messagesList.reversed) {
+          if (m.senderId.isNotEmpty && m.senderId != currentUid) {
+            resolvedOtherUid = m.senderId;
+            break;
+          }
+          if (m.receiverUid.isNotEmpty && m.receiverUid != currentUid) {
+            resolvedOtherUid = m.receiverUid;
+            break;
+          }
+        }
+      }
+    }
+
+    if (resolvedOtherUid.isEmpty && widget.args.ride.driverId.isNotEmpty && widget.args.ride.driverId != currentUid) {
+      resolvedOtherUid = widget.args.ride.driverId;
+    }
+
+    final candidateUids = (chatRoomAsync.value?.participants ?? [])
+        .where((p) => p.isNotEmpty && p != currentUid)
+        .toList();
+
+    if (resolvedOtherUid.isEmpty && candidateUids.isNotEmpty) {
+      resolvedOtherUid = candidateUids.first;
+    }
 
     final otherUserAsync = ref.watch(chatUserProvider(resolvedOtherUid));
-    final messagesAsync = ref.watch(chatMessagesProvider(_rideId));
-    
+    final otherUserProfileAsync = resolvedOtherUid.isNotEmpty
+        ? ref.watch(userProfileProvider(resolvedOtherUid))
+        : null;
+
+    UserModel? resolvedUser = otherUserAsync.value ?? otherUserProfileAsync?.value;
+
+    if ((resolvedUser == null || (resolvedUser.name.isEmpty && resolvedUser.profileImage.isEmpty)) && candidateUids.length > 1) {
+      for (final cid in candidateUids) {
+        if (cid == resolvedOtherUid) continue;
+        final candidateUser = ref.watch(chatUserProvider(cid)).value;
+        if (candidateUser != null && (candidateUser.name.isNotEmpty || candidateUser.profileImage.isNotEmpty)) {
+          resolvedUser = candidateUser;
+          resolvedOtherUid = cid;
+          break;
+        }
+      }
+    }
+
     final participantName = () {
-      final user = otherUserAsync.value;
-      if (user != null &&
-          user.name.trim().isNotEmpty &&
-          user.name.trim().toLowerCase() != 'user' &&
-          user.name.trim().toLowerCase() != 'driver') {
-        return user.name.trim();
+      if (resolvedUser != null &&
+          resolvedUser.name.trim().isNotEmpty &&
+          resolvedUser.name.trim().toLowerCase() != 'user' &&
+          resolvedUser.name.trim().toLowerCase() != 'driver') {
+        return resolvedUser.name.trim();
       }
       if (widget.args.otherParticipantName.trim().isNotEmpty &&
           widget.args.otherParticipantName.trim().toLowerCase() != 'user' &&
           widget.args.otherParticipantName.trim().toLowerCase() != 'driver') {
         return widget.args.otherParticipantName.trim();
       }
-      if (user != null && user.email.trim().isNotEmpty) {
-        final emailPart = user.email.trim().split('@').first;
+      if (resolvedUser != null && resolvedUser.email.trim().isNotEmpty) {
+        final emailPart = resolvedUser.email.trim().split('@').first;
         if (emailPart.isNotEmpty &&
             emailPart.toLowerCase() != 'user' &&
             emailPart.toLowerCase() != 'driver') {
@@ -188,8 +248,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
         return widget.args.ride.driverName.trim();
       }
       // Try finding from messages
-      final msgs = messagesAsync.value ?? [];
-      for (final m in msgs) {
+      for (final m in messagesList.reversed) {
         if (m.senderId.isNotEmpty &&
             m.senderId != currentUid &&
             m.senderName.trim().isNotEmpty &&
@@ -198,14 +257,18 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           return m.senderName.trim();
         }
       }
-      if (user != null &&
-          user.name.trim().isNotEmpty &&
-          user.name.trim().toLowerCase() != 'driver') {
-        return user.name.trim();
+      if (resolvedUser != null &&
+          resolvedUser.name.trim().isNotEmpty &&
+          resolvedUser.name.trim().toLowerCase() != 'driver') {
+        return resolvedUser.name.trim();
       }
       return otherUserAsync.isLoading ? 'Loading...' : 'Ride Partner';
     }();
-    final participantAvatar = otherUserAsync.value?.profileImage;
+
+    final participantAvatar = (resolvedUser?.profileImage != null &&
+            resolvedUser!.profileImage.trim().isNotEmpty)
+        ? resolvedUser.profileImage.trim()
+        : null;
 
     final typingUids = chatRoomAsync.value?.typing.entries
         .where((e) => e.value && e.key != currentUid)
@@ -229,6 +292,7 @@ class _ChatPageState extends ConsumerState<ChatPage> {
           children: [
             () {
               final avatarProvider = getAvatarImageProvider(participantAvatar);
+              final initial = participantName.isNotEmpty ? participantName[0].toUpperCase() : '?';
               return Container(
                 width: 42,
                 height: 42,
@@ -246,23 +310,34 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                       offset: const Offset(0, 2),
                     ),
                   ],
-                  image: avatarProvider != null
-                      ? DecorationImage(
-                          image: avatarProvider,
-                          fit: BoxFit.cover,
-                        )
-                      : null,
                 ),
+                clipBehavior: Clip.antiAlias,
                 alignment: Alignment.center,
-                child: avatarProvider == null
-                    ? Text(
-                        participantName.isNotEmpty ? participantName[0].toUpperCase() : '?',
+                child: avatarProvider != null
+                    ? Image(
+                        image: avatarProvider,
+                        width: 42,
+                        height: 42,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(
+                            child: Text(
+                              initial,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: blackColor,
+                              ),
+                            ),
+                          );
+                        },
+                      )
+                    : Text(
+                        initial,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: blackColor,
                         ),
-                      )
-                    : null,
+                      ),
               );
             }(),
             const SizedBox(width: 12),
@@ -284,9 +359,18 @@ class _ChatPageState extends ConsumerState<ChatPage> {
                   ),
                   const SizedBox(height: 1),
                   Text(
-                    typingUids.isNotEmpty ? context.l10n.typing : 'Ride partner',
+                    typingUids.isNotEmpty
+                        ? context.l10n.typing
+                        : (otherUserAsync.hasValue && otherUserAsync.value == null && resolvedOtherUid.isNotEmpty
+                            ? 'Account inactive'
+                            : (widget.args.ride.boardingLocation.isNotEmpty &&
+                                    widget.args.ride.destination.isNotEmpty
+                                ? '${widget.args.ride.boardingLocation} → ${widget.args.ride.destination}'
+                                : 'Active chat')),
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: typingUids.isNotEmpty ? primaryColor : (isDark ? Colors.white54 : const Color(0xFF8E8E93)),
+                      color: typingUids.isNotEmpty
+                          ? primaryColor
+                          : (isDark ? Colors.white54 : const Color(0xFF8E8E93)),
                       fontStyle: typingUids.isNotEmpty ? FontStyle.italic : FontStyle.normal,
                       fontWeight: typingUids.isNotEmpty ? FontWeight.w600 : FontWeight.w500,
                       fontSize: 11,

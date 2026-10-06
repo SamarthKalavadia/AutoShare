@@ -664,20 +664,35 @@ class _NotificationTile extends ConsumerWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFEAE5DD),
-                      image: avatarProvider != null
-                          ? DecorationImage(
-                              image: avatarProvider,
-                              fit: BoxFit.cover,
-                            )
-                          : null,
                       border: Border.all(
                         color: isDark ? const Color(0xFF333333) : Colors.white,
                         width: 1.5,
                       ),
                     ),
+                    clipBehavior: Clip.antiAlias,
                     alignment: Alignment.center,
-                    child: avatarProvider == null
-                        ? (isLoadingSender
+                    child: avatarProvider != null
+                        ? Image(
+                            image: avatarProvider,
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Center(
+                                child: Text(
+                                  senderNameFallback.isNotEmpty
+                                      ? senderNameFallback[0].toUpperCase()
+                                      : '?',
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        : (isLoadingSender
                             ? SizedBox(
                                 width: 16,
                                 height: 16,
@@ -688,15 +703,14 @@ class _NotificationTile extends ConsumerWidget {
                               )
                             : Text(
                                 senderNameFallback.isNotEmpty
-                                    ? senderNameFallback[0].toUpperCase()
-                                    : '?',
+                                      ? senderNameFallback[0].toUpperCase()
+                                      : '?',
                                 style: GoogleFonts.inter(
                                   fontWeight: FontWeight.w700,
                                   color: isDark ? Colors.white : Colors.black87,
                                   fontSize: 16,
                                 ),
-                              ))
-                        : null,
+                              )),
                   )
                 else
                   Container(

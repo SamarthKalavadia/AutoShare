@@ -72,7 +72,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     try {
       final result = await ref
           .read(authControllerProvider.notifier)
-          .signInWithGoogle();
+          .signInWithGoogle(isSignUp: false);
 
       if (!mounted) return;
 

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Animated success bottom sheet shown after a ride request is submitted.
 Future<void> showRequestSuccessDialog(BuildContext context) {
@@ -120,38 +119,6 @@ class _SuccessSheetState extends State<_SuccessSheet>
           ),
 
           const SizedBox(height: 32),
-
-          // Status indicator
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? primaryColor.withValues(alpha: 0.1)
-                  : const Color(0xFFFFFBE6),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.hourglass_top_rounded,
-                  size: 16,
-                  color: primaryColor,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Status: Pending Owner Approval',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? primaryColor : const Color(0xFF856200),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 28),
 
           // Done button
           SizedBox(

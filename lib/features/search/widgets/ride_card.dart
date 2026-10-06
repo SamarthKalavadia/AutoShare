@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/widgets/app_seat_icon.dart';
 import '../../../data/models/ride_model.dart';
 import '../../../shared/utils/avatar_utils.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
@@ -291,10 +291,9 @@ class RideCard extends ConsumerWidget {
                               size: 16,
                             ),
                           ),
-                        Icon(
-                          Icons.airline_seat_recline_normal_rounded,
-                          color: mutedText,
+                        AppSeatIcon(
                           size: 16,
+                          color: mutedText,
                         ),
                         const SizedBox(width: 4),
                         Text(

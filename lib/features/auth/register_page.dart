@@ -94,7 +94,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     try {
       final result = await ref
           .read(authControllerProvider.notifier)
-          .signInWithGoogle();
+          .signInWithGoogle(isSignUp: true);
 
       if (!mounted) return;
 

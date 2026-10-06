@@ -99,9 +99,10 @@ class AuthService {
     required String email,
     required String password,
   }) async {
+    final cleanEmail = email.trim();
     try {
       final credential = await _auth.signInWithEmailAndPassword(
-        email: email,
+        email: cleanEmail,
         password: password,
       );
 
@@ -119,15 +120,48 @@ class AuthService {
         return dbResult;
       }
 
-      // If missing in DB, create an empty shell (fallback)
-      final fallbackUser = UserModel.empty().copyWith(
-        uid: user.uid,
-        email: email,
+      // If user does not exist in Firestore, sign out and report no account found
+      try {
+        await _auth.signOut();
+      } catch (_) {}
+      return const Failure(
+        'No account found. Please create an account first to continue.',
+        AuthException('user-not-found'),
       );
-      return Success(fallbackUser);
     } on FirebaseAuthException catch (e) {
       // ignore: avoid_print
       print('AuthService.login Error: $e');
+
+      if (e.code == 'user-not-found') {
+        return const Failure(
+          'No account found. Please create an account first to continue.',
+          AuthException('user-not-found'),
+        );
+      }
+
+      if (e.code == 'wrong-password') {
+        return const Failure(
+          'Incorrect password provided. Please try again.',
+          AuthException('wrong-password'),
+        );
+      }
+
+      if (e.code == 'invalid-credential') {
+        if (e.message != null &&
+            (e.message!.toLowerCase().contains('user-not-found') ||
+                e.message!.toLowerCase().contains('no user') ||
+                e.message!.toLowerCase().contains('not found'))) {
+          return const Failure(
+            'No account found. Please create an account first to continue.',
+            AuthException('user-not-found'),
+          );
+        }
+        return const Failure(
+          'Invalid email or password. Please check your credentials and try again.',
+          AuthException('invalid-credential'),
+        );
+      }
+
       return Failure(
         _mapAuthErrorCode(e.code, defaultMessage: e.message),
         AuthException(e.code),
@@ -140,7 +174,9 @@ class AuthService {
   }
 
   /// Authenticates using Google Sign In across Web and Mobile/Desktop.
-  Future<Result<UserModel>> signInWithGoogle() async {
+  /// When [isSignUp] is false (e.g. from login screen), checks if an AutoShare account
+  /// exists in Firestore. If no account exists, returns a specific account-not-found message.
+  Future<Result<UserModel>> signInWithGoogle({bool isSignUp = false}) async {
     try {
       User? user;
 
@@ -220,6 +256,18 @@ class AuthService {
         );
         await _userRepository.updateUser(userModel);
       } else {
+        if (!isSignUp) {
+          // CASE 4: No AutoShare account is associated with this Google account.
+          try {
+            await _auth.signOut();
+            if (!kIsWeb) await _googleSignIn.signOut();
+          } catch (_) {}
+          return const Failure(
+            'No AutoShare account is associated with this Google account. Please create an account first.',
+            AuthException('user-not-found'),
+          );
+        }
+
         final resolvedName = (user.displayName != null && user.displayName!.isNotEmpty && user.displayName!.toLowerCase() != 'user')
             ? user.displayName!
             : (user.email != null && user.email!.contains('@')
@@ -262,6 +310,24 @@ class AuthService {
       debugPrint(
         'AuthService.googleLogin FirebaseAuthException: ${e.code} - ${e.message}',
       );
+      if (e.code == 'account-exists-with-different-credential') {
+        return const Failure(
+          'An account already exists with the same email using a different sign-in method.',
+          AuthException('account-exists-with-different-credential'),
+        );
+      }
+      if (e.code == 'network-request-failed') {
+        return const Failure(
+          'Network connection failed. Please check your internet connection.',
+          AuthException('network-request-failed'),
+        );
+      }
+      if (e.code == 'invalid-credential') {
+        return const Failure(
+          'Google authentication credentials invalid or expired. Please try again.',
+          AuthException('invalid-credential'),
+        );
+      }
       return Failure(
         _mapAuthErrorCode(e.code, defaultMessage: e.message),
         AuthException(e.code),
@@ -371,12 +437,16 @@ class AuthService {
   }
 
   /// Maps Firebase Error codes to human-readable messages.
+  /// Maps a Firebase Auth error code to a user-friendly message.
+  String mapAuthErrorCode(String code, {String? defaultMessage}) =>
+      _mapAuthErrorCode(code, defaultMessage: defaultMessage);
+
   String _mapAuthErrorCode(String code, {String? defaultMessage}) {
     switch (code) {
       case 'user-not-found':
-        return 'No user found for that email.';
+        return 'No account found. Please create an account first to continue.';
       case 'wrong-password':
-        return 'Wrong password provided.';
+        return 'Incorrect password provided. Please try again.';
       case 'email-already-in-use':
         return 'The email address is already in use by another account.';
       case 'invalid-email':
@@ -388,7 +458,7 @@ class AuthService {
       case 'too-many-requests':
         return 'Too many attempts. Please try again later.';
       case 'invalid-credential':
-        return 'Invalid credentials provided for Google Sign-In.';
+        return 'Invalid email or password. Please check your credentials and try again.';
       case 'account-exists-with-different-credential':
         return 'An account already exists with the same email using a different sign-in method.';
       case 'operation-not-allowed':

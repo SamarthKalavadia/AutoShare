@@ -11,7 +11,10 @@ import 'package:autoshare/features/my_rides/providers/my_rides_provider.dart';
 import 'package:autoshare/features/chat/providers/chat_provider.dart';
 import 'package:autoshare/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:autoshare/shared/utils/avatar_utils.dart';
+import 'package:autoshare/shared/providers.dart';
 import 'package:autoshare/core/localization/app_localizations.dart';
+import 'package:autoshare/features/profile/providers/user_profile_provider.dart';
+import 'package:autoshare/data/models/user_model.dart';
 
 class ChatsListPage extends ConsumerStatefulWidget {
   const ChatsListPage({super.key});
@@ -58,6 +61,117 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
     final backgroundColor = theme.scaffoldBackgroundColor;
     final textColor = theme.colorScheme.onSurface;
 
+    final myRides = ref.watch(myRidesProvider).value ?? [];
+    final activeRides = myRides.where((r) {
+      final s = r.displayStatus;
+      return s == 'active' || s == 'joined' || s == 'completed';
+    }).toList();
+
+    List<ChatRoom> getResolvedRooms(List<ChatRoom> chatRooms) {
+      final currentUid = ref.watch(authControllerProvider).value?.uid ??
+          FirebaseAuth.instance.currentUser?.uid ??
+          '';
+      if (currentUid.isEmpty) return [];
+
+      // Helper to identify the conversation partner UID for a room
+      String getOtherUid(ChatRoom room) {
+        // 1. Check messages for this room
+        final msgs = ref.read(chatMessagesProvider(room.rideId)).value ?? [];
+        if (msgs.isNotEmpty) {
+          final latest = msgs.reduce((a, b) => a.sentAt.isAfter(b.sentAt) ? a : b);
+          if (latest.senderId.isNotEmpty && latest.senderId != currentUid) {
+            return latest.senderId;
+          }
+          if (latest.receiverUid.isNotEmpty && latest.receiverUid != currentUid) {
+            return latest.receiverUid;
+          }
+          for (final m in msgs.reversed) {
+            if (m.senderId.isNotEmpty && m.senderId != currentUid) {
+              return m.senderId;
+            }
+            if (m.receiverUid.isNotEmpty && m.receiverUid != currentUid) {
+              return m.receiverUid;
+            }
+          }
+        }
+
+        // 2. Check active ride
+        final matchingRide = activeRides.where((r) => r.ride.id == room.rideId).firstOrNull;
+        if (matchingRide != null) {
+          final ridePartner = matchingRide.role == 'driver'
+              ? (matchingRide.request?.requesterUid ?? '')
+              : matchingRide.ride.driverId;
+          if (ridePartner.isNotEmpty && ridePartner != currentUid) {
+            return ridePartner;
+          }
+        }
+
+        // 3. Fallback to room participants
+        return room.participants.firstWhere(
+          (p) => p.isNotEmpty && p != currentUid,
+          orElse: () => '',
+        );
+      }
+
+      // Map to deduplicate chats by the other user (partner) UID
+      final Map<String, ChatRoom> byUserMap = {};
+
+      for (final room in chatRooms) {
+        final otherUid = getOtherUid(room);
+        // Exclude rooms with no valid other user ("Ride Partner" / self)
+        if (otherUid.isEmpty || otherUid == currentUid) continue;
+
+        if (!byUserMap.containsKey(otherUid)) {
+          byUserMap[otherUid] = room;
+        } else {
+          final existing = byUserMap[otherUid]!;
+          final hasMsg = room.lastMessageText.trim().isNotEmpty;
+          final existingHasMsg = existing.lastMessageText.trim().isNotEmpty;
+
+          // If this room has messages and existing doesn't, prefer this room
+          if (hasMsg && !existingHasMsg) {
+            byUserMap[otherUid] = room;
+          } else if (!hasMsg && existingHasMsg) {
+            // Keep existing
+          } else {
+            // Otherwise keep the one with the latest timestamp
+            final existingTime = existing.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            final roomTime = room.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+            if (roomTime.isAfter(existingTime)) {
+              byUserMap[otherUid] = room;
+            }
+          }
+        }
+      }
+
+      // Add active rides only if there's an actual other participant not yet present in byUserMap
+      for (final r in activeRides) {
+        final otherUid = r.role == 'driver'
+            ? (r.request?.requesterUid ?? '')
+            : r.ride.driverId;
+        // Strictly ignore if no other user or if other user is self
+        if (otherUid.isEmpty || otherUid == currentUid) continue;
+
+        if (!byUserMap.containsKey(otherUid)) {
+          byUserMap[otherUid] = ChatRoom(
+            chatId: r.ride.id,
+            rideId: r.ride.id,
+            participants: [currentUid, otherUid],
+            lastMessageText: '',
+            lastMessageAt: r.ride.departureTime,
+          );
+        }
+      }
+
+      final list = byUserMap.values.toList();
+      list.sort((a, b) {
+        final aTime = a.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bTime = b.lastMessageAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bTime.compareTo(aTime);
+      });
+      return list;
+    }
+
     return PopScope(
       canPop: !_isSelectionMode,
       onPopInvokedWithResult: (didPop, result) {
@@ -70,7 +184,8 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
         backgroundColor: backgroundColor,
         appBar: userChatsAsync.when(
           data: (chatRooms) {
-            final allIds = chatRooms.map((r) => r.chatId).toList();
+            final validRooms = getResolvedRooms(chatRooms);
+            final allIds = validRooms.map((r) => r.chatId).toList();
             if (_isSelectionMode) {
               return _buildSelectionAppBar(context, ref, allIds, textColor);
             }
@@ -81,7 +196,9 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
         ),
         body: userChatsAsync.when(
           data: (chatRooms) {
-            if (chatRooms.isEmpty) {
+            final validRooms = getResolvedRooms(chatRooms);
+
+            if (validRooms.isEmpty) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -100,16 +217,6 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      context.l10n.noChatsSubtitle,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.brightness == Brightness.dark
-                            ? Colors.white54
-                            : Colors.grey.shade600,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
                   ],
                 ),
               );
@@ -117,10 +224,10 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
 
             return ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16).copyWith(bottom: 24),
-              itemCount: chatRooms.length,
+              itemCount: validRooms.length,
               separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                final room = chatRooms[index];
+                final room = validRooms[index];
                 final chatId = room.chatId;
                 return _ChatCard(
                   chatRoom: room,
@@ -149,73 +256,16 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
               },
             );
           },
-          loading: () {
-            final rides = ref.watch(myRidesProvider).value ?? [];
-            final activeRides = rides.where((r) {
-              final status = r.displayStatus;
-              return status == 'active' || status == 'joined' || status == 'completed';
-            }).toList();
-
-            if (activeRides.isEmpty) {
-              return Center(
-                child: SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              );
-            }
-
-            return ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16).copyWith(bottom: 24),
-              itemCount: activeRides.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final r = activeRides[index];
-                final otherUid = r.role == 'driver'
-                    ? (r.request?.requesterUid ?? '')
-                    : r.ride.driverId;
-                final driverName = (r.role == 'passenger' &&
-                        r.ride.driverName.isNotEmpty &&
-                        r.ride.driverName != 'Unknown Driver' &&
-                        r.ride.driverName.toLowerCase() != 'driver')
-                    ? r.ride.driverName
-                    : '';
-                return _ChatCard(
-                  chatRoom: ChatRoom(
-                    chatId: r.ride.id,
-                    rideId: r.ride.id,
-                    participants: [otherUid],
-                    lastMessageText: '',
-                    lastMessageAt: r.ride.departureTime,
-                  ),
-                  isSelectionMode: false,
-                  isSelected: false,
-                  onTapWithDetails: (pName, pUid) {
-                    final cleanPName = (pName.isNotEmpty &&
-                            pName.toLowerCase() != 'user' &&
-                            pName.toLowerCase() != 'driver')
-                        ? pName
-                        : '';
-                    context.push(
-                      '/chat',
-                      extra: ChatPageArgs(
-                        ride: r.ride,
-                        otherParticipantUid: otherUid.isNotEmpty ? otherUid : pUid,
-                        otherParticipantName: cleanPName.isNotEmpty
-                            ? cleanPName
-                            : (driverName.isNotEmpty ? driverName : ''),
-                      ),
-                    );
-                  },
-                  onLongPress: () {},
-                );
-              },
-            );
-          },
+          loading: () => Center(
+            child: SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
           error: (err, _) => Center(
             child: Text(
               'Error loading chats: $err',
@@ -233,11 +283,29 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
     final currentUid = ref.read(authControllerProvider).value?.uid ??
         FirebaseAuth.instance.currentUser?.uid ??
         '';
-    var otherUid = participantUid ??
-        room.participants.firstWhere(
-          (p) => p.isNotEmpty && p != currentUid,
-          orElse: () => '',
-        );
+    final msgs = ref.read(chatMessagesProvider(room.rideId)).value ?? [];
+    var otherUid = participantUid ?? '';
+
+    if (otherUid.isEmpty && msgs.isNotEmpty) {
+      final latest = msgs.reduce((a, b) => a.sentAt.isAfter(b.sentAt) ? a : b);
+      if (latest.senderId.isNotEmpty && latest.senderId != currentUid) {
+        otherUid = latest.senderId;
+      } else if (latest.receiverUid.isNotEmpty && latest.receiverUid != currentUid) {
+        otherUid = latest.receiverUid;
+      }
+      if (otherUid.isEmpty) {
+        for (final m in msgs.reversed) {
+          if (m.senderId.isNotEmpty && m.senderId != currentUid) {
+            otherUid = m.senderId;
+            break;
+          }
+          if (m.receiverUid.isNotEmpty && m.receiverUid != currentUid) {
+            otherUid = m.receiverUid;
+            break;
+          }
+        }
+      }
+    }
 
     // Check if we have the full ride model in myRidesProvider
     final myRides = ref.read(myRidesProvider).value ?? [];
@@ -250,17 +318,10 @@ class _ChatsListPageState extends ConsumerState<ChatsListPage> {
     }
 
     if (otherUid.isEmpty) {
-      final msgs = ref.read(chatMessagesProvider(room.rideId)).value ?? [];
-      for (final m in msgs) {
-        if (m.senderId.isNotEmpty && m.senderId != currentUid) {
-          otherUid = m.senderId;
-          break;
-        }
-        if (m.receiverUid.isNotEmpty && m.receiverUid != currentUid) {
-          otherUid = m.receiverUid;
-          break;
-        }
-      }
+      otherUid = room.participants.firstWhere(
+        (p) => p.isNotEmpty && p != currentUid,
+        orElse: () => '',
+      );
     }
 
     String resolvedName = participantName ?? '';
@@ -545,57 +606,86 @@ class _ChatCard extends ConsumerWidget {
         FirebaseAuth.instance.currentUser?.uid ??
         '';
     final rideId = chatRoom.rideId;
+    final myRides = ref.watch(myRidesProvider).value ?? [];
+    final match = myRides.where((r) => r.ride.id == chatRoom.rideId).firstOrNull;
 
-    var otherUid = chatRoom.participants.firstWhere(
-      (p) => p.isNotEmpty && p != currentUid,
-      orElse: () => '',
-    );
+    final messagesAsync = ref.watch(chatMessagesProvider(rideId));
+    final messagesList = messagesAsync.value ?? [];
 
-    if (otherUid.isEmpty) {
-      final myRides = ref.watch(myRidesProvider).value ?? [];
-      final match = myRides.where((r) => r.ride.id == chatRoom.rideId).firstOrNull;
-      if (match != null) {
-        otherUid = match.role == 'driver'
-            ? (match.request?.requesterUid ?? '')
-            : match.ride.driverId;
+    // Step 1: Check messages first to see who was actually in conversation
+    var otherUid = '';
+    if (messagesList.isNotEmpty) {
+      final latestMsg = messagesList.reduce((a, b) => a.sentAt.isAfter(b.sentAt) ? a : b);
+      if (latestMsg.senderId.isNotEmpty && latestMsg.senderId != currentUid) {
+        otherUid = latestMsg.senderId;
+      } else if (latestMsg.receiverUid.isNotEmpty && latestMsg.receiverUid != currentUid) {
+        otherUid = latestMsg.receiverUid;
+      }
+      if (otherUid.isEmpty) {
+        for (final m in messagesList.reversed) {
+          if (m.senderId.isNotEmpty && m.senderId != currentUid) {
+            otherUid = m.senderId;
+            break;
+          }
+          if (m.receiverUid.isNotEmpty && m.receiverUid != currentUid) {
+            otherUid = m.receiverUid;
+            break;
+          }
+        }
       }
     }
 
-    if (otherUid.isEmpty) {
-      final msgs = ref.watch(chatMessagesProvider(rideId)).value ?? [];
-      for (final m in msgs) {
-        if (m.senderId.isNotEmpty && m.senderId != currentUid) {
-          otherUid = m.senderId;
-          break;
-        }
-        if (m.receiverUid.isNotEmpty && m.receiverUid != currentUid) {
-          otherUid = m.receiverUid;
-          break;
-        }
-      }
+    // Step 2: Check matching ride
+    if (otherUid.isEmpty && match != null) {
+      otherUid = match.role == 'driver'
+          ? (match.request?.requesterUid ?? '')
+          : match.ride.driverId;
+    }
+
+    // Step 3: Check participants
+    final candidateUids = chatRoom.participants
+        .where((p) => p.isNotEmpty && p != currentUid)
+        .toList();
+
+    if (otherUid.isEmpty && candidateUids.isNotEmpty) {
+      otherUid = candidateUids.first;
     }
 
     final otherUserAsync = ref.watch(chatUserProvider(otherUid));
-    final messagesAsync = ref.watch(chatMessagesProvider(rideId));
+    final otherUserProfileAsync = otherUid.isNotEmpty
+        ? ref.watch(userProfileProvider(otherUid))
+        : null;
+
+    UserModel? resolvedUser = otherUserAsync.value ?? otherUserProfileAsync?.value;
+
+    // Step 4: If resolvedUser is null or has empty profile image and name, but other candidate UIDs exist, check them
+    if ((resolvedUser == null || (resolvedUser.name.isEmpty && resolvedUser.profileImage.isEmpty)) && candidateUids.length > 1) {
+      for (final cid in candidateUids) {
+        if (cid == otherUid) continue;
+        final candidateUser = ref.watch(chatUserProvider(cid)).value;
+        if (candidateUser != null && (candidateUser.name.isNotEmpty || candidateUser.profileImage.isNotEmpty)) {
+          resolvedUser = candidateUser;
+          otherUid = cid;
+          break;
+        }
+      }
+    }
 
     final participantName = () {
-      final user = otherUserAsync.value;
-      if (user != null &&
-          user.name.trim().isNotEmpty &&
-          user.name.trim().toLowerCase() != 'user' &&
-          user.name.trim().toLowerCase() != 'driver') {
-        return user.name.trim();
+      if (resolvedUser != null &&
+          resolvedUser.name.trim().isNotEmpty &&
+          resolvedUser.name.trim().toLowerCase() != 'user' &&
+          resolvedUser.name.trim().toLowerCase() != 'driver') {
+        return resolvedUser.name.trim();
       }
-      if (user != null && user.email.trim().isNotEmpty) {
-        final emailPart = user.email.trim().split('@').first;
+      if (resolvedUser != null && resolvedUser.email.trim().isNotEmpty) {
+        final emailPart = resolvedUser.email.trim().split('@').first;
         if (emailPart.isNotEmpty &&
             emailPart.toLowerCase() != 'user' &&
             emailPart.toLowerCase() != 'driver') {
           return emailPart[0].toUpperCase() + emailPart.substring(1);
         }
       }
-      final myRides = ref.watch(myRidesProvider).value ?? [];
-      final match = myRides.where((r) => r.ride.id == chatRoom.rideId).firstOrNull;
       if (match != null &&
           match.role == 'passenger' &&
           match.ride.driverName.trim().isNotEmpty &&
@@ -604,8 +694,7 @@ class _ChatCard extends ConsumerWidget {
           match.ride.driverName.trim().toLowerCase() != 'user') {
         return match.ride.driverName.trim();
       }
-      final msgs = messagesAsync.value ?? [];
-      for (final m in msgs) {
+      for (final m in messagesList.reversed) {
         if (m.senderId.isNotEmpty &&
             m.senderId != currentUid &&
             m.senderName.trim().isNotEmpty &&
@@ -614,21 +703,22 @@ class _ChatCard extends ConsumerWidget {
           return m.senderName.trim();
         }
       }
-      if (user != null &&
-          user.name.trim().isNotEmpty &&
-          user.name.trim().toLowerCase() != 'driver') {
-        return user.name.trim();
+      if (resolvedUser != null &&
+          resolvedUser.name.trim().isNotEmpty &&
+          resolvedUser.name.trim().toLowerCase() != 'driver') {
+        return resolvedUser.name.trim();
       }
       return otherUserAsync.isLoading ? 'Loading...' : 'Ride Partner';
     }();
-    final participantAvatar = otherUserAsync.value?.profileImage;
 
-    final unreadCount = messagesAsync.value
-            ?.where((m) => m.senderId != currentUid && !m.isReadBy(currentUid))
-            .length ??
-        0;
+    final participantAvatar = (resolvedUser?.profileImage != null &&
+            resolvedUser!.profileImage.trim().isNotEmpty)
+        ? resolvedUser.profileImage.trim()
+        : null;
 
-    final messagesList = messagesAsync.value ?? [];
+    final unreadCount = messagesList
+            .where((m) => m.senderId != currentUid && !m.isReadBy(currentUid))
+            .length;
     String realLastMessageText = chatRoom.lastMessageText;
     
     if (messagesList.isNotEmpty) {
@@ -649,7 +739,17 @@ class _ChatCard extends ConsumerWidget {
     final textColor = isDark ? Colors.white : const Color(0xFF121212);
     final subtextColor = isDark ? Colors.white70 : const Color(0xFF6F6F72);
 
-    return Material(
+    final isDeletedAccount = otherUserAsync.hasValue && otherUserAsync.value == null && otherUid.isNotEmpty;
+    if (isDeletedAccount && realLastMessageText.trim().isEmpty && messagesList.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Never show an empty chat partner, self-chat, or "Ride Partner"
+    if (otherUid.isEmpty || otherUid == currentUid || participantName == 'Ride Partner') {
+      return const SizedBox.shrink();
+    }
+
+    final cardWidget = Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
@@ -753,7 +853,9 @@ class _ChatCard extends ConsumerWidget {
                           ? context.l10n.typing
                           : (realLastMessageText.isNotEmpty
                               ? realLastMessageText
-                              : context.l10n.startConversation),
+                              : (match != null && match.ride.boardingLocation.isNotEmpty
+                                  ? '${match.ride.boardingLocation} → ${match.ride.destination}'
+                                  : context.l10n.startConversation)),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: isTyping
                             ? primaryColor
@@ -773,6 +875,53 @@ class _ChatCard extends ConsumerWidget {
           ),
         ),
       ),
+    );
+
+    if (isSelectionMode) {
+      return cardWidget;
+    }
+
+    return Dismissible(
+      key: ValueKey('chat_${chatRoom.chatId}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFD32F2F),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 26),
+      ),
+      confirmDismiss: (direction) async {
+        return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(context.l10n.delete, style: TextStyle(color: textColor)),
+            content: Text(
+              "Are you sure you want to delete this chat?",
+              style: TextStyle(color: subtextColor),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(context.l10n.cancel),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD32F2F)),
+                child: Text(context.l10n.delete),
+              ),
+            ],
+          ),
+        );
+      },
+      onDismissed: (_) {
+        ref.read(chatRepositoryProvider).deleteChatRooms([chatRoom.chatId]);
+      },
+      child: cardWidget,
     );
   }
 
@@ -815,23 +964,34 @@ class _UserAvatar extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: bgColor,
-        image: imageProvider != null
-            ? DecorationImage(
-                image: imageProvider,
-                fit: BoxFit.cover,
-              )
-            : null,
       ),
+      clipBehavior: Clip.antiAlias,
       alignment: Alignment.center,
-      child: imageProvider == null
-          ? Text(
+      child: imageProvider != null
+          ? Image(
+              image: imageProvider,
+              width: radius * 2,
+              height: radius * 2,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Center(
+                  child: Text(
+                    initial,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: textColor,
+                    ),
+                  ),
+                );
+              },
+            )
+          : Text(
               initial,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: textColor,
               ),
-            )
-          : null,
+            ),
     );
   }
 }

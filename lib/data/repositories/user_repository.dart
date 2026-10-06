@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/services/firestore_service.dart';
 import '../../core/utils/result.dart';
@@ -12,29 +14,56 @@ class UserRepository {
 
   /// Retrieves a user by their [uid].
   Future<Result<UserModel>> getUser(String uid) async {
+    if (uid.isEmpty) {
+      return const Failure(
+        'Empty UID.',
+        FirestoreException('UID is empty.'),
+      );
+    }
     try {
-      final doc = await _firestoreService.usersCollection
-          .doc(uid)
-          .get()
-          .timeout(const Duration(seconds: 4));
+      DocumentSnapshot doc;
+      try {
+        doc = await _firestoreService.usersCollection
+            .doc(uid)
+            .get()
+            .timeout(const Duration(seconds: 8));
+      } catch (e) {
+        // Fallback to cache if network timeout or offline
+        try {
+          doc = await _firestoreService.usersCollection
+              .doc(uid)
+              .get(const GetOptions(source: Source.cache));
+        } catch (_) {
+          rethrow;
+        }
+      }
+
       if (!doc.exists) {
-        return Failure(
+        try {
+          final querySnap = await _firestoreService.usersCollection
+              .where('uid', isEqualTo: uid)
+              .limit(1)
+              .get()
+              .timeout(const Duration(seconds: 8));
+          if (querySnap.docs.isNotEmpty) {
+            return Success(UserModel.fromDocument(querySnap.docs.first));
+          }
+        } catch (_) {}
+        return const Failure(
           'User not found.',
-          const FirestoreException('User document does not exist.'),
+          FirestoreException('User document does not exist.'),
         );
       }
       return Success(UserModel.fromDocument(doc));
     } on FirebaseException catch (e) {
-      // ignore: avoid_print
-      print('UserRepository.getUser Error: \$e');
+      debugPrint('UserRepository.getUser FirebaseException: $e');
       return Failure(
         e.message ?? 'Failed to fetch user.',
         FirestoreException(e.code),
       );
-    } catch (e) {
-      // ignore: avoid_print
-      print('UserRepository.getUser Unknown Error: \$e');
-      return Failure('An unexpected error occurred.', Exception(e.toString()));
+    } catch (e, stack) {
+      debugPrint('UserRepository.getUser Unknown Error: $e\n$stack');
+      return Failure('An unexpected error occurred: $e', Exception(e.toString()));
     }
   }
 
@@ -127,21 +156,34 @@ class UserRepository {
 
   /// Streams real-time updates for a user.
   Stream<Result<UserModel>> streamUser(String uid) async* {
+    if (uid.isEmpty) {
+      yield const Failure('Empty UID', FirestoreException('UID is empty.'));
+      return;
+    }
     try {
       await for (final doc
           in _firestoreService.usersCollection.doc(uid).snapshots()) {
-        if (!doc.exists) {
-          yield Failure(
-            'User not found.',
-            const FirestoreException('User document does not exist.'),
-          );
-        } else {
+        if (doc.exists) {
           yield Success(UserModel.fromDocument(doc));
+        } else {
+          try {
+            final query = await _firestoreService.usersCollection
+                .where('uid', isEqualTo: uid)
+                .limit(1)
+                .get();
+            if (query.docs.isNotEmpty) {
+              yield Success(UserModel.fromDocument(query.docs.first));
+              continue;
+            }
+          } catch (_) {}
+          yield const Failure(
+            'User not found.',
+            FirestoreException('User document does not exist.'),
+          );
         }
       }
     } catch (e) {
-      // ignore: avoid_print
-      print('UserRepository.streamUser Error: $e');
+      debugPrint('UserRepository.streamUser Error: $e');
       yield Failure('Failed to stream user data.', Exception(e.toString()));
     }
   }
@@ -150,6 +192,14 @@ class UserRepository {
   Future<Result<void>> deleteUser(String uid) async {
     try {
       await _firestoreService.usersCollection.doc(uid).delete();
+      try {
+        final chatsSnap = await _firestoreService.chatsCollection
+            .where('participants', arrayContains: uid)
+            .get();
+        for (final doc in chatsSnap.docs) {
+          await doc.reference.delete();
+        }
+      } catch (_) {}
       return const Success(null);
     } on FirebaseException catch (e) {
       // ignore: avoid_print

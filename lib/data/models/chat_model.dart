@@ -105,7 +105,11 @@ class ChatMessage extends Equatable {
   }
 
   factory ChatMessage.fromDocument(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>? ?? {};
+    final raw = doc.data();
+    final Map<String, dynamic> data = {};
+    if (raw is Map) {
+      raw.forEach((k, v) => data[k.toString()] = v);
+    }
     return ChatMessage.fromMap(data, doc.id);
   }
 
@@ -157,7 +161,11 @@ class ChatRoom extends Equatable {
   }
 
   factory ChatRoom.fromDocument(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>? ?? {};
+    final raw = doc.data();
+    final Map<String, dynamic> data = {};
+    if (raw is Map) {
+      raw.forEach((k, v) => data[k.toString()] = v);
+    }
     return ChatRoom.fromMap(data, doc.id);
   }
 

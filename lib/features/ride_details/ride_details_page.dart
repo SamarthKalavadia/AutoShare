@@ -11,6 +11,7 @@ import '../auth/presentation/controllers/auth_controller.dart';
 import 'providers/ride_request_provider.dart';
 import 'providers/driver_profile_provider.dart';
 import '../my_rides/providers/my_rides_provider.dart';
+import '../search/providers/search_ride_provider.dart';
 import 'widgets/driver_info_card.dart';
 import 'widgets/route_info_card.dart';
 import 'widgets/ride_info_card.dart';
@@ -72,7 +73,7 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
   bool get _isClosed =>
       widget.ride.status == 'completed' || widget.ride.status == 'cancelled';
 
-  String? _getDisabledReason(BuildContext context) {
+  String? _getDisabledReason(BuildContext context, RideModel ride) {
     if (_isOwnRide) return context.l10n.thisIsYourOwnRide;
     if (_isClosed) {
       return widget.ride.status == 'completed'
@@ -80,7 +81,7 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
           : context.l10n.rideWasCancelled;
     }
     if (_isExpired) return context.l10n.rideAlreadyDeparted;
-    if (widget.ride.availableSeats <= 0) return context.l10n.noSeatsAvailable;
+    if (ride.availableSeats <= 0) return context.l10n.noSeatsAvailable;
     return null;
   }
 
@@ -109,12 +110,14 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
     final backgroundColor = theme.scaffoldBackgroundColor;
 
     final state = ref.watch(rideRequestProvider);
+    final currentRide =
+        ref.watch(liveRideProvider(widget.ride)).value ?? widget.ride;
     final existingReqAsync = ref.watch(
       currentRideRequestProvider(widget.ride.id),
     );
     final existingReq = existingReqAsync.value;
 
-    String? disabledReason = _getDisabledReason(context);
+    String? disabledReason = _getDisabledReason(context, currentRide);
     if (disabledReason == null && existingReq != null) {
       if (existingReq.status == RideRequestStatus.pending) {
         disabledReason = context.l10n.pending;
@@ -171,11 +174,11 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
                     child: Column(
                       children: [
                         const SizedBox(height: 20),
-                        DriverInfoCard(ride: widget.ride),
+                        DriverInfoCard(ride: currentRide),
                         const SizedBox(height: 16),
-                        RouteInfoCard(ride: widget.ride),
+                        RouteInfoCard(ride: currentRide),
                         const SizedBox(height: 16),
-                        RideInfoCard(ride: widget.ride),
+                        RideInfoCard(ride: currentRide),
                         const SizedBox(height: 16),
 
                         // Security or Privacy notice card
@@ -399,6 +402,9 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
                           currentRideRequestProvider(widget.ride.id),
                         );
                         ref.invalidate(myRidesProvider);
+                        if (ref.read(searchRideProvider).hasSearched) {
+                          ref.read(searchRideProvider.notifier).searchRides();
+                        }
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(

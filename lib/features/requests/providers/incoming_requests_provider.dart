@@ -70,6 +70,7 @@ final incomingRequestsProvider =
             } else {
               ride = RideModel.empty().copyWith(
                 id: req.rideId,
+                driverId: req.ownerUid,
                 boardingLocation: 'Requested Ride',
               );
             }

@@ -168,6 +168,93 @@ class RideRepository {
     }
   }
 
+  /// Updates available seats for a ride.
+  /// Allowed for the ride owner with maximum of 2 seats.
+  Future<Result<void>> updateAvailableSeats(String rideId, int newSeats) async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        return Failure(
+          'You must be signed in to update seats.',
+          Exception('Unauthenticated'),
+        );
+      }
+
+      if (newSeats < 0 || newSeats > 2) {
+        return Failure(
+          'Available seats must be between 0 and 2.',
+          Exception('Invalid seat count'),
+        );
+      }
+
+      await _firestoreService.ridesCollection.doc(rideId).update({
+        'availableSeats': newSeats,
+      });
+
+      debugPrint(
+        '[RideRepository] UPDATE availableSeats success | rideId: $rideId | newSeats: $newSeats',
+      );
+
+      unawaited(_notifyPassengersOfSeatUpdate(rideId, newSeats));
+
+      return const Success(null);
+    } on FirebaseException catch (e) {
+      debugPrint(
+        '[RideRepository] UPDATE availableSeats failed | [${e.code}] ${e.message}',
+      );
+      return Failure(
+        'Could not update seats (${e.code}). Please try again.',
+        FirestoreException(e.code),
+      );
+    } catch (e) {
+      debugPrint('[RideRepository] UPDATE availableSeats unexpected error: $e');
+      return Failure(
+        'Failed to update available seats. Please try again.',
+        Exception(e.toString()),
+      );
+    }
+  }
+
+  Future<void> _notifyPassengersOfSeatUpdate(String rideId, int newSeats) async {
+    try {
+      final reqSnapshot = await _firestoreService.rideRequestsCollection
+          .where('rideId', isEqualTo: rideId)
+          .get()
+          .timeout(const Duration(seconds: 4));
+
+      final notifiedUids = <String>{};
+      for (final doc in reqSnapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final status = data['status'] as String? ?? '';
+        if (status == 'accepted' || status == 'pending') {
+          final passengerUid = data['requesterUid'] as String?;
+          if (passengerUid != null &&
+              passengerUid.isNotEmpty &&
+              !notifiedUids.contains(passengerUid)) {
+            notifiedUids.add(passengerUid);
+            unawaited(
+              _notificationRepo.createNotification(
+                NotificationModel(
+                  id: '',
+                  userId: passengerUid,
+                  title: 'Ride Seats Updated',
+                  body:
+                      'The ride owner updated available seats to $newSeats.',
+                  type: 'ride',
+                  isRead: false,
+                  createdAt: DateTime.now(),
+                  relatedId: rideId,
+                ),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[RideRepository] Failed to notify passengers of seat update: $e');
+    }
+  }
+
   Future<void> _notifyPassengersOfCancellation(String rideId) async {
     try {
       final reqSnapshot = await _firestoreService.rideRequestsCollection

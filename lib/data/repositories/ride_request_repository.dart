@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -94,27 +95,66 @@ class RideRequestRepository {
             },
           ),
         );
-
-        unawaited(
-          _notificationRepo.createNotification(
-            NotificationModel(
-              id: '',
-              userId: request.ownerUid,
-              title: 'New Ride Request',
-              body: 'Someone has requested to join your ride.',
-              type: 'new_request',
-              isRead: false,
-              createdAt: DateTime.now(),
-              relatedId: withId.requestId,
-            ),
-          ),
-        );
       } on FirebaseException catch (e) {
         debugPrint(
           'Firestore request submit error (${e.code}); request saved locally.',
         );
       } catch (e) {
         debugPrint('Remote request submit error ($e); request saved locally.');
+      }
+
+      // 3. Resolve targetOwnerUid & notify ride owner
+      String targetOwnerUid = request.ownerUid;
+      if (targetOwnerUid.isEmpty) {
+        try {
+          final rideDoc = await _firestoreService.ridesCollection
+              .doc(request.rideId)
+              .get()
+              .timeout(const Duration(seconds: 2));
+          if (rideDoc.exists) {
+            final rData = rideDoc.data() as Map<String, dynamic>?;
+            targetOwnerUid = rData?['driverId'] as String? ??
+                rData?['creatorId'] as String? ??
+                rData?['ownerId'] as String? ??
+                '';
+          }
+        } catch (_) {}
+      }
+
+      String passengerName = FirebaseAuth.instance.currentUser?.displayName?.trim() ?? '';
+      if (passengerName.isEmpty || passengerName.toLowerCase() == 'user') {
+        try {
+          final userDoc = await _firestoreService.usersCollection
+              .doc(request.requesterUid)
+              .get()
+              .timeout(const Duration(seconds: 2));
+          if (userDoc.exists) {
+            final uData = userDoc.data() as Map<String, dynamic>?;
+            passengerName = uData?['name'] as String? ??
+                uData?['fullName'] as String? ??
+                '';
+          }
+        } catch (_) {}
+      }
+      if (passengerName.isEmpty) passengerName = 'A passenger';
+
+      if (targetOwnerUid.isNotEmpty) {
+        try {
+          await _notificationRepo.createNotification(
+            NotificationModel(
+              id: '',
+              userId: targetOwnerUid,
+              title: 'New Ride Request 🚗',
+              body: '$passengerName requested ${request.requestedSeats} seat(s) on your ride.',
+              type: 'new_request',
+              isRead: false,
+              createdAt: DateTime.now(),
+              relatedId: withId.requestId,
+            ),
+          );
+        } catch (e) {
+          debugPrint('[RideRequestRepository] submitRequest notif error: $e');
+        }
       }
 
       return Success(withId.requestId);
@@ -166,12 +206,36 @@ class RideRequestRepository {
   /// Fetches a fresh copy of a [RideModel] for validation before submission.
   Future<Result<RideModel>> getRide(String rideId) async {
     try {
-      final doc = await _firestoreService.ridesCollection
-          .doc(rideId)
-          .get()
-          .timeout(const Duration(seconds: 3));
+      DocumentSnapshot doc;
+      try {
+        doc = await _firestoreService.ridesCollection
+            .doc(rideId)
+            .get()
+            .timeout(const Duration(seconds: 8));
+      } catch (e) {
+        try {
+          doc = await _firestoreService.ridesCollection
+              .doc(rideId)
+              .get(const GetOptions(source: Source.cache));
+        } catch (_) {
+          rethrow;
+        }
+      }
 
       if (!doc.exists) {
+        try {
+          final querySnap = await _firestoreService.ridesCollection
+              .where('id', isEqualTo: rideId)
+              .limit(1)
+              .get()
+              .timeout(const Duration(seconds: 8));
+          if (querySnap.docs.isNotEmpty) {
+            final fDoc = querySnap.docs.first;
+            final data = fDoc.data() as Map<String, dynamic>;
+            return Success(RideModel.fromMap(data, fDoc.id));
+          }
+        } catch (_) {}
+
         return const Failure(
           'Ride not found.',
           FirestoreException('Ride document does not exist.'),
@@ -294,21 +358,39 @@ class RideRequestRepository {
       }
 
       // Send acceptance notification asynchronously
-      unawaited(
-        _notificationRepo.createNotification(
-          NotificationModel(
-            id: '',
-            userId: request.requesterUid,
-            title: 'Ride Request Accepted! 🎉',
-            body:
-                'Your ride request has been accepted. Contact details are now available.',
-            type: 'accepted',
-            isRead: false,
-            createdAt: DateTime.now(),
-            relatedId: request.requestId,
-          ),
-        ),
-      );
+      String targetRequesterUid = request.requesterUid;
+      if (targetRequesterUid.isEmpty) {
+        try {
+          final reqDoc = await _firestoreService.rideRequestsCollection
+              .doc(request.requestId)
+              .get()
+              .timeout(const Duration(seconds: 2));
+          if (reqDoc.exists) {
+            final rData = reqDoc.data() as Map<String, dynamic>?;
+            targetRequesterUid = rData?['requesterUid'] as String? ?? '';
+          }
+        } catch (_) {}
+      }
+
+      if (targetRequesterUid.isNotEmpty) {
+        try {
+          await _notificationRepo.createNotification(
+            NotificationModel(
+              id: '',
+              userId: targetRequesterUid,
+              title: 'Ride Request Accepted! 🎉',
+              body:
+                  'Your ride request has been accepted. Contact details are now available.',
+              type: 'accepted',
+              isRead: false,
+              createdAt: DateTime.now(),
+              relatedId: request.requestId,
+            ),
+          );
+        } catch (e) {
+          debugPrint('[RideRequestRepository] acceptRequest notif error: $e');
+        }
+      }
 
       return const Success(null);
     } catch (e) {
@@ -370,6 +452,23 @@ class RideRequestRepository {
       _locallySubmittedRequests[request.requestId] = updatedReq;
       unawaited(_saveLocalRequests());
 
+      bool wasAccepted = request.status == RideRequestStatus.accepted;
+      try {
+        final reqDoc = await _firestoreService.rideRequestsCollection
+            .doc(request.requestId)
+            .get()
+            .timeout(const Duration(seconds: 3));
+        if (reqDoc.exists) {
+          final statusStr =
+              (reqDoc.data() as Map<String, dynamic>?)?['status'] as String?;
+          if (statusStr == RideRequestStatus.accepted.name) {
+            wasAccepted = true;
+          }
+        }
+      } catch (e) {
+        debugPrint('Error checking remote request status before cancel: $e');
+      }
+
       try {
         await _firestoreService.rideRequestsCollection
             .doc(request.requestId)
@@ -377,6 +476,82 @@ class RideRequestRepository {
             .timeout(const Duration(seconds: 3));
       } catch (e) {
         debugPrint('Remote cancelRequest error ($e); cancelled locally.');
+      }
+
+      // Restore available seats on the ride document if the request was accepted
+      if (wasAccepted) {
+        try {
+          final rideRef = _firestoreService.ridesCollection.doc(request.rideId);
+          final rideDoc =
+              await rideRef.get().timeout(const Duration(seconds: 3));
+          if (rideDoc.exists) {
+            final currentSeats =
+                (rideDoc.data() as Map<String, dynamic>?)?['availableSeats']
+                    as int? ??
+                0;
+            await rideRef.update({
+              'availableSeats': currentSeats + request.requestedSeats,
+            }).timeout(const Duration(seconds: 3));
+          }
+        } catch (e) {
+          debugPrint('Remote seat restoration error on cancel ($e)');
+        }
+      }
+
+      // Notify the ride owner that the request was cancelled
+      String targetOwnerUid = request.ownerUid;
+      if (targetOwnerUid.isEmpty) {
+        try {
+          final rideDoc = await _firestoreService.ridesCollection
+              .doc(request.rideId)
+              .get()
+              .timeout(const Duration(seconds: 2));
+          if (rideDoc.exists) {
+            final rData = rideDoc.data() as Map<String, dynamic>?;
+            targetOwnerUid = rData?['driverId'] as String? ??
+                rData?['creatorId'] as String? ??
+                rData?['ownerId'] as String? ??
+                '';
+          }
+        } catch (_) {}
+      }
+
+      String passengerName = FirebaseAuth.instance.currentUser?.displayName?.trim() ?? '';
+      if (passengerName.isEmpty || passengerName.toLowerCase() == 'user') {
+        try {
+          final userDoc = await _firestoreService.usersCollection
+              .doc(request.requesterUid)
+              .get()
+              .timeout(const Duration(seconds: 2));
+          if (userDoc.exists) {
+            final uData = userDoc.data() as Map<String, dynamic>?;
+            passengerName = uData?['name'] as String? ??
+                uData?['fullName'] as String? ??
+                '';
+          }
+        } catch (_) {}
+      }
+      if (passengerName.isEmpty) passengerName = 'A passenger';
+
+      if (targetOwnerUid.isNotEmpty) {
+        try {
+          await _notificationRepo.createNotification(
+            NotificationModel(
+              id: '',
+              userId: targetOwnerUid,
+              title: 'Ride Request Cancelled ❌',
+              body: wasAccepted
+                  ? '$passengerName cancelled their confirmed seat.'
+                  : '$passengerName cancelled their ride request.',
+              type: 'cancelled',
+              isRead: false,
+              createdAt: DateTime.now(),
+              relatedId: request.requestId,
+            ),
+          );
+        } catch (e) {
+          debugPrint('[RideRequestRepository] cancelRequest notif error: $e');
+        }
       }
 
       return const Success(null);

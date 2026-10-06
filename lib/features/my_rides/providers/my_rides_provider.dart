@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/result.dart';
 import '../../../data/models/request_model.dart';
 import '../../../data/models/ride_model.dart';
+import '../../../data/models/user_model.dart';
 import '../../../shared/providers.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
 
@@ -44,6 +45,7 @@ final myRidesProvider = StreamProvider.autoDispose<List<MyRideData>>((ref) {
 
   final rideRepo = ref.read(rideRepositoryProvider);
   final requestRepo = ref.read(rideRequestRepositoryProvider);
+  final userRepo = ref.read(userRepositoryProvider);
 
   // Silently audit rides in the background to handle client-side expiry
   unawaited(rideRepo.auditRides(user.uid));
@@ -67,12 +69,24 @@ final myRidesProvider = StreamProvider.autoDispose<List<MyRideData>>((ref) {
     // Add Passenger Rides
     for (final req in latestPassengerRequests) {
       final result = await requestRepo.getRide(req.rideId);
-      final rideModel = result is Success<RideModel>
-          ? result.data
-          : RideModel.empty().copyWith(
-              id: req.rideId,
-              boardingLocation: 'Requested Ride',
-            );
+      RideModel rideModel;
+      if (result is Success<RideModel>) {
+        rideModel = result.data;
+      } else {
+        String driverName = '';
+        if (req.ownerUid.isNotEmpty) {
+          final uRes = await userRepo.getUser(req.ownerUid);
+          if (uRes is Success<UserModel>) {
+            driverName = uRes.data.name;
+          }
+        }
+        rideModel = RideModel.empty().copyWith(
+          id: req.rideId,
+          driverId: req.ownerUid,
+          driverName: driverName.isNotEmpty ? driverName : 'Ride Partner',
+          boardingLocation: 'Requested Ride',
+        );
+      }
 
       allRides.add(
         MyRideData(ride: rideModel, request: req, role: 'passenger'),
@@ -129,6 +143,15 @@ class RideActionNotifier extends Notifier<bool> {
     final res = await ref
         .read(rideRequestRepositoryProvider)
         .cancelRequest(request);
+    state = false;
+    return res;
+  }
+
+  Future<Result<void>> updateAvailableSeats(String rideId, int newSeats) async {
+    state = true;
+    final res = await ref
+        .read(rideRepositoryProvider)
+        .updateAvailableSeats(rideId, newSeats);
     state = false;
     return res;
   }

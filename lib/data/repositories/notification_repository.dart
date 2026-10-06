@@ -38,18 +38,20 @@ class NotificationRepository {
   Future<Result<void>> createNotification(
     NotificationModel notification,
   ) async {
+    // 1. Immediately trigger high-priority push notification so device wakes up even if app is closed or phone was off
     try {
-      await _notifCollection.add(notification.toMap());
-
-      // Trigger push notification to recipient's devices
-      NotificationService().sendPushNotification(
+      await NotificationService().sendPushNotification(
         recipientUid: notification.userId,
         title: notification.title,
         body: notification.body,
         type: notification.type,
         relatedId: notification.relatedId,
       );
+    } catch (_) {}
 
+    // 2. Persist in-app notification document in Firestore
+    try {
+      await _notifCollection.add(notification.toMap());
       return const Success(null);
     } on FirebaseException catch (e) {
       return Failure(

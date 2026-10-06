@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/result.dart';
 import '../../../data/models/ride_model.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
+import '../../../data/models/request_model.dart';
 import '../../../shared/providers.dart';
 
 class SearchRideFilterState {
@@ -173,6 +174,23 @@ class SearchRideNotifier extends Notifier<SearchRideFilterState> {
       // Secondary strict filter: Non-females can NEVER see Girls Only rides
       if (!isFemale) {
         filteredRides = filteredRides.where((r) => !r.isGirlsOnly).toList();
+      }
+
+      // Filter out rides where current passenger already has an ACTIVE request (pending or accepted).
+      // Cancelled requests are INACTIVE and must NOT exclude the ride from search results.
+      final currentUid = authState.value?.uid;
+      if (currentUid != null && currentUid.isNotEmpty) {
+        final userRequests = await ref
+            .read(rideRequestRepositoryProvider)
+            .getRequestsByPassenger(currentUid);
+        final activeRideIds = userRequests
+            .where((req) =>
+                req.status == RideRequestStatus.pending ||
+                req.status == RideRequestStatus.accepted)
+            .map((req) => req.rideId)
+            .toSet();
+        filteredRides =
+            filteredRides.where((r) => !activeRideIds.contains(r.id)).toList();
       }
 
       state = state.copyWith(isLoading: false, searchResults: filteredRides);

@@ -9,6 +9,7 @@ import 'package:autoshare/data/models/ride_model.dart';
 import 'package:autoshare/data/models/user_model.dart';
 import 'package:autoshare/shared/providers.dart';
 import 'package:autoshare/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:autoshare/features/my_rides/providers/my_rides_provider.dart';
 
 // ── Chat Room Init ────────────────────────────────────────────────────────────
 
@@ -37,13 +38,15 @@ final chatRoomProvider = StreamProvider.autoDispose.family<ChatRoom?, String>(
 
 // ── Chat User ─────────────────────────────────────────────────────────────────
 
-final chatUserProvider = FutureProvider.autoDispose.family<UserModel?, String>((ref, uid) async {
-  if (uid.isEmpty) return null;
-  final result = await ref.watch(userRepositoryProvider).getUser(uid);
-  if (result is Success<UserModel>) {
-    return result.data;
-  }
-  return null;
+final chatUserProvider = StreamProvider.autoDispose.family<UserModel?, String>((ref, uid) {
+  if (uid.isEmpty) return Stream.value(null);
+  return ref.watch(userRepositoryProvider).streamUser(uid).map((result) {
+    if (result is Success<UserModel>) {
+      debugPrint('[chatUserProvider] User $uid loaded: ${result.data.name}, photo len: ${result.data.profileImage.length}');
+      return result.data;
+    }
+    return null;
+  });
 });
 
 // ── Live User Chats Stream ──────────────────────────────────────────────────
@@ -173,6 +176,16 @@ class ChatNotifier extends Notifier<ChatInputState> {
             targetReceiverUid = m.receiverUid;
             break;
           }
+        }
+      }
+
+      if (targetReceiverUid.isEmpty) {
+        final myRides = ref.read(myRidesProvider).value ?? [];
+        final matching = myRides.where((r) => r.ride.id == _rideId).firstOrNull;
+        if (matching != null) {
+          targetReceiverUid = matching.role == 'driver'
+              ? (matching.request?.requesterUid ?? '')
+              : matching.ride.driverId;
         }
       }
       

@@ -90,15 +90,17 @@ class RideRequestModel extends Equatable {
     return RideRequestModel(
       requestId: docId,
       rideId: map['rideId'] as String? ?? '',
-      ownerUid: map['ownerUid'] as String? ?? '',
-      requesterUid: map['requesterUid'] as String? ?? '',
+      ownerUid: (map['ownerUid'] ?? map['driverId'] ?? map['creatorId'] ?? '').toString(),
+      requesterUid: (map['requesterUid'] ?? map['passengerId'] ?? map['userId'] ?? '').toString(),
       requestedSeats: (map['requestedSeats'] as num?)?.toInt() ?? 1,
       status: RideRequestStatus.fromString(
         map['status'] as String? ?? 'pending',
       ),
       requestedAt: map['requestedAt'] is Timestamp
           ? (map['requestedAt'] as Timestamp).toDate()
-          : DateTime.now(),
+          : (map['requestedAt'] is String
+              ? DateTime.tryParse(map['requestedAt'] as String) ?? DateTime.now()
+              : DateTime.now()),
     );
   }
 

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/widgets/app_seat_icon.dart';
+import '../../../core/utils/result.dart';
 import '../../../data/models/ride_model.dart';
+import '../../../shared/providers.dart';
+import '../../auth/presentation/controllers/auth_controller.dart';
 import '../providers/ride_request_provider.dart';
 
 class RideInfoCard extends ConsumerWidget {
@@ -15,6 +19,7 @@ class RideInfoCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final primaryColor = theme.colorScheme.primary;
     final blackColor = theme.colorScheme.onSurface;
     final borderColor = isDark
         ? const Color(0xFF333333)
@@ -26,6 +31,12 @@ class RideInfoCard extends ConsumerWidget {
 
     final state = ref.watch(rideRequestProvider);
     final dynamicFare = ref.watch(dynamicFareProvider(ride));
+    final liveRide = ref.watch(liveRideProvider(ride)).value ?? ride;
+    final currentUid = ref.watch(authControllerProvider).value?.uid;
+    final isOwner = currentUid != null && currentUid == liveRide.driverId;
+    final isExpired = liveRide.departureTime.isBefore(DateTime.now());
+    final isClosed =
+        liveRide.status == 'completed' || liveRide.status == 'cancelled';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -57,31 +68,41 @@ class RideInfoCard extends ConsumerWidget {
           const SizedBox(height: 16),
 
           // Fare + Available seats
-          Row(
-            children: [
-              Expanded(
-                child: _InfoTile(
-                  icon: Icons.currency_rupee_rounded,
-                  label: 'Fare / Person',
-                  value: '₹${dynamicFare.round()}',
-                  highlight: true,
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _InfoTile(
+                    iconWidget: Icon(
+                      Icons.currency_rupee_rounded,
+                      size: 16,
+                      color: primaryColor,
+                    ),
+                    label: 'Fare / Seat',
+                    value: '₹${dynamicFare.round()}',
+                    highlight: true,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _InfoTile(
-                  icon: Icons.event_seat_rounded,
-                  label: 'Available Seats',
-                  value: '${ride.availableSeats}',
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _InfoTile(
+                    iconWidget: AppSeatIcon(
+                      size: 16,
+                      color: isDark ? Colors.white70 : const Color(0xFF6F6F72),
+                    ),
+                    label: 'Available Seats',
+                    value: '${liveRide.availableSeats}',
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
-              'Total ride fare: ₹${ride.totalFare.round()}',
+              'Total ride fare: ₹${liveRide.totalFare.round()}',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: mutedText,
                 fontWeight: FontWeight.w500,
@@ -90,7 +111,7 @@ class RideInfoCard extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
 
-          // Requested seats stepper
+          // Stepper: Available Seats for ride owner OR Requested Seats for passenger
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -98,21 +119,38 @@ class RideInfoCard extends ConsumerWidget {
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(Icons.people_alt_rounded, size: 18, color: mutedText),
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: Center(
+                    child: Icon(
+                      isOwner
+                          ? Icons.event_seat_rounded
+                          : Icons.people_alt_rounded,
+                      size: 20,
+                      color: mutedText,
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 10),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Requested Seats',
+                      isOwner ? 'Available Seats' : 'Requested Seats',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: mutedText,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
-                      '${state.requestedSeats}',
+                      isOwner
+                          ? '${liveRide.availableSeats}'
+                          : '${state.requestedSeats}',
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: blackColor,
@@ -123,22 +161,39 @@ class RideInfoCard extends ConsumerWidget {
                 const Spacer(),
                 _StepperButton(
                   icon: Icons.remove_rounded,
-                  onTap: state.requestedSeats > 1
-                      ? () => ref
-                            .read(rideRequestProvider.notifier)
-                            .decrementSeats()
-                      : null,
+                  onTap: isOwner
+                      ? (!isClosed && !isExpired && liveRide.availableSeats > 0
+                          ? () => _updateSeats(
+                                context,
+                                ref,
+                                liveRide,
+                                liveRide.availableSeats - 1,
+                              )
+                          : null)
+                      : (state.requestedSeats > 1
+                          ? () => ref
+                                .read(rideRequestProvider.notifier)
+                                .decrementSeats()
+                          : null),
                 ),
                 const SizedBox(width: 8),
                 _StepperButton(
                   icon: Icons.add_rounded,
-                  onTap:
-                      state.requestedSeats < ride.availableSeats &&
-                          state.requestedSeats < 4
-                      ? () => ref
-                            .read(rideRequestProvider.notifier)
-                            .incrementSeats(ride.availableSeats)
-                      : null,
+                  onTap: isOwner
+                      ? (!isClosed && !isExpired && liveRide.availableSeats < 2
+                          ? () => _updateSeats(
+                                context,
+                                ref,
+                                liveRide,
+                                liveRide.availableSeats + 1,
+                              )
+                          : null)
+                      : (state.requestedSeats < liveRide.availableSeats &&
+                              state.requestedSeats < 2
+                          ? () => ref
+                                .read(rideRequestProvider.notifier)
+                                .incrementSeats(liveRide.availableSeats)
+                          : null),
                 ),
               ],
             ),
@@ -181,16 +236,51 @@ class RideInfoCard extends ConsumerWidget {
       ),
     );
   }
+
+  Future<void> _updateSeats(
+    BuildContext context,
+    WidgetRef ref,
+    RideModel ride,
+    int newSeats,
+  ) async {
+    HapticFeedback.mediumImpact();
+    final res = await ref.read(rideRepositoryProvider).updateAvailableSeats(
+      ride.id,
+      newSeats,
+    );
+    if (!context.mounted) return;
+    if (res is Success) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('Available seats updated to $newSeats'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    } else if (res is Failure) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(res.message),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    }
+  }
 }
 
 class _InfoTile extends StatelessWidget {
-  final IconData icon;
+  final Widget iconWidget;
   final String label;
   final String value;
   final bool highlight;
 
   const _InfoTile({
-    required this.icon,
+    required this.iconWidget,
     required this.label,
     required this.value,
     this.highlight = false,
@@ -204,41 +294,64 @@ class _InfoTile extends StatelessWidget {
     final blackColor = theme.colorScheme.onSurface;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: highlight
             ? primaryColor.withValues(alpha: 0.1)
             : (isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3)),
         borderRadius: BorderRadius.circular(14),
-        border: highlight
-            ? Border.all(color: primaryColor.withValues(alpha: 0.3))
-            : null,
+        border: Border.all(
+          color: highlight
+              ? primaryColor.withValues(alpha: 0.35)
+              : (isDark ? const Color(0xFF2C2C2E) : const Color(0xFFE2E2E2)),
+          width: 1.2,
+        ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 18,
-            color: highlight
-                ? primaryColor
-                : (isDark ? Colors.white60 : const Color(0xFF6F6F72)),
+          SizedBox(
+            height: 16,
+            child: Center(
+              child: SizedBox(
+                width: 16,
+                height: 16,
+                child: Center(child: iconWidget),
+              ),
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  label,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: isDark ? Colors.white54 : const Color(0xFF9E9E9E),
-                    fontWeight: FontWeight.w500,
+                SizedBox(
+                  height: 16,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: isDark ? Colors.white54 : const Color(0xFF9E9E9E),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
+                        height: 1.0,
+                      ),
+                    ),
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                    height: 1.2,
                     color: highlight ? primaryColor : blackColor,
                   ),
                 ),

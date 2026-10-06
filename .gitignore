@@ -47,3 +47,11 @@ app.*.map.json
 # Firebase Service Account Credentials
 assets/firebase/service-account.json
 assets/firebase/*-firebase-adminsdk-*.json
+
+# Android local & Gradle machine-specific files
+**/local.properties
+android/local.properties
+.gradle/
+android/.gradle/
+android/build/
+android/app/build/

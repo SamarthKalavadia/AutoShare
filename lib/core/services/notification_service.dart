@@ -63,6 +63,21 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       final channelId = isChat ? kChatChannelId : kDefaultChannelId;
       final channelName = isChat ? kChatChannelName : kDefaultChannelName;
 
+      final androidPlugin = plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      if (androidPlugin != null) {
+        await androidPlugin.createNotificationChannel(
+          AndroidNotificationChannel(
+            channelId,
+            channelName,
+            importance: Importance.max,
+            enableVibration: true,
+            playSound: true,
+            showBadge: true,
+          ),
+        );
+      }
+
       final bigTextStyle = BigTextStyleInformation(
         body,
         htmlFormatBigText: false,
@@ -125,7 +140,10 @@ class NotificationService {
   static const String chatChannelName = kChatChannelName;
 
   StreamSubscription<QuerySnapshot>? _notifSubscription;
+  StreamSubscription<String>? _tokenRefreshSubscription;
   final Set<String> _seenNotificationIds = {};
+  final Set<String> _seenNotificationKeys = {};
+  final Map<String, int> _recentNotificationTimestamps = {};
   bool _isInitialNotifSnapshot = true;
 
   Future<void> init() async {
@@ -146,6 +164,25 @@ class NotificationService {
           _handleNotificationTap(payload: response.payload);
         },
       );
+
+      // Check if app was launched by tapping a local notification from terminated state
+      try {
+        final launchDetails = await _flutterLocalNotificationsPlugin
+            .getNotificationAppLaunchDetails();
+        if (launchDetails?.didNotificationLaunchApp ?? false) {
+          final payload =
+              launchDetails?.notificationResponse?.payload;
+          if (payload != null && payload.isNotEmpty) {
+            debugPrint(
+                '[NOTIFICATION LAUNCH TERMINATED] App opened via local notification: $payload');
+            Future.delayed(const Duration(milliseconds: 600), () {
+              _handleNotificationTap(payload: payload);
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('[NOTIFICATION LAUNCH CHECK ERROR] $e');
+      }
 
       // 2. Create High Importance Android Notification Channels (Heads-up popups)
       final androidPlugin = _flutterLocalNotificationsPlugin
@@ -189,6 +226,11 @@ class NotificationService {
             showBadge: true,
           ),
         );
+
+        // Request Android 13+ POST_NOTIFICATIONS permission
+        try {
+          await androidPlugin.requestNotificationsPermission();
+        } catch (_) {}
       }
 
       // 3. Register Background Handler
@@ -212,22 +254,7 @@ class NotificationService {
         criticalAlert: true,
         provisional: false,
         sound: true,
-      ).timeout(const Duration(seconds: 4), onTimeout: () {
-        return const NotificationSettings(
-          authorizationStatus: AuthorizationStatus.notDetermined,
-          alert: AppleNotificationSetting.notSupported,
-          announcement: AppleNotificationSetting.notSupported,
-          badge: AppleNotificationSetting.notSupported,
-          carPlay: AppleNotificationSetting.notSupported,
-          criticalAlert: AppleNotificationSetting.notSupported,
-          lockScreen: AppleNotificationSetting.notSupported,
-          notificationCenter: AppleNotificationSetting.notSupported,
-          showPreviews: AppleShowPreviewSetting.notSupported,
-          timeSensitive: AppleNotificationSetting.notSupported,
-          sound: AppleNotificationSetting.notSupported,
-          providesAppNotificationSettings: AppleNotificationSetting.notSupported,
-        );
-      });
+      );
       debugPrint('[FCM PERMISSION] Status: ${settings.authorizationStatus}');
 
       try {
@@ -247,6 +274,13 @@ class NotificationService {
         final body = notification?.body ?? data['body'] ?? '';
         final type = data['type'] as String? ?? 'general';
         final relatedId = data['relatedId'] as String? ?? data['rideId'] as String? ?? '';
+
+        final dedupKey = '$title::$body';
+        if (_seenNotificationKeys.contains(dedupKey)) {
+          debugPrint('[NOTIFICATION DEDUP] Skipping duplicate notification on foreground: $dedupKey');
+          return;
+        }
+        _seenNotificationKeys.add(dedupKey);
 
         if (body.isNotEmpty || title.isNotEmpty) {
           final payloadJson = jsonEncode({
@@ -273,7 +307,7 @@ class NotificationService {
 
       // Handle App Launched from terminated state via notification
       try {
-        final initialMessage = await messaging.getInitialMessage().timeout(const Duration(seconds: 3));
+        final initialMessage = await messaging.getInitialMessage();
         if (initialMessage != null) {
           debugPrint(
               '[FCM INITIAL] App launched from terminated state via notification: ${initialMessage.data}');
@@ -294,6 +328,8 @@ class NotificationService {
     }
   }
 
+  final DateTime _appSessionStartTime = DateTime.now();
+
   /// Persistent real-time listener for incoming user notifications from Firestore.
   /// Shows instant system heads-up notifications (like WhatsApp) whenever a new notification is generated.
   void startListening(String uid) {
@@ -309,6 +345,14 @@ class NotificationService {
       if (_isInitialNotifSnapshot) {
         for (final doc in snapshot.docs) {
           _seenNotificationIds.add(doc.id);
+          final data = doc.data() as Map<String, dynamic>?;
+          if (data != null) {
+            final title = (data['title'] as String?) ?? '';
+            final body = (data['body'] as String?) ?? '';
+            if (title.isNotEmpty || body.isNotEmpty) {
+              _seenNotificationKeys.add('$title::$body');
+            }
+          }
         }
         _isInitialNotifSnapshot = false;
         return;
@@ -317,33 +361,57 @@ class NotificationService {
       for (final change in snapshot.docChanges) {
         if (change.type == DocumentChangeType.added) {
           final docId = change.doc.id;
-          if (!_seenNotificationIds.contains(docId)) {
-            _seenNotificationIds.add(docId);
-            final data = change.doc.data();
-            if (data != null) {
-              final title = (data['title'] as String?) ?? 'AutoShare';
-              final body = (data['body'] as String?) ?? '';
-              final type = (data['type'] as String?) ?? '';
-              final relatedId = (data['relatedId'] as String?) ?? '';
+          if (_seenNotificationIds.contains(docId)) continue;
+          _seenNotificationIds.add(docId);
 
-              if (body.isNotEmpty || title.isNotEmpty) {
-                final payloadJson = jsonEncode({
-                  'type': type,
-                  'relatedId': relatedId,
-                  'rideId': relatedId,
-                });
+          final data = change.doc.data();
+          if (data == null) continue;
 
-                showNotification(
-                  id: docId.hashCode,
-                  title: title,
-                  body: body,
-                  payload: payloadJson,
-                  channelId: type == 'chat' ? chatChannelId : defaultChannelId,
-                  channelName:
-                      type == 'chat' ? chatChannelName : defaultChannelName,
-                );
-              }
-            }
+          final title = (data['title'] as String?) ?? 'AutoShare';
+          final body = (data['body'] as String?) ?? '';
+          final type = (data['type'] as String?) ?? '';
+          final relatedId = (data['relatedId'] as String?) ?? '';
+
+          DateTime createdAt = DateTime.now();
+          final rawCreated = data['createdAt'];
+          if (rawCreated is Timestamp) {
+            createdAt = rawCreated.toDate();
+          } else if (rawCreated is String) {
+            createdAt = DateTime.tryParse(rawCreated) ?? DateTime.now();
+          }
+
+          final dedupKey = '$title::$body';
+          // If the notification was created before this app session started,
+          // or older than 8 seconds ago, it was delivered while the app was closed.
+          // NEVER show a popup notification on app open for past notifications!
+          if (createdAt.isBefore(_appSessionStartTime) ||
+              createdAt.isBefore(DateTime.now().subtract(const Duration(seconds: 8)))) {
+            _seenNotificationKeys.add(dedupKey);
+            continue;
+          }
+
+          if (_seenNotificationKeys.contains(dedupKey)) {
+            debugPrint('[NOTIFICATION DEDUP] Skipping duplicate notification: $dedupKey');
+            continue;
+          }
+          _seenNotificationKeys.add(dedupKey);
+
+          if (body.isNotEmpty || title.isNotEmpty) {
+            final payloadJson = jsonEncode({
+              'type': type,
+              'relatedId': relatedId,
+              'rideId': relatedId,
+            });
+
+            showNotification(
+              id: docId.hashCode,
+              title: title,
+              body: body,
+              payload: payloadJson,
+              channelId: type == 'chat' ? chatChannelId : defaultChannelId,
+              channelName:
+                  type == 'chat' ? chatChannelName : defaultChannelName,
+            );
           }
         }
       }
@@ -362,6 +430,18 @@ class NotificationService {
     String channelName = defaultChannelName,
   }) async {
     try {
+      // Deduplicate notifications with identical title & body within 4 seconds
+      final dedupKey = '$title::$body';
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (_recentNotificationTimestamps.containsKey(dedupKey) &&
+          now - _recentNotificationTimestamps[dedupKey]! < 4000) {
+        debugPrint('[NOTIFICATION DEDUP] Skipping duplicate notification: $dedupKey');
+        return;
+      }
+      _recentNotificationTimestamps[dedupKey] = now;
+      // Prune entries older than 30s
+      _recentNotificationTimestamps.removeWhere((k, v) => now - v > 30000);
+
       final isChat = channelId == chatChannelId;
       final bigTextStyleInformation = BigTextStyleInformation(
         body,
@@ -408,27 +488,29 @@ class NotificationService {
   Future<void> syncFcmToken(String uid) async {
     if (uid.isEmpty) return;
     try {
-      final token = await FirebaseMessaging.instance.getToken().timeout(const Duration(seconds: 4));
+      final token = await FirebaseMessaging.instance.getToken();
       if (token != null && token.isNotEmpty) {
         await FirebaseFirestore.instance.collection('users').doc(uid).set({
           'fcmToken': token,
           'fcmTokens': FieldValue.arrayUnion([token]),
           'lastTokenUpdated': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true)).timeout(const Duration(seconds: 4));
+        }, SetOptions(merge: true));
         debugPrint('[FCM TOKEN] Successfully synced token for $uid');
       }
 
       try {
-        await FirebaseMessaging.instance.subscribeToTopic('user_$uid').timeout(const Duration(seconds: 4));
+        await FirebaseMessaging.instance.subscribeToTopic('user_$uid');
       } catch (_) {}
 
-      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+      await _tokenRefreshSubscription?.cancel();
+      _tokenRefreshSubscription =
+          FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
         try {
           await FirebaseFirestore.instance.collection('users').doc(uid).set({
             'fcmToken': newToken,
             'fcmTokens': FieldValue.arrayUnion([newToken]),
             'lastTokenUpdated': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true)).timeout(const Duration(seconds: 4));
+          }, SetOptions(merge: true));
           debugPrint('[FCM TOKEN REFRESHED] Updated token for $uid');
         } catch (_) {}
       });
@@ -437,7 +519,7 @@ class NotificationService {
     }
   }
 
-  /// Sends a push notification payload to the recipient's FCM tokens.
+  /// Sends a push notification payload to the recipient's FCM tokens or topic fallback.
   Future<void> sendPushNotification({
     required String recipientUid,
     required String title,
@@ -445,60 +527,78 @@ class NotificationService {
     required String type,
     String? relatedId,
   }) async {
-    if (recipientUid.isEmpty) return;
+    final cleanUid = recipientUid.trim();
+    if (cleanUid.isEmpty) return;
+
     try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(recipientUid)
-          .get()
-          .timeout(const Duration(seconds: 4));
+      final Set<String> targetTokens = {};
+      // 1. Fetch user doc or query by UID
+      try {
+        var userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(cleanUid)
+            .get()
+            .timeout(const Duration(seconds: 3));
 
-      if (!userDoc.exists) return;
-      final userData = userDoc.data();
-      final tokens = <String>{};
-
-      final singleToken = userData?['fcmToken'] as String?;
-      if (singleToken != null && singleToken.isNotEmpty) {
-        tokens.add(singleToken);
-      }
-
-      final multiTokens = userData?['fcmTokens'];
-      if (multiTokens is List) {
-        for (final t in multiTokens) {
-          if (t is String && t.isNotEmpty) {
-            tokens.add(t);
+        Map<String, dynamic>? userData;
+        if (userDoc.exists) {
+          userData = userDoc.data();
+        } else {
+          final querySnap = await FirebaseFirestore.instance
+              .collection('users')
+              .where('uid', isEqualTo: cleanUid)
+              .limit(1)
+              .get()
+              .timeout(const Duration(seconds: 3));
+          if (querySnap.docs.isNotEmpty) {
+            userData = querySnap.docs.first.data();
           }
         }
+
+        if (userData != null) {
+          final singleToken = userData['fcmToken'] as String?;
+          if (singleToken != null && singleToken.isNotEmpty) {
+            targetTokens.add(singleToken);
+          }
+          final multiTokens = userData['fcmTokens'];
+          if (multiTokens is List) {
+            for (final t in multiTokens) {
+              if (t is String && t.isNotEmpty) {
+                targetTokens.add(t);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('[FCM PUSH] Error fetching user tokens for $cleanUid: $e');
       }
 
-      debugPrint(
-          '[FCM PUSH DISPATCH] Recipient: $recipientUid, Title: "$title", Tokens found: ${tokens.length}');
-
-      // 1. Dispatch high-priority FCM v1 push to each registered device token
-      // This wakes up terminated devices and displays system notifications directly
-      for (final token in tokens) {
-        unawaited(_dispatchFcmV1(
+      bool delivered = false;
+      for (final token in targetTokens) {
+        final success = await _dispatchFcmV1(
           token: token,
           title: title,
           body: body,
           type: type,
           relatedId: relatedId,
-        ));
+          recipientUid: cleanUid,
+        );
+        if (success) {
+          delivered = true;
+        }
       }
 
-      // 2. Save push delivery record in Firestore to ensure reliable delivery queue
-      try {
-        await FirebaseFirestore.instance.collection('push_notifications').add({
-          'recipientUid': recipientUid,
-          'tokens': tokens.toList(),
-          'title': title,
-          'body': body,
-          'type': type,
-          'relatedId': relatedId ?? '',
-          'createdAt': FieldValue.serverTimestamp(),
-          'status': 'queued',
-        }).timeout(const Duration(seconds: 4));
-      } catch (_) {}
+      // If token delivery was not successful (404/expired) or no token was found, fall back to user topic
+      if (!delivered || targetTokens.isEmpty) {
+        debugPrint('[FCM PUSH] Falling back to user topic: user_$cleanUid');
+        await _dispatchFcmV1(
+          topic: 'user_$cleanUid',
+          title: title,
+          body: body,
+          type: type,
+          relatedId: relatedId,
+        );
+      }
     } catch (e) {
       debugPrint('[FCM PUSH DISPATCH ERROR] $e');
     }
@@ -509,6 +609,7 @@ class NotificationService {
 
   /// Retrieves an OAuth2 Access Token for Google Cloud Messaging (HTTP v1)
   /// using the Firebase Service Account JSON credentials.
+  /// Checks local asset first, then falls back to Firestore appConfig.
   Future<String?> _getFcmAccessToken() async {
     if (_cachedAccessToken != null &&
         _tokenExpiry != null &&
@@ -523,9 +624,43 @@ class NotificationService {
             await rootBundle.loadString('assets/firebase/service-account.json');
       } catch (_) {}
 
+      // Fallback: check Firestore appConfig/serviceAccount or appConfig/fcm
+      if (jsonStr == null || jsonStr.trim().isEmpty || jsonStr.trim() == '{}') {
+        try {
+          final configDoc = await FirebaseFirestore.instance
+              .collection('appConfig')
+              .doc('serviceAccount')
+              .get()
+              .timeout(const Duration(seconds: 3));
+          if (configDoc.exists && configDoc.data() != null) {
+            final data = configDoc.data()!;
+            if (data.containsKey('private_key')) {
+              jsonStr = jsonEncode(data);
+            } else if (data['json'] is String) {
+              jsonStr = data['json'] as String;
+            }
+          }
+          if (jsonStr == null || jsonStr.trim().isEmpty) {
+            final fcmDoc = await FirebaseFirestore.instance
+                .collection('appConfig')
+                .doc('fcm')
+                .get()
+                .timeout(const Duration(seconds: 3));
+            if (fcmDoc.exists && fcmDoc.data() != null) {
+              final data = fcmDoc.data()!;
+              if (data.containsKey('private_key')) {
+                jsonStr = jsonEncode(data);
+              } else if (data['json'] is String) {
+                jsonStr = data['json'] as String;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
       if (jsonStr == null || jsonStr.trim().isEmpty || jsonStr.trim() == '{}') {
         debugPrint(
-            '[FCM v1] No service-account.json found in assets/firebase/. Please place your Firebase service-account.json in assets/firebase/service-account.json to enable notifications for closed apps.');
+            '[FCM v1] No service-account.json found in assets/firebase/ or Firestore appConfig. Please place your Firebase service-account.json in assets/firebase/service-account.json to enable notifications for closed apps.');
         return null;
       }
 
@@ -543,58 +678,84 @@ class NotificationService {
     }
   }
 
-  /// Sends a high-priority heads-up FCM v1 push notification to a device token.
+  /// Sends a high-priority heads-up FCM v1 push notification to a device token or topic.
   /// When received, Google Play Services automatically wakes up the device
   /// and shows the heads-up notification in the system notification bar,
   /// even if the app is completely closed / terminated.
-  Future<void> _dispatchFcmV1({
-    required String token,
+  Future<bool> _dispatchFcmV1({
+    String? token,
+    String? topic,
     required String title,
     required String body,
     required String type,
     String? relatedId,
+    String? recipientUid,
   }) async {
+    if ((token == null || token.isEmpty) && (topic == null || topic.isEmpty)) {
+      return false;
+    }
     try {
       final accessToken = await _getFcmAccessToken();
-      if (accessToken == null) return;
+      if (accessToken == null) return false;
 
       final isChat = type == 'chat';
       final channelId = isChat ? kChatChannelId : kDefaultChannelId;
       final projectId = DefaultFirebaseOptions.currentPlatform.projectId;
+      final collapseTag = '${type}_${relatedId ?? (recipientUid ?? 'notif')}';
 
       final url = Uri.parse(
           'https://fcm.googleapis.com/v1/projects/$projectId/messages:send');
 
-      final payload = {
-        'message': {
-          'token': token,
+      final Map<String, dynamic> messagePayload = {
+        'notification': {
+          'title': title,
+          'body': body,
+        },
+        'android': {
+          'priority': 'HIGH',
+          'ttl': '2419200s',
           'notification': {
-            'title': title,
-            'body': body,
-          },
-          'android': {
-            'priority': 'HIGH',
-            'notification': {
-              'channel_id': channelId,
-              'sound': 'default',
-              'default_sound': true,
-              'default_vibrate_timings': true,
-              'notification_priority': 'PRIORITY_MAX',
-              'visibility': 'PUBLIC',
-              'icon': '@mipmap/ic_launcher',
-              'click_action': 'FLUTTER_NOTIFICATION_CLICK',
-            },
-          },
-          'data': {
-            'type': type,
-            'relatedId': relatedId ?? '',
-            'rideId': relatedId ?? '',
-            'title': title,
-            'body': body,
+            'channel_id': channelId,
+            'tag': collapseTag,
+            'sound': 'default',
+            'default_sound': true,
+            'default_vibrate_timings': true,
+            'notification_priority': 'PRIORITY_MAX',
+            'visibility': 'PUBLIC',
+            'icon': '@mipmap/ic_launcher',
             'click_action': 'FLUTTER_NOTIFICATION_CLICK',
           },
-        }
+        },
+        'apns': {
+          'payload': {
+            'aps': {
+              'alert': {
+                'title': title,
+                'body': body,
+              },
+              'sound': 'default',
+              'badge': 1,
+              'content-available': 1,
+            },
+          },
+        },
+        'data': {
+          'type': type,
+          'relatedId': relatedId ?? '',
+          'rideId': relatedId ?? '',
+          'title': title,
+          'body': body,
+          'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+        },
       };
+
+      if (token != null && token.isNotEmpty) {
+        messagePayload['token'] = token;
+      } else if (topic != null && topic.isNotEmpty) {
+        messagePayload['topic'] = topic;
+      }
+
+      final payload = {'message': messagePayload};
 
       final response = await http.post(
         url,
@@ -605,10 +766,28 @@ class NotificationService {
         body: jsonEncode(payload),
       );
 
+      final targetStr = token != null
+          ? 'Token: ${token.length > 12 ? token.substring(0, 12) : token}...'
+          : 'Topic: $topic';
       debugPrint(
-          '[FCM v1 DISPATCH RESULT] Token: ${token.length > 12 ? token.substring(0, 12) : token}... Status: ${response.statusCode}');
+          '[FCM v1 DISPATCH RESULT] $targetStr Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        debugPrint('[FCM v1 DISPATCH ERROR BODY] ${response.body}');
+        if (response.statusCode == 404 && recipientUid != null && token != null) {
+          try {
+            FirebaseFirestore.instance.collection('users').doc(recipientUid).update({
+              'fcmTokens': FieldValue.arrayRemove([token]),
+            });
+          } catch (_) {}
+        }
+        return false;
+      }
     } catch (e) {
       debugPrint('[FCM v1 DISPATCH ERROR] $e');
+      return false;
     }
   }
 
