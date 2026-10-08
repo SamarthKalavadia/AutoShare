@@ -131,6 +131,19 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                       initialValue: state.destination,
                       showCurrentLocationButton: false,
                       transparentBackground: true,
+                      onTapOverride: () async {
+                        FocusScope.of(context).unfocus();
+                        final result = await Navigator.of(context).push<LocationPickerResult>(
+                          MaterialPageRoute(
+                            builder: (context) => const MapLocationPickerPage(
+                              isPickup: false,
+                            ),
+                          ),
+                        );
+                        if (result != null) {
+                          notifier.updateDestination(result.address);
+                        }
+                      },
                       onSuggestionsVisibilityChanged: (visible) {
                         if (_isSearchingDestination != visible) {
                           setState(() => _isSearchingDestination = visible);
@@ -177,7 +190,12 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
             children: [
               Expanded(
                 child: _DateTimeSelector(
-                  icon: Icons.calendar_month_rounded,
+                  iconWidget: Image.asset(
+                    isDark ? 'assets/today_white.png' : 'assets/today.png',
+                    width: 20,
+                    height: 20,
+                    fit: BoxFit.contain,
+                  ),
                   text: state.departureDate != null
                       ? DateFormat('MMM dd').format(state.departureDate!)
                       : context.l10n.date,
@@ -448,12 +466,14 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
 }
 
 class _DateTimeSelector extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  final Widget? iconWidget;
   final String text;
   final VoidCallback onTap;
 
   const _DateTimeSelector({
-    required this.icon,
+    this.icon,
+    this.iconWidget,
     required this.text,
     required this.onTap,
   });
@@ -490,7 +510,10 @@ class _DateTimeSelector extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: textColor, size: 18),
+            if (iconWidget != null)
+              iconWidget!
+            else if (icon != null)
+              Icon(icon, color: textColor, size: 18),
             const SizedBox(width: 8),
             Text(
               text,
