@@ -319,83 +319,185 @@ class RideRequestRepository {
         });
   }
 
+  Future<String> _resolveUserName(String uid) async {
+    if (uid.isEmpty) return 'The passenger';
+    try {
+      final userDoc = await _firestoreService.usersCollection
+          .doc(uid)
+          .get()
+          .timeout(const Duration(seconds: 2));
+      if (userDoc.exists) {
+        final uData = userDoc.data() as Map<String, dynamic>?;
+        final name = (uData?['name'] as String? ??
+                uData?['fullName'] as String? ??
+                '')
+            .trim();
+        if (name.isNotEmpty &&
+            name.toLowerCase() != 'user' &&
+            name.toLowerCase() != 'driver') {
+          return name;
+        }
+      }
+    } catch (_) {}
+    return 'The passenger';
+  }
+
   /// Accepts a request (by the ride owner).
   Future<Result<void>> acceptRequest(RideRequestModel request) async {
     try {
+      final reqRef =
+          _firestoreService.rideRequestsCollection.doc(request.requestId);
+      final rideRef = _firestoreService.ridesCollection.doc(request.rideId);
+
+      int updatedRemainingSeats = 0;
+      int updatedAcceptedCount = 0;
+      double updatedFarePerPerson = 0.0;
+      String rideOwnerUid = request.ownerUid;
+
+      // 1. Transactional update for concurrency safety
+      try {
+        await FirebaseFirestore.instance.runTransaction((transaction) async {
+          final reqSnap = await transaction.get(reqRef);
+          if (!reqSnap.exists) {
+            throw Exception('Request does not exist.');
+          }
+          final reqData = reqSnap.data() as Map<String, dynamic>? ?? {};
+          final currentReqStatus = reqData['status'] as String? ?? '';
+          if (currentReqStatus == RideRequestStatus.accepted.name) {
+            return; // Idempotent
+          }
+          if (currentReqStatus != RideRequestStatus.pending.name) {
+            throw Exception('Request is no longer pending.');
+          }
+
+          final rideSnap = await transaction.get(rideRef);
+          if (!rideSnap.exists) {
+            throw Exception('Ride does not exist.');
+          }
+          final rideData = rideSnap.data() as Map<String, dynamic>? ?? {};
+          final totalSeats = (rideData['totalSeats'] ??
+                  rideData['availableSeats']) as int? ??
+              1;
+          final currentAvailable =
+              (rideData['availableSeats'] as int?) ?? totalSeats;
+          final currentAccepted =
+              (rideData['acceptedPassengerCount'] as int?) ??
+                  (totalSeats - currentAvailable).clamp(0, totalSeats);
+          final requestedSeats = request.requestedSeats;
+
+          if (currentAvailable < requestedSeats || currentAvailable <= 0) {
+            throw Exception('This ride is already full.');
+          }
+
+          rideOwnerUid =
+              (rideData['driverId'] as String? ?? request.ownerUid).trim();
+          updatedAcceptedCount = currentAccepted + requestedSeats;
+          updatedRemainingSeats =
+              (currentAvailable - requestedSeats).clamp(0, totalSeats);
+
+          final totalFare =
+              ((rideData['totalFare'] ?? rideData['farePerSeat']) as num?)
+                      ?.toDouble() ??
+                  0.0;
+          final totalPeople = 1 + updatedAcceptedCount;
+          updatedFarePerPerson =
+              totalPeople > 0 ? (totalFare / totalPeople) : totalFare;
+
+          transaction.update(rideRef, {
+            'availableSeats': updatedRemainingSeats,
+            'acceptedPassengerCount': updatedAcceptedCount,
+            'totalSeats': totalSeats,
+            'currentFarePerPerson': updatedFarePerPerson,
+            'farePerSeat': updatedFarePerPerson,
+          });
+
+          transaction.update(reqRef, {
+            'status': RideRequestStatus.accepted.name,
+          });
+        });
+      } on FirebaseException catch (fe) {
+        debugPrint(
+            '[RideRequestRepository] acceptRequest transaction error: $fe');
+        if (fe.message?.contains('already full') == true) {
+          return const Failure('This ride is already full.', null);
+        }
+        return Failure(fe.message ?? 'Failed to accept request.', fe);
+      } catch (e) {
+        final msg = e.toString();
+        if (msg.contains('already full')) {
+          return const Failure('This ride is already full.', null);
+        }
+        return Failure('Failed to accept request: $e', Exception(msg));
+      }
+
+      // 2. Update local state
       final updatedReq = request.copyWith(status: RideRequestStatus.accepted);
       _locallySubmittedRequests[request.requestId] = updatedReq;
       unawaited(_saveLocalRequests());
 
-      // Attempt remote Firestore update
-      try {
-        final reqRef = _firestoreService.rideRequestsCollection.doc(
-          request.requestId,
-        );
-        await reqRef
-            .update({'status': RideRequestStatus.accepted.name})
-            .timeout(const Duration(seconds: 3));
-
-        // Decrement ride available seats remotely if possible
-        final rideRef = _firestoreService.ridesCollection.doc(request.rideId);
-        final rideDoc = await rideRef.get().timeout(const Duration(seconds: 3));
-        if (rideDoc.exists) {
-          final currentSeats =
-              (rideDoc.data() as Map<String, dynamic>?)?['availableSeats']
-                  as int? ??
-              1;
-          if (currentSeats > 0) {
-            await rideRef.update({
-              'availableSeats': currentSeats - request.requestedSeats,
-            });
-          }
-        }
-      } on FirebaseException catch (e) {
-        debugPrint(
-          'Firestore acceptRequest warning (${e.code}); accepted locally.',
-        );
-      } catch (e) {
-        debugPrint('Remote acceptRequest warning ($e); accepted locally.');
-      }
-
-      // Send acceptance notification asynchronously
-      String targetRequesterUid = request.requesterUid;
-      if (targetRequesterUid.isEmpty) {
+      // 3. Dispatch real-time notifications to CURRENT participants (creator, newly accepted, existing accepted)
+      unawaited(() async {
         try {
-          final reqDoc = await _firestoreService.rideRequestsCollection
-              .doc(request.requestId)
-              .get()
-              .timeout(const Duration(seconds: 2));
-          if (reqDoc.exists) {
-            final rData = reqDoc.data() as Map<String, dynamic>?;
-            targetRequesterUid = rData?['requesterUid'] as String? ?? '';
-          }
-        } catch (_) {}
-      }
+          final passengerName = await _resolveUserName(request.requesterUid);
+          final seatText = updatedRemainingSeats == 0
+              ? 'No seats remaining.'
+              : (updatedRemainingSeats == 1
+                  ? '1 seat remaining.'
+                  : '$updatedRemainingSeats seats remaining.');
+          final notifTitle = 'Ride Updated';
+          final notifBody =
+              '$passengerName joined the ride. $seatText Current fare: ₹${updatedFarePerPerson.round()}/person.';
 
-      if (targetRequesterUid.isNotEmpty) {
-        try {
-          await _notificationRepo.createNotification(
-            NotificationModel(
-              id: '',
-              userId: targetRequesterUid,
-              title: 'Ride Request Accepted! 🎉',
-              body:
-                  'Your ride request has been accepted. Contact details are now available.',
-              type: 'accepted',
-              isRead: false,
-              createdAt: DateTime.now(),
-              relatedId: request.requestId,
-            ),
+          final Set<String> recipientUids = {
+            if (rideOwnerUid.isNotEmpty) rideOwnerUid,
+            if (request.requesterUid.isNotEmpty) request.requesterUid,
+          };
+
+          try {
+            final otherAcceptedSnaps = await _firestoreService
+                .rideRequestsCollection
+                .where('rideId', isEqualTo: request.rideId)
+                .where('status', isEqualTo: 'accepted')
+                .get()
+                .timeout(const Duration(seconds: 3));
+            for (final doc in otherAcceptedSnaps.docs) {
+              final uid =
+                  (doc.data() as Map<String, dynamic>?)?['requesterUid']
+                      as String?;
+              if (uid != null && uid.isNotEmpty) {
+                recipientUids.add(uid);
+              }
+            }
+          } catch (_) {}
+
+          final dataPayload = {
+            'type': 'ride_updated',
+            'rideId': request.rideId,
+            'remainingSeats': '$updatedRemainingSeats',
+            'acceptedPassengerCount': '$updatedAcceptedCount',
+            'currentFarePerPerson': '${updatedFarePerPerson.round()}',
+            'triggerUserId': request.requesterUid,
+            'event': 'joined',
+          };
+
+          await _notificationRepo.queuePushNotification(
+            recipientUids: recipientUids.toList(),
+            title: notifTitle,
+            body: notifBody,
+            type: 'ride_updated',
+            relatedId: request.rideId,
+            dataPayload: dataPayload,
           );
         } catch (e) {
-          debugPrint('[RideRequestRepository] acceptRequest notif error: $e');
+          debugPrint(
+              '[RideRequestRepository] acceptRequest notification note: $e');
         }
-      }
+      }());
 
       return const Success(null);
     } catch (e) {
       debugPrint('acceptRequest error: $e');
-      return const Success(null);
+      return Failure('Failed to accept request.', Exception(e.toString()));
     }
   }
 
@@ -408,8 +510,8 @@ class RideRequestRepository {
       if (_locallySubmittedRequests.containsKey(requestId)) {
         _locallySubmittedRequests[requestId] =
             _locallySubmittedRequests[requestId]!.copyWith(
-              status: RideRequestStatus.rejected,
-            );
+          status: RideRequestStatus.rejected,
+        );
         unawaited(_saveLocalRequests());
       }
 
@@ -448,111 +550,186 @@ class RideRequestRepository {
   /// Cancels a ride request (by the passenger).
   Future<Result<void>> cancelRequest(RideRequestModel request) async {
     try {
+      final reqRef =
+          _firestoreService.rideRequestsCollection.doc(request.requestId);
+      final rideRef = _firestoreService.ridesCollection.doc(request.rideId);
+
+      bool wasAccepted = request.status == RideRequestStatus.accepted;
+      bool wasAlreadyCancelled = false;
+      int updatedRemainingSeats = 0;
+      int updatedAcceptedCount = 0;
+      double updatedFarePerPerson = 0.0;
+      String rideOwnerUid = request.ownerUid;
+
+      // 1. Transactional update to prevent double cancellations & handle seat restoration safely
+      try {
+        await FirebaseFirestore.instance.runTransaction((transaction) async {
+          // READ 1: Read the request document first
+          final reqSnap = await transaction.get(reqRef);
+          if (!reqSnap.exists) {
+            return;
+          }
+          final reqData = reqSnap.data() as Map<String, dynamic>? ?? {};
+          final currentReqStatus = reqData['status'] as String? ?? '';
+          if (currentReqStatus == RideRequestStatus.cancelled.name) {
+            wasAlreadyCancelled = true;
+            return;
+          }
+          wasAccepted = currentReqStatus == RideRequestStatus.accepted.name;
+
+          // READ 2: If was accepted, read the ride document BEFORE performing ANY writes
+          DocumentSnapshot<Map<String, dynamic>>? rideSnap;
+          if (wasAccepted) {
+            rideSnap = await transaction.get(rideRef)
+                as DocumentSnapshot<Map<String, dynamic>>?;
+          }
+
+          // ALL READS ARE COMPLETE. NOW PERFORM ALL WRITES:
+
+          // WRITE 1: Update request status
+          transaction.update(reqRef, {
+            'status': RideRequestStatus.cancelled.name,
+          });
+
+          // WRITE 2: Restore seats and update fare if previously accepted
+          if (wasAccepted && rideSnap != null && rideSnap.exists) {
+            final rideData = rideSnap.data() ?? {};
+            final totalSeats = (rideData['totalSeats'] ??
+                    rideData['availableSeats']) as int? ??
+                2;
+            final currentAvailable =
+                (rideData['availableSeats'] as int?) ?? 0;
+            final currentAccepted =
+                (rideData['acceptedPassengerCount'] as int?) ??
+                    (totalSeats - currentAvailable).clamp(0, totalSeats);
+            final requestedSeats = request.requestedSeats;
+
+            rideOwnerUid =
+                (rideData['driverId'] as String? ?? request.ownerUid).trim();
+            updatedAcceptedCount =
+                (currentAccepted - requestedSeats).clamp(0, totalSeats);
+            updatedRemainingSeats =
+                (currentAvailable + requestedSeats).clamp(0, totalSeats);
+
+            final totalFare =
+                ((rideData['totalFare'] ?? rideData['farePerSeat']) as num?)
+                        ?.toDouble() ??
+                    0.0;
+            final totalPeople = 1 + updatedAcceptedCount;
+            updatedFarePerPerson =
+                totalPeople > 0 ? (totalFare / totalPeople) : totalFare;
+
+            transaction.update(rideRef, {
+              'availableSeats': updatedRemainingSeats,
+              'acceptedPassengerCount': updatedAcceptedCount,
+              'totalSeats': totalSeats,
+              'currentFarePerPerson': updatedFarePerPerson,
+              'farePerSeat': updatedFarePerPerson,
+            });
+          }
+        });
+      } on FirebaseException catch (fe) {
+        debugPrint(
+            '[RideRequestRepository] cancelRequest transaction note: $fe');
+        await reqRef
+            .update({'status': RideRequestStatus.cancelled.name})
+            .catchError((_) {});
+      } catch (e) {
+        debugPrint(
+            '[RideRequestRepository] cancelRequest transaction error: $e');
+        await reqRef
+            .update({'status': RideRequestStatus.cancelled.name})
+            .catchError((_) {});
+      }
+
+      if (wasAlreadyCancelled) {
+        return const Success(null);
+      }
+
+      // 2. Update local storage
       final updatedReq = request.copyWith(status: RideRequestStatus.cancelled);
       _locallySubmittedRequests[request.requestId] = updatedReq;
       unawaited(_saveLocalRequests());
 
-      bool wasAccepted = request.status == RideRequestStatus.accepted;
-      try {
-        final reqDoc = await _firestoreService.rideRequestsCollection
-            .doc(request.requestId)
-            .get()
-            .timeout(const Duration(seconds: 3));
-        if (reqDoc.exists) {
-          final statusStr =
-              (reqDoc.data() as Map<String, dynamic>?)?['status'] as String?;
-          if (statusStr == RideRequestStatus.accepted.name) {
-            wasAccepted = true;
-          }
-        }
-      } catch (e) {
-        debugPrint('Error checking remote request status before cancel: $e');
-      }
-
-      try {
-        await _firestoreService.rideRequestsCollection
-            .doc(request.requestId)
-            .update({'status': RideRequestStatus.cancelled.name})
-            .timeout(const Duration(seconds: 3));
-      } catch (e) {
-        debugPrint('Remote cancelRequest error ($e); cancelled locally.');
-      }
-
-      // Restore available seats on the ride document if the request was accepted
-      if (wasAccepted) {
+      // 3. Dispatch notifications
+      unawaited(() async {
         try {
-          final rideRef = _firestoreService.ridesCollection.doc(request.rideId);
-          final rideDoc =
-              await rideRef.get().timeout(const Duration(seconds: 3));
-          if (rideDoc.exists) {
-            final currentSeats =
-                (rideDoc.data() as Map<String, dynamic>?)?['availableSeats']
-                    as int? ??
-                0;
-            await rideRef.update({
-              'availableSeats': currentSeats + request.requestedSeats,
-            }).timeout(const Duration(seconds: 3));
+          final passengerName = await _resolveUserName(request.requesterUid);
+
+          if (wasAccepted) {
+            final seatWord =
+                updatedRemainingSeats == 1 ? 'seat' : 'seats';
+            final notifTitle = 'Ride Updated';
+            final notifBody =
+                '$passengerName left the ride. $updatedRemainingSeats $seatWord available. Current fare: ₹${updatedFarePerPerson.round()}/person.';
+
+            final Set<String> remainingRecipients = {
+              if (rideOwnerUid.isNotEmpty &&
+                  rideOwnerUid != request.requesterUid)
+                rideOwnerUid,
+            };
+
+            try {
+              final otherAcceptedSnaps = await _firestoreService
+                  .rideRequestsCollection
+                  .where('rideId', isEqualTo: request.rideId)
+                  .where('status', isEqualTo: 'accepted')
+                  .get()
+                  .timeout(const Duration(seconds: 3));
+              for (final doc in otherAcceptedSnaps.docs) {
+                if (doc.id == request.requestId) continue;
+                final uid =
+                    (doc.data() as Map<String, dynamic>?)?['requesterUid']
+                        as String?;
+                if (uid != null &&
+                    uid.isNotEmpty &&
+                    uid != request.requesterUid) {
+                  remainingRecipients.add(uid);
+                }
+              }
+            } catch (_) {}
+
+            if (remainingRecipients.isNotEmpty) {
+              final dataPayload = {
+                'type': 'ride_updated',
+                'rideId': request.rideId,
+                'remainingSeats': '$updatedRemainingSeats',
+                'acceptedPassengerCount': '$updatedAcceptedCount',
+                'currentFarePerPerson': '${updatedFarePerPerson.round()}',
+                'triggerUserId': request.requesterUid,
+                'event': 'cancelled',
+              };
+
+              await _notificationRepo.queuePushNotification(
+                recipientUids: remainingRecipients.toList(),
+                title: notifTitle,
+                body: notifBody,
+                type: 'ride_updated',
+                relatedId: request.rideId,
+                dataPayload: dataPayload,
+              );
+            }
+          } else {
+            if (rideOwnerUid.isNotEmpty) {
+              await _notificationRepo.createNotification(
+                NotificationModel(
+                  id: '',
+                  userId: rideOwnerUid,
+                  title: 'Ride Request Cancelled ❌',
+                  body: '$passengerName cancelled their ride request.',
+                  type: 'cancelled',
+                  isRead: false,
+                  createdAt: DateTime.now(),
+                  relatedId: request.requestId,
+                ),
+              );
+            }
           }
         } catch (e) {
-          debugPrint('Remote seat restoration error on cancel ($e)');
+          debugPrint(
+              '[RideRequestRepository] cancelRequest notif dispatch note: $e');
         }
-      }
-
-      // Notify the ride owner that the request was cancelled
-      String targetOwnerUid = request.ownerUid;
-      if (targetOwnerUid.isEmpty) {
-        try {
-          final rideDoc = await _firestoreService.ridesCollection
-              .doc(request.rideId)
-              .get()
-              .timeout(const Duration(seconds: 2));
-          if (rideDoc.exists) {
-            final rData = rideDoc.data() as Map<String, dynamic>?;
-            targetOwnerUid = rData?['driverId'] as String? ??
-                rData?['creatorId'] as String? ??
-                rData?['ownerId'] as String? ??
-                '';
-          }
-        } catch (_) {}
-      }
-
-      String passengerName = FirebaseAuth.instance.currentUser?.displayName?.trim() ?? '';
-      if (passengerName.isEmpty || passengerName.toLowerCase() == 'user') {
-        try {
-          final userDoc = await _firestoreService.usersCollection
-              .doc(request.requesterUid)
-              .get()
-              .timeout(const Duration(seconds: 2));
-          if (userDoc.exists) {
-            final uData = userDoc.data() as Map<String, dynamic>?;
-            passengerName = uData?['name'] as String? ??
-                uData?['fullName'] as String? ??
-                '';
-          }
-        } catch (_) {}
-      }
-      if (passengerName.isEmpty) passengerName = 'A passenger';
-
-      if (targetOwnerUid.isNotEmpty) {
-        try {
-          await _notificationRepo.createNotification(
-            NotificationModel(
-              id: '',
-              userId: targetOwnerUid,
-              title: 'Ride Request Cancelled ❌',
-              body: wasAccepted
-                  ? '$passengerName cancelled their confirmed seat.'
-                  : '$passengerName cancelled their ride request.',
-              type: 'cancelled',
-              isRead: false,
-              createdAt: DateTime.now(),
-              relatedId: request.requestId,
-            ),
-          );
-        } catch (e) {
-          debugPrint('[RideRequestRepository] cancelRequest notif error: $e');
-        }
-      }
+      }());
 
       return const Success(null);
     } catch (e) {

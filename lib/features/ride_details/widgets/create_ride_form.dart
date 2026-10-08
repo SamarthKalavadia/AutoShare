@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../data/models/ride_model.dart';
 
 import '../presentation/screens/map_location_picker_page.dart';
 import '../providers/create_ride_provider.dart';
@@ -43,6 +44,17 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
     final state = ref.watch(createRideProvider);
     final notifier = ref.read(createRideProvider.notifier);
     final isFemale = ref.watch(isUserFemaleProvider);
+    final initialFarePerSeat = RideModel(
+      id: '',
+      driverId: '',
+      boardingLocation: '',
+      destination: '',
+      departureTime: DateTime.now(),
+      availableSeats: state.availableSeats,
+      totalSeats: state.availableSeats,
+      totalFare: state.totalFare,
+      createdAt: DateTime.now(),
+    ).calculateFarePerPerson(acceptedPassengers: 0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,7 +245,7 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
         ),
         const SizedBox(height: 28),
 
-        _MainSectionTitle(title: context.l10n.dateTime),
+        _MainSectionTitle(title: 'RIDE DETAILS'),
         // Date & Time
         Row(
           children: [
@@ -281,7 +293,7 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SectionTitle(title: context.l10n.farePerSeat),
+                  const _SectionTitle(title: 'Total Fare (₹)'),
                   const SizedBox(height: 8),
                   _RideTextField(
                     hint: '0',
@@ -312,6 +324,82 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
                       ),
                     ),
                   ],
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Read-only dynamically calculated Fare per seat
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _SectionTitle(title: 'Fare per seat (₹)'),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: secondaryBg,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: borderColor),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.people_alt_outlined,
+                    color: blackColor,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          state.totalFare > 0
+                              ? '₹${initialFarePerSeat.toStringAsFixed(0)} / person'
+                              : '₹0 / person',
+                          style: GoogleFonts.inter(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: blackColor,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          state.totalFare > 0
+                              ? 'Current fare (decreases as more riders join)'
+                              : 'Calculated automatically based on total fare',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            color: mutedText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF333333)
+                          : const Color(0xFFEEEEEE),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Auto-split',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: mutedText,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

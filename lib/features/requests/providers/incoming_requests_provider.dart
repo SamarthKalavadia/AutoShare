@@ -42,44 +42,46 @@ final incomingRequestsProvider =
       final rideCache = <String, RideModel>{};
 
       await for (final requests in requestsStream) {
-        final List<IncomingRequestData> populatedRequests = [];
-
-        for (final req in requests) {
-          // 1. Fetch Passenger (Requester)
-          UserModel? passenger = userCache[req.requesterUid];
-          if (passenger == null) {
-            final result = await userRepo.getUser(req.requesterUid);
-            if (result is Success<UserModel>) {
-              passenger = result.data;
-              userCache[req.requesterUid] = passenger;
-            } else {
-              passenger = UserModel.empty().copyWith(
-                uid: req.requesterUid,
-                name: 'Unknown',
-              );
+        final populatedRequests = await Future.wait(
+          requests.map((req) async {
+            // 1. Fetch Passenger (Requester)
+            UserModel? passenger = userCache[req.requesterUid];
+            if (passenger == null) {
+              final result = await userRepo.getUser(req.requesterUid);
+              if (result is Success<UserModel>) {
+                passenger = result.data;
+                userCache[req.requesterUid] = passenger;
+              } else {
+                passenger = UserModel.empty().copyWith(
+                  uid: req.requesterUid,
+                  name: 'Unknown',
+                );
+              }
             }
-          }
 
-          // 2. Fetch Ride
-          RideModel? ride = rideCache[req.rideId];
-          if (ride == null) {
-            final result = await requestRepo.getRide(req.rideId);
-            if (result is Success<RideModel>) {
-              ride = result.data;
-              rideCache[req.rideId] = ride;
-            } else {
-              ride = RideModel.empty().copyWith(
-                id: req.rideId,
-                driverId: req.ownerUid,
-                boardingLocation: 'Requested Ride',
-              );
+            // 2. Fetch Ride
+            RideModel? ride = rideCache[req.rideId];
+            if (ride == null) {
+              final result = await requestRepo.getRide(req.rideId);
+              if (result is Success<RideModel>) {
+                ride = result.data;
+                rideCache[req.rideId] = ride;
+              } else {
+                ride = RideModel.empty().copyWith(
+                  id: req.rideId,
+                  driverId: req.ownerUid,
+                  boardingLocation: 'Requested Ride',
+                );
+              }
             }
-          }
 
-          populatedRequests.add(
-            IncomingRequestData(request: req, ride: ride, passenger: passenger),
-          );
-        }
+            return IncomingRequestData(
+              request: req,
+              ride: ride,
+              passenger: passenger,
+            );
+          }),
+        );
 
         yield populatedRequests;
       }

@@ -30,25 +30,25 @@ void main() {
       expect(stateOneSeat.isValid, isTrue);
     });
 
-    test('Available seats clamped between 0 and 2 when editing', () {
-      // Bounds check for editing seats: 0 <= newSeats <= 2
-      bool isValidSeatCount(int seats) => seats >= 0 && seats <= 2;
+    test('Available seats clamped between 1 and 2 when editing', () {
+      // Bounds check for editing seats: only 1 or 2 allowed, 0 is invalid
+      bool isValidSeatCount(int seats) => seats >= 1 && seats <= 2;
 
       expect(isValidSeatCount(-1), isFalse);
-      expect(isValidSeatCount(0), isTrue);
+      expect(isValidSeatCount(0), isFalse);
       expect(isValidSeatCount(1), isTrue);
       expect(isValidSeatCount(2), isTrue);
       expect(isValidSeatCount(3), isFalse);
     });
 
-    test('Clamping logic correctly caps at 2', () {
-      int clampSeats(int requested) => requested.clamp(0, 2);
+    test('Clamping logic correctly bounds between 1 and 2', () {
+      int clampSeats(int requested) => requested.clamp(1, 2);
 
       expect(clampSeats(3), equals(2));
       expect(clampSeats(2), equals(2));
       expect(clampSeats(1), equals(1));
-      expect(clampSeats(0), equals(0));
-      expect(clampSeats(-1), equals(0));
+      expect(clampSeats(0), equals(1));
+      expect(clampSeats(-1), equals(1));
     });
   });
 }

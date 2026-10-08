@@ -42,7 +42,7 @@ void main() {
   });
 
   group('RideModel Fare per Seat dynamic calculation', () {
-    test('calculates Fare / Seat dynamically based on availableSeats', () {
+    test('calculates Fare / Seat dynamically based on accepted passengers', () {
       final ride = RideModel(
         id: 'ride-123',
         driverId: 'driver-1',
@@ -50,23 +50,37 @@ void main() {
         destination: 'Point B',
         departureTime: DateTime.now(),
         availableSeats: 2,
+        totalSeats: 2,
+        acceptedPassengerCount: 0,
         totalFare: 300.0,
         createdAt: DateTime.now(),
       );
 
-      // With 2 available seats, fare per seat is 300 / 2 = 150
-      expect(ride.calculateFarePerPerson(), 150.0);
+      // Creator only (0 accepted passengers): totalPeople = 1, fare = 300 / 1 = 300
+      expect(ride.calculateFarePerPerson(), 300.0);
+      expect(ride.calculateFarePerPerson(acceptedPassengers: 0), 300.0);
+      expect(ride.remainingSeats, 2);
+      expect(ride.totalPeople, 1);
+      expect(ride.isFull, isFalse);
 
-      // When edited to 1 available seat, fare per seat is 300 / 1 = 300
-      final updatedRide = ride.copyWith(availableSeats: 1);
-      expect(updatedRide.calculateFarePerPerson(), 300.0);
+      // 1 accepted passenger: totalPeople = 2, fare = 300 / 2 = 150
+      final withOnePassenger = ride.copyWith(acceptedPassengerCount: 1);
+      expect(withOnePassenger.calculateFarePerPerson(), 150.0);
+      expect(withOnePassenger.calculateFarePerPerson(acceptedPassengers: 1), 150.0);
+      expect(withOnePassenger.remainingSeats, 1);
+      expect(withOnePassenger.totalPeople, 2);
+      expect(withOnePassenger.isFull, isFalse);
 
-      // When customSeats parameter is supplied
-      expect(ride.calculateFarePerPerson(customSeats: 1), 300.0);
-      expect(ride.calculateFarePerPerson(customSeats: 2), 150.0);
+      // 2 accepted passengers: totalPeople = 3, fare = 300 / 3 = 100 (Full ride)
+      final fullRide = ride.copyWith(acceptedPassengerCount: 2);
+      expect(fullRide.calculateFarePerPerson(), 100.0);
+      expect(fullRide.calculateFarePerPerson(acceptedPassengers: 2), 100.0);
+      expect(fullRide.remainingSeats, 0);
+      expect(fullRide.totalPeople, 3);
+      expect(fullRide.isFull, isTrue);
     });
 
-    test('calculates Fare / Person when availableSeats is 0', () {
+    test('recalculates dynamically when passengers cancel', () {
       final ride = RideModel(
         id: 'ride-123',
         driverId: 'driver-1',
@@ -74,15 +88,27 @@ void main() {
         destination: 'Point B',
         departureTime: DateTime.now(),
         availableSeats: 0,
+        totalSeats: 2,
+        acceptedPassengerCount: 2,
         totalFare: 300.0,
         createdAt: DateTime.now(),
       );
 
-      // 0 available seats, 0 accepted passengers -> 300 / (1 + 0) = 300
-      expect(ride.calculateFarePerPerson(acceptedPassengers: 0), 300.0);
+      // Initially full (2 accepted passengers): 300 / (1 + 2) = 100
+      expect(ride.calculateFarePerPerson(), 100.0);
+      expect(ride.isFull, isTrue);
 
-      // 0 available seats, 1 accepted passenger -> 300 / (1 + 1) = 150
-      expect(ride.calculateFarePerPerson(acceptedPassengers: 1), 150.0);
+      // 1 passenger cancels: acceptedPassengerCount drops to 1 -> 300 / (1 + 1) = 150
+      final afterFirstCancel = ride.copyWith(acceptedPassengerCount: 1);
+      expect(afterFirstCancel.calculateFarePerPerson(), 150.0);
+      expect(afterFirstCancel.remainingSeats, 1);
+      expect(afterFirstCancel.isFull, isFalse);
+
+      // Last passenger cancels: acceptedPassengerCount drops to 0 -> 300 / (1 + 0) = 300
+      final afterSecondCancel = ride.copyWith(acceptedPassengerCount: 0);
+      expect(afterSecondCancel.calculateFarePerPerson(), 300.0);
+      expect(afterSecondCancel.remainingSeats, 2);
+      expect(afterSecondCancel.isFull, isFalse);
     });
   });
 }

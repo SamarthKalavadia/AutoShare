@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +23,7 @@ class EditProfilePage extends ConsumerStatefulWidget {
 
 class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
+
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _cityController = TextEditingController();
@@ -40,16 +42,30 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     // Use addPostFrameCallback or Future.microtask to read provider safely
     Future.microtask(() {
       final user = ref.read(authControllerProvider).value;
-      if (user != null) {
-        _nameController.text = user.name;
-        _phoneController.text = user.phone;
-        _cityController.text = user.city;
-        _emergencyController.text = user.emergencyContact;
-        _bioController.text = user.bio;
-        _gender = user.gender;
-        _currentImageUrl = user.profileImage.isNotEmpty
-            ? user.profileImage
-            : null;
+      User? fbUser;
+      try {
+        fbUser = FirebaseAuth.instance.currentUser;
+      } catch (_) {}
+      if (user != null || fbUser != null) {
+        String name = user?.name.trim() ?? '';
+        if (name.isEmpty && fbUser != null) {
+          name = (fbUser.displayName != null && fbUser.displayName!.trim().isNotEmpty)
+              ? fbUser.displayName!.trim()
+              : (fbUser.email != null && fbUser.email!.contains('@')
+                  ? fbUser.email!.split('@').first
+                  : '');
+        }
+        _nameController.text = name;
+        _phoneController.text = (user?.phone.isNotEmpty == true)
+            ? user!.phone
+            : (fbUser?.phoneNumber ?? '');
+        _cityController.text = user?.city ?? '';
+        _emergencyController.text = user?.emergencyContact ?? '';
+        _bioController.text = user?.bio ?? '';
+        _gender = user?.gender ?? '';
+        _currentImageUrl = (user?.profileImage.isNotEmpty == true)
+            ? user!.profileImage
+            : (fbUser?.photoURL?.isNotEmpty == true ? fbUser!.photoURL : null);
         setState(() {});
       }
     });
@@ -110,7 +126,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         final uploadResult = await profileRepo.uploadProfileImage(
           uid: currentUser.uid,
           imageFile: _newImageFile!,
-        );
+    );
         if (uploadResult is Success<UserModel>) {
           finalImageUrl = uploadResult.data.profileImage;
         } else {

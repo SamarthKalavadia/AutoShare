@@ -6,12 +6,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:googleapis_auth/auth_io.dart';
-import 'package:http/http.dart' as http;
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../data/models/ride_model.dart';
 import '../../firebase_options.dart';
@@ -229,14 +227,12 @@ class NotificationService {
 
         // Request Android 13+ POST_NOTIFICATIONS permission
         try {
+          await Permission.notification.request();
           await androidPlugin.requestNotificationsPermission();
         } catch (_) {}
       }
 
-      // 3. Register Background Handler
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-
-      // 4. Request Notification Permissions & FCM Listeners (asynchronous, non-blocking)
+      // 3. Request Notification Permissions & FCM Listeners (asynchronous, non-blocking)
       unawaited(_initFcmAsync());
     } catch (e) {
       debugPrint('[NOTIFICATION INIT ERROR] $e');
@@ -246,6 +242,9 @@ class NotificationService {
   Future<void> _initFcmAsync() async {
     try {
       final messaging = FirebaseMessaging.instance;
+      try {
+        await Permission.notification.request();
+      } catch (_) {}
       final settings = await messaging.requestPermission(
         alert: true,
         announcement: false,
@@ -318,11 +317,23 @@ class NotificationService {
       } catch (_) {}
 
       // Auto-sync FCM Token and start real-time listener if user is authenticated
-      final currentUid = FirebaseAuth.instance.currentUser?.uid;
-      if (currentUid != null && currentUid.isNotEmpty) {
-        syncFcmToken(currentUid);
-        startListening(currentUid);
+      for (int i = 0; i < 5; i++) {
+        final currentUid = FirebaseAuth.instance.currentUser?.uid;
+        if (currentUid != null && currentUid.isNotEmpty) {
+          syncFcmToken(currentUid);
+          startListening(currentUid);
+          break;
+        }
+        await Future.delayed(const Duration(milliseconds: 400));
       }
+
+      // Also listen to auth state changes so session restoration or login auto-syncs FCM
+      FirebaseAuth.instance.authStateChanges().listen((user) {
+        if (user != null && user.uid.isNotEmpty) {
+          syncFcmToken(user.uid);
+          startListening(user.uid);
+        }
+      });
     } catch (e) {
       debugPrint('[FCM ASYNC INIT ERROR] $e');
     }
@@ -490,27 +501,51 @@ class NotificationService {
     try {
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null && token.isNotEmpty) {
-        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        final updateData = {
           'fcmToken': token,
-          'fcmTokens': FieldValue.arrayUnion([token]),
+          'fcmTokens': [token],
           'lastTokenUpdated': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+        };
+        await FirebaseFirestore.instance.collection('users').doc(uid).set(
+          updateData,
+          SetOptions(merge: true),
+        );
+
+        // Also update any document matching uid field
+        try {
+          final querySnap = await FirebaseFirestore.instance
+              .collection('users')
+              .where('uid', isEqualTo: uid)
+              .get()
+              .timeout(const Duration(seconds: 2));
+          for (final doc in querySnap.docs) {
+            if (doc.id != uid) {
+              await doc.reference.set(updateData, SetOptions(merge: true));
+            }
+          }
+        } catch (_) {}
+
         debugPrint('[FCM TOKEN] Successfully synced token for $uid');
       }
 
       try {
         await FirebaseMessaging.instance.subscribeToTopic('user_$uid');
+        await FirebaseMessaging.instance.subscribeToTopic('all_users');
       } catch (_) {}
 
       await _tokenRefreshSubscription?.cancel();
       _tokenRefreshSubscription =
           FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
         try {
-          await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          final refreshData = {
             'fcmToken': newToken,
-            'fcmTokens': FieldValue.arrayUnion([newToken]),
+            'fcmTokens': [newToken],
             'lastTokenUpdated': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
+          };
+          await FirebaseFirestore.instance.collection('users').doc(uid).set(
+            refreshData,
+            SetOptions(merge: true),
+          );
           debugPrint('[FCM TOKEN REFRESHED] Updated token for $uid');
         } catch (_) {}
       });
@@ -519,7 +554,10 @@ class NotificationService {
     }
   }
 
-  /// Sends a push notification payload to the recipient's FCM tokens or topic fallback.
+  /// Sends a push notification payload to the recipient's FCM tokens and topic fallback.
+  /// This ensures closed apps receive high-priority system bar notifications instantly.
+  /// Queues a push notification in Firestore `push_notifications` collection
+  /// which is processed and delivered via the AutoShare Node.js FCM worker (`server/notification_worker.js`).
   Future<void> sendPushNotification({
     required String recipientUid,
     required String title,
@@ -531,263 +569,23 @@ class NotificationService {
     if (cleanUid.isEmpty) return;
 
     try {
-      final Set<String> targetTokens = {};
-      // 1. Fetch user doc or query by UID
-      try {
-        var userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(cleanUid)
-            .get()
-            .timeout(const Duration(seconds: 3));
-
-        Map<String, dynamic>? userData;
-        if (userDoc.exists) {
-          userData = userDoc.data();
-        } else {
-          final querySnap = await FirebaseFirestore.instance
-              .collection('users')
-              .where('uid', isEqualTo: cleanUid)
-              .limit(1)
-              .get()
-              .timeout(const Duration(seconds: 3));
-          if (querySnap.docs.isNotEmpty) {
-            userData = querySnap.docs.first.data();
-          }
-        }
-
-        if (userData != null) {
-          final singleToken = userData['fcmToken'] as String?;
-          if (singleToken != null && singleToken.isNotEmpty) {
-            targetTokens.add(singleToken);
-          }
-          final multiTokens = userData['fcmTokens'];
-          if (multiTokens is List) {
-            for (final t in multiTokens) {
-              if (t is String && t.isNotEmpty) {
-                targetTokens.add(t);
-              }
-            }
-          }
-        }
-      } catch (e) {
-        debugPrint('[FCM PUSH] Error fetching user tokens for $cleanUid: $e');
-      }
-
-      bool delivered = false;
-      for (final token in targetTokens) {
-        final success = await _dispatchFcmV1(
-          token: token,
-          title: title,
-          body: body,
-          type: type,
-          relatedId: relatedId,
-          recipientUid: cleanUid,
-        );
-        if (success) {
-          delivered = true;
-        }
-      }
-
-      // If token delivery was not successful (404/expired) or no token was found, fall back to user topic
-      if (!delivered || targetTokens.isEmpty) {
-        debugPrint('[FCM PUSH] Falling back to user topic: user_$cleanUid');
-        await _dispatchFcmV1(
-          topic: 'user_$cleanUid',
-          title: title,
-          body: body,
-          type: type,
-          relatedId: relatedId,
-        );
-      }
-    } catch (e) {
-      debugPrint('[FCM PUSH DISPATCH ERROR] $e');
-    }
-  }
-
-  static String? _cachedAccessToken;
-  static DateTime? _tokenExpiry;
-
-  /// Retrieves an OAuth2 Access Token for Google Cloud Messaging (HTTP v1)
-  /// using the Firebase Service Account JSON credentials.
-  /// Checks local asset first, then falls back to Firestore appConfig.
-  Future<String?> _getFcmAccessToken() async {
-    if (_cachedAccessToken != null &&
-        _tokenExpiry != null &&
-        DateTime.now().isBefore(_tokenExpiry!)) {
-      return _cachedAccessToken;
-    }
-
-    try {
-      String? jsonStr;
-      try {
-        jsonStr =
-            await rootBundle.loadString('assets/firebase/service-account.json');
-      } catch (_) {}
-
-      // Fallback: check Firestore appConfig/serviceAccount or appConfig/fcm
-      if (jsonStr == null || jsonStr.trim().isEmpty || jsonStr.trim() == '{}') {
-        try {
-          final configDoc = await FirebaseFirestore.instance
-              .collection('appConfig')
-              .doc('serviceAccount')
-              .get()
-              .timeout(const Duration(seconds: 3));
-          if (configDoc.exists && configDoc.data() != null) {
-            final data = configDoc.data()!;
-            if (data.containsKey('private_key')) {
-              jsonStr = jsonEncode(data);
-            } else if (data['json'] is String) {
-              jsonStr = data['json'] as String;
-            }
-          }
-          if (jsonStr == null || jsonStr.trim().isEmpty) {
-            final fcmDoc = await FirebaseFirestore.instance
-                .collection('appConfig')
-                .doc('fcm')
-                .get()
-                .timeout(const Duration(seconds: 3));
-            if (fcmDoc.exists && fcmDoc.data() != null) {
-              final data = fcmDoc.data()!;
-              if (data.containsKey('private_key')) {
-                jsonStr = jsonEncode(data);
-              } else if (data['json'] is String) {
-                jsonStr = data['json'] as String;
-              }
-            }
-          }
-        } catch (_) {}
-      }
-
-      if (jsonStr == null || jsonStr.trim().isEmpty || jsonStr.trim() == '{}') {
-        debugPrint(
-            '[FCM v1] No service-account.json found in assets/firebase/ or Firestore appConfig. Please place your Firebase service-account.json in assets/firebase/service-account.json to enable notifications for closed apps.');
-        return null;
-      }
-
-      final creds = ServiceAccountCredentials.fromJson(jsonStr);
-      final scopes = ['https://www.googleapis.com/auth/firebase.messaging'];
-      final client = await clientViaServiceAccount(creds, scopes);
-      _cachedAccessToken = client.credentials.accessToken.data;
-      _tokenExpiry =
-          client.credentials.accessToken.expiry.subtract(const Duration(minutes: 5));
-      client.close();
-      return _cachedAccessToken;
-    } catch (e) {
-      debugPrint('[FCM v1 AUTH ERROR] Could not get OAuth token: $e');
-      return null;
-    }
-  }
-
-  /// Sends a high-priority heads-up FCM v1 push notification to a device token or topic.
-  /// When received, Google Play Services automatically wakes up the device
-  /// and shows the heads-up notification in the system notification bar,
-  /// even if the app is completely closed / terminated.
-  Future<bool> _dispatchFcmV1({
-    String? token,
-    String? topic,
-    required String title,
-    required String body,
-    required String type,
-    String? relatedId,
-    String? recipientUid,
-  }) async {
-    if ((token == null || token.isEmpty) && (topic == null || topic.isEmpty)) {
-      return false;
-    }
-    try {
-      final accessToken = await _getFcmAccessToken();
-      if (accessToken == null) return false;
-
-      final isChat = type == 'chat';
-      final channelId = isChat ? kChatChannelId : kDefaultChannelId;
-      final projectId = DefaultFirebaseOptions.currentPlatform.projectId;
-      final collapseTag = '${type}_${relatedId ?? (recipientUid ?? 'notif')}';
-
-      final url = Uri.parse(
-          'https://fcm.googleapis.com/v1/projects/$projectId/messages:send');
-
-      final Map<String, dynamic> messagePayload = {
-        'notification': {
-          'title': title,
-          'body': body,
-        },
-        'android': {
-          'priority': 'HIGH',
-          'ttl': '2419200s',
-          'notification': {
-            'channel_id': channelId,
-            'tag': collapseTag,
-            'sound': 'default',
-            'default_sound': true,
-            'default_vibrate_timings': true,
-            'notification_priority': 'PRIORITY_MAX',
-            'visibility': 'PUBLIC',
-            'icon': '@mipmap/ic_launcher',
-            'click_action': 'FLUTTER_NOTIFICATION_CLICK',
-          },
-        },
-        'apns': {
-          'payload': {
-            'aps': {
-              'alert': {
-                'title': title,
-                'body': body,
-              },
-              'sound': 'default',
-              'badge': 1,
-              'content-available': 1,
-            },
-          },
-        },
+      await FirebaseFirestore.instance.collection('push_notifications').add({
+        'recipientUids': [cleanUid],
+        'title': title,
+        'body': body,
+        'type': type,
+        'relatedId': relatedId,
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
         'data': {
           'type': type,
           'relatedId': relatedId ?? '',
           'rideId': relatedId ?? '',
-          'title': title,
-          'body': body,
-          'click_action': 'FLUTTER_NOTIFICATION_CLICK',
         },
-      };
-
-      if (token != null && token.isNotEmpty) {
-        messagePayload['token'] = token;
-      } else if (topic != null && topic.isNotEmpty) {
-        messagePayload['topic'] = topic;
-      }
-
-      final payload = {'message': messagePayload};
-
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $accessToken',
-        },
-        body: jsonEncode(payload),
-      );
-
-      final targetStr = token != null
-          ? 'Token: ${token.length > 12 ? token.substring(0, 12) : token}...'
-          : 'Topic: $topic';
-      debugPrint(
-          '[FCM v1 DISPATCH RESULT] $targetStr Status: ${response.statusCode}');
-
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        debugPrint('[FCM v1 DISPATCH ERROR BODY] ${response.body}');
-        if (response.statusCode == 404 && recipientUid != null && token != null) {
-          try {
-            FirebaseFirestore.instance.collection('users').doc(recipientUid).update({
-              'fcmTokens': FieldValue.arrayRemove([token]),
-            });
-          } catch (_) {}
-        }
-        return false;
-      }
+      });
+      debugPrint('[NotificationService] Queued push notification for $cleanUid');
     } catch (e) {
-      debugPrint('[FCM v1 DISPATCH ERROR] $e');
-      return false;
+      debugPrint('[NotificationService] sendPushNotification queue note: $e');
     }
   }
 

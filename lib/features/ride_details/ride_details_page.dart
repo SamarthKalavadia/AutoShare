@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/localization/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/utils/result.dart';
 import '../../data/models/ride_model.dart';
 import '../../data/models/request_model.dart';
 import '../auth/presentation/controllers/auth_controller.dart';
@@ -81,7 +82,9 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
           : context.l10n.rideWasCancelled;
     }
     if (_isExpired) return context.l10n.rideAlreadyDeparted;
-    if (ride.availableSeats <= 0) return context.l10n.noSeatsAvailable;
+    if (ride.remainingSeats <= 0 || ride.availableSeats <= 0) {
+      return 'This ride is already full.';
+    }
     return null;
   }
 
@@ -112,12 +115,16 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
     final state = ref.watch(rideRequestProvider);
     final currentRide =
         ref.watch(liveRideProvider(widget.ride)).value ?? widget.ride;
+    final liveSeats = ref.watch(liveAvailableSeatsProvider(widget.ride));
     final existingReqAsync = ref.watch(
       currentRideRequestProvider(widget.ride.id),
     );
     final existingReq = existingReqAsync.value;
 
     String? disabledReason = _getDisabledReason(context, currentRide);
+    if (disabledReason == null && liveSeats <= 0) {
+      disabledReason = 'This ride is already full.';
+    }
     if (disabledReason == null && existingReq != null) {
       if (existingReq.status == RideRequestStatus.pending) {
         disabledReason = context.l10n.pending;
@@ -174,11 +181,11 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
                     child: Column(
                       children: [
                         const SizedBox(height: 20),
-                        DriverInfoCard(ride: currentRide),
+                        DriverInfoCard(ride: widget.ride),
                         const SizedBox(height: 16),
-                        RouteInfoCard(ride: currentRide),
+                        RouteInfoCard(ride: widget.ride),
                         const SizedBox(height: 16),
-                        RideInfoCard(ride: currentRide),
+                        RideInfoCard(ride: widget.ride),
                         const SizedBox(height: 16),
 
                         // Security or Privacy notice card
@@ -299,10 +306,12 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
         : const Color(0xFFF3F3F3);
 
     String buttonLabel = context.l10n.requestSeat;
+    final isAccepted = existingReq?.status == RideRequestStatus.accepted;
+    final isPending = existingReq?.status == RideRequestStatus.pending;
     if (_isOwnRide) {
       buttonLabel = context.l10n.thisIsYourOwnRide;
     } else if (existingReq != null) {
-      buttonLabel = existingReq.status == RideRequestStatus.accepted
+      buttonLabel = isAccepted
           ? context.l10n.accepted
           : context.l10n.pending;
     }
@@ -359,8 +368,7 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
             ),
             const SizedBox(height: 10),
           ],
-          if (existingReq != null &&
-              existingReq.status == RideRequestStatus.pending) ...[
+          if (existingReq != null && (isPending || isAccepted)) ...[
             Row(
               children: [
                 Expanded(
@@ -370,13 +378,15 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
                         context: context,
                         builder: (ctx) => AlertDialog(
                           title: Text(
-                            'Cancel Request',
+                            isAccepted ? 'Leave Ride' : 'Cancel Request',
                             style: GoogleFonts.inter(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          content: const Text(
-                            'Are you sure you want to cancel your request for this ride?',
+                          content: Text(
+                            isAccepted
+                                ? 'Are you sure you want to cancel your seat in this ride? Remaining seats and fare will be recalculated for other riders.'
+                                : 'Are you sure you want to cancel your request for this ride?',
                           ),
                           actions: [
                             TextButton(
@@ -388,50 +398,75 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
                               style: TextButton.styleFrom(
                                 foregroundColor: Colors.red,
                               ),
-                              child: const Text('Cancel Request'),
+                              child: Text(
+                                isAccepted ? 'Leave Ride' : 'Cancel Request',
+                              ),
                             ),
                           ],
                         ),
                       );
 
                       if (confirmed == true) {
-                        await ref
+                        final res = await ref
                             .read(rideActionProvider.notifier)
                             .cancelMyRequest(existingReq);
                         ref.invalidate(
                           currentRideRequestProvider(widget.ride.id),
                         );
+                        ref.invalidate(liveRideProvider(widget.ride));
+                        ref.invalidate(dynamicFareProvider(widget.ride));
+                        ref.invalidate(liveAvailableSeatsProvider(widget.ride));
                         ref.invalidate(myRidesProvider);
                         if (ref.read(searchRideProvider).hasSearched) {
                           ref.read(searchRideProvider.notifier).searchRides();
                         }
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Request cancelled successfully.'),
-                            ),
-                          );
+                          if (res is Success<void>) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  isAccepted
+                                      ? 'You left the ride successfully.'
+                                      : 'Request cancelled successfully.',
+                                ),
+                              ),
+                            );
+                          } else if (res is Failure<void>) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(res.message),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
                         }
                       }
                     },
                     icon: const Icon(
                       Icons.cancel_outlined,
                       color: Colors.red,
-                      size: 18,
+                      size: 16,
                     ),
-                    label: Text(
-                      'Cancel Request',
-                      style: GoogleFonts.inter(
-                        color: Colors.red,
-                        fontWeight: FontWeight.w600,
+                    label: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        isAccepted ? 'Leave Ride' : 'Cancel Request',
+                        style: GoogleFonts.inter(
+                          color: Colors.red,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.red),
+                      side: const BorderSide(color: Colors.red, width: 1.2),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 8,
+                      ),
                     ),
                   ),
                 ),
@@ -447,11 +482,20 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 8,
+                      ),
                     ),
-                    child: Text(
-                      'Requested',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        isAccepted ? 'Joined' : 'Requested',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
                   ),
                 ),

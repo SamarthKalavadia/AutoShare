@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/result.dart';
@@ -303,15 +304,13 @@ class CreateRideNotifier extends Notifier<CreateRideState> {
     state = state.copyWith(isLoading: false);
 
     if (result is Success<String>) {
-      // Schedule background reminders safely
-      try {
-        await NotificationService().scheduleRideReminder(
+      // Schedule background reminders safely without blocking UI
+      unawaited(
+        NotificationService().scheduleRideReminder(
           result.data,
           ride.departureTime,
-        );
-      } catch (e) {
-        // Notification error should never prevent successful ride creation
-      }
+        ).catchError((_) {}),
+      );
     }
 
     return result;

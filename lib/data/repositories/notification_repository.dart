@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/utils/result.dart';
@@ -38,16 +40,18 @@ class NotificationRepository {
   Future<Result<void>> createNotification(
     NotificationModel notification,
   ) async {
-    // 1. Immediately trigger high-priority push notification so device wakes up even if app is closed or phone was off
-    try {
-      await NotificationService().sendPushNotification(
+    // 1. Immediately trigger high-priority push notification asynchronously without blocking caller
+    unawaited(
+      NotificationService().sendPushNotification(
         recipientUid: notification.userId,
         title: notification.title,
         body: notification.body,
         type: notification.type,
         relatedId: notification.relatedId,
-      );
-    } catch (_) {}
+      ).catchError((e) {
+        debugPrint('[NotificationRepository] push dispatch note: $e');
+      }),
+    );
 
     // 2. Persist in-app notification document in Firestore
     try {
@@ -60,6 +64,75 @@ class NotificationRepository {
       );
     } catch (e) {
       return Failure('An unexpected error occurred.', Exception(e.toString()));
+    }
+  }
+
+  /// Queues a push notification for the Node.js FCM worker (server/notification_worker.js)
+  /// and writes corresponding in-app notification records in Firestore.
+  Future<Result<void>> queuePushNotification({
+    required List<String> recipientUids,
+    required String title,
+    required String body,
+    required String type,
+    String? relatedId,
+    Map<String, dynamic>? dataPayload,
+  }) async {
+    final uniqueRecipients = recipientUids
+        .where((u) => u.trim().isNotEmpty)
+        .toSet()
+        .toList();
+    if (uniqueRecipients.isEmpty) return const Success(null);
+
+    try {
+      // 1. Persist in-app notifications in batch
+      final batch = FirebaseFirestore.instance.batch();
+      final now = DateTime.now();
+      for (final uid in uniqueRecipients) {
+        final docRef = _notifCollection.doc();
+        batch.set(docRef, {
+          'userId': uid,
+          'title': title,
+          'body': body,
+          'type': type,
+          'isRead': false,
+          'createdAt': Timestamp.fromDate(now),
+          if (relatedId != null) 'relatedId': relatedId,
+        });
+      }
+      await batch.commit();
+
+      // 2. Queue for FCM Worker in push_notifications collection (if cloud rules permit)
+      try {
+        final queuePayload = <String, dynamic>{
+          'recipientUids': uniqueRecipients,
+          'title': title,
+          'body': body,
+          'type': type,
+          'status': 'pending',
+          'createdAt': FieldValue.serverTimestamp(),
+          if (relatedId != null) 'relatedId': relatedId,
+          if (dataPayload != null) 'data': dataPayload,
+        };
+
+        await FirebaseFirestore.instance
+            .collection('push_notifications')
+            .add(queuePayload);
+
+        debugPrint(
+          '[NotificationRepository] Queued push notification for ${uniqueRecipients.length} recipients: $title',
+        );
+      } catch (queueErr) {
+        debugPrint(
+          '[NotificationRepository] Note: push_notifications write bypassed; notifications collection is active: $queueErr',
+        );
+      }
+      return const Success(null);
+    } catch (e) {
+      debugPrint('[NotificationRepository] queuePushNotification error: $e');
+      return Failure(
+        'Failed to queue push notification.',
+        Exception(e.toString()),
+      );
     }
   }
 

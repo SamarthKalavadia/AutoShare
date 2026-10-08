@@ -8,6 +8,7 @@ import '../../../data/models/ride_model.dart';
 import '../../../shared/utils/avatar_utils.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
 import '../../ride_details/providers/driver_profile_provider.dart';
+import '../../ride_details/providers/ride_request_provider.dart';
 
 class RideCard extends ConsumerWidget {
   final RideModel ride;
@@ -53,10 +54,15 @@ class RideCard extends ConsumerWidget {
           driverUser?.name.isNotEmpty == true ? driverUser!.name : 'User';
     }
 
+    final liveRide = ref.watch(liveRideProvider(ride)).value ?? ride;
+    final dynamicFare = ref.watch(dynamicFareProvider(ride));
+    final liveSeats = ref.watch(liveAvailableSeatsProvider(ride));
+    final isFull = liveSeats <= 0;
+
     final avatarProvider = getAvatarImageProvider(driverUser?.profileImage);
 
     final currentUserId = ref.read(authControllerProvider).value?.uid ?? '';
-    final isOwner = ride.driverId == currentUserId;
+    final isOwner = liveRide.driverId == currentUserId;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -79,7 +85,7 @@ class RideCard extends ConsumerWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
           onTap: () {
-            context.push('/ride-details', extra: ride);
+            context.push('/ride-details', extra: liveRide);
           },
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -99,7 +105,7 @@ class RideCard extends ConsumerWidget {
                             children: [
                               const SizedBox(height: 4),
                               Text(
-                                DateFormat('h:mm a').format(ride.departureTime),
+                                DateFormat('h:mm a').format(liveRide.departureTime),
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -107,8 +113,8 @@ class RideCard extends ConsumerWidget {
                               const SizedBox(height: 24),
                               Text(
                                 DateFormat('h:mm a').format(
-                                  ride.departureTime.add(
-                                    _parseDuration(ride.estimatedDuration),
+                                  liveRide.departureTime.add(
+                                    _parseDuration(liveRide.estimatedDuration),
                                   ),
                                 ),
                                 style: theme.textTheme.titleMedium?.copyWith(
@@ -142,7 +148,7 @@ class RideCard extends ConsumerWidget {
                               children: [
                                 const SizedBox(height: 4),
                                 Text(
-                                  ride.boardingLocation,
+                                  liveRide.boardingLocation,
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -151,7 +157,7 @@ class RideCard extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 24),
                                 Text(
-                                  ride.destination,
+                                  liveRide.destination,
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -170,54 +176,64 @@ class RideCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          '₹${ride.totalFare.toInt()}',
+                          '₹${dynamicFare.round()}',
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.w800,
                             color: primaryColor,
                           ),
                         ),
                         Text(
-                          '/person',
+                          '/ person',
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.5),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        if (isOwner)
-                          Container(
-                            margin: const EdgeInsets.only(top: 4),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.white10
-                                  : Colors.black.withValues(alpha: 0.05),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              'Your Ride',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Current fare',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: mutedText,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 10,
                           ),
+                        ),
                       ],
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 6),
+                // Fare Explanation Helper Text
+                if (!isFull)
+                  Text(
+                    'Fare decreases as more riders join',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: mutedText,
+                      fontSize: 11,
+                    ),
+                  )
+                else
+                  Text(
+                    'Ride full',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: const Color(0xFFD32F2F),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+
+                const SizedBox(height: 16),
                 Divider(
                   height: 1,
                   color: isDark
                       ? Colors.white10
                       : Colors.black.withValues(alpha: 0.05),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
-                // Driver Footer
+                // Driver Footer & Seats / Action
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -260,7 +276,7 @@ class RideCard extends ConsumerWidget {
                                 ),
                                 const SizedBox(width: 2),
                                 Text(
-                                  ride.driverRating.toStringAsFixed(1),
+                                  liveRide.driverRating.toStringAsFixed(1),
                                   style: theme.textTheme.labelMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: mutedText,
@@ -274,7 +290,7 @@ class RideCard extends ConsumerWidget {
                     ),
                     Row(
                       children: [
-                        if (ride.isGirlsOnly)
+                        if (liveRide.isGirlsOnly)
                           Container(
                             margin: const EdgeInsets.only(right: 8),
                             padding: const EdgeInsets.symmetric(
@@ -291,20 +307,111 @@ class RideCard extends ConsumerWidget {
                               size: 16,
                             ),
                           ),
-                        AppSeatIcon(
-                          size: 16,
-                          color: mutedText,
+                        if (isFull)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF2C2C2E)
+                                  : const Color(0xFFF3F3F3),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Ride Full',
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFFD32F2F),
+                              ),
+                            ),
+                          )
+                        else
+                          Row(
+                            children: [
+                              AppSeatIcon(
+                                size: 16,
+                                color: mutedText,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '$liveSeats ${liveSeats == 1 ? "seat" : "seats"} available',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: mutedText,
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+                // Join / Full Button State
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (isOwner)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 7,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${ride.availableSeats}',
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white10
+                              : Colors.black.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          'Your Ride',
                           style: theme.textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                             color: mutedText,
                           ),
                         ),
-                      ],
-                    ),
+                      )
+                    else if (isFull)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF28282A)
+                              : const Color(0xFFE8E8E8),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          'Full',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: mutedText,
+                          ),
+                        ),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: primaryColor,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          'Request to Join',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF121212),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ],

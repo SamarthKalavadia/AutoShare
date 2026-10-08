@@ -377,7 +377,14 @@ class HomeTab extends ConsumerWidget {
                           Expanded(
                             child: _uberActionButton(
                               context: context,
-                              icon: Icons.calendar_today_rounded,
+                              iconWidget: Image.asset(
+                                isDark
+                                    ? 'assets/today_white.png'
+                                    : 'assets/today.png',
+                                width: 22,
+                                height: 22,
+                                fit: BoxFit.contain,
+                              ),
                               label: searchState.departureDate == null
                                   ? context.l10n.today
                                   : DateFormat(
@@ -406,7 +413,14 @@ class HomeTab extends ConsumerWidget {
                           Expanded(
                             child: _uberActionButton(
                               context: context,
-                              icon: Icons.person_rounded,
+                              iconWidget: Image.asset(
+                                isDark
+                                    ? 'assets/seats_white.png'
+                                    : 'assets/seats.png',
+                                width: 22,
+                                height: 22,
+                                fit: BoxFit.contain,
+                              ),
                               label:
                                   '${searchState.passengers} ${searchState.passengers > 1 ? 'Seats' : 'Seat'}',
                               onTap: () {
@@ -491,7 +505,7 @@ class HomeTab extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: _ActionCard(
-                      icon: Icons.search_rounded,
+                      imageAsset: 'assets/find_ride.png',
                       label: context.l10n.findRide,
                       onTap: () {
                         ref.read(homeNavigationProvider.notifier).setIndex(1);
@@ -501,7 +515,7 @@ class HomeTab extends ConsumerWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: _ActionCard(
-                      icon: Icons.directions_car_filled_rounded,
+                      imageAsset: 'assets/my_rides.png',
                       label: context.l10n.navMyRides,
                       onTap: () => context.push('/my-rides'),
                     ),
@@ -509,7 +523,7 @@ class HomeTab extends ConsumerWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: _ActionCard(
-                      icon: Icons.badge_rounded,
+                      imageAsset: 'assets/driver_directory.png',
                       label: context.l10n.driverDirectory,
                       onTap: () => context.push('/driver-directory'),
                     ),
@@ -956,7 +970,8 @@ class HomeTab extends ConsumerWidget {
 
   Widget _uberActionButton({
     required BuildContext context,
-    required IconData icon,
+    IconData? icon,
+    Widget? iconWidget,
     required String label,
     VoidCallback? onTap,
   }) {
@@ -975,7 +990,10 @@ class HomeTab extends ConsumerWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 18, color: theme.colorScheme.onSurface),
+            if (iconWidget != null)
+              iconWidget
+            else if (icon != null)
+              Icon(icon, size: 18, color: theme.colorScheme.onSurface),
             const SizedBox(width: 8),
             Text(
               label,
@@ -991,9 +1009,13 @@ class HomeTab extends ConsumerWidget {
 }
 
 class _ActionCard extends StatelessWidget {
-  const _ActionCard({required this.icon, required this.label, this.onTap});
+  const _ActionCard({
+    required this.imageAsset,
+    required this.label,
+    this.onTap,
+  });
 
-  final IconData icon;
+  final String imageAsset;
   final String label;
   final VoidCallback? onTap;
 
@@ -1029,12 +1051,11 @@ class _ActionCard extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 28,
-                color: isDark
-                    ? const Color(0xFFFFC400)
-                    : theme.colorScheme.primary,
+              Image.asset(
+                imageAsset,
+                width: 42,
+                height: 42,
+                fit: BoxFit.contain,
               ),
               const SizedBox(height: 12),
               Text(

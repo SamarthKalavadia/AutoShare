@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/services/firestore_service.dart';
 import '../../core/utils/result.dart';
 import '../models/user_model.dart';
@@ -11,6 +12,64 @@ class UserRepository {
 
   UserRepository({FirestoreService? firestoreService})
     : _firestoreService = firestoreService ?? FirestoreService();
+
+  UserModel _healUserIfNeeded(UserModel user, String uid, User? fbUser) {
+    if (fbUser == null || fbUser.uid != uid) {
+      if (user.name.trim().isEmpty) {
+        final fallback = user.email.isNotEmpty && user.email.contains('@')
+            ? user.email.split('@').first
+            : 'AutoShare User';
+        return user.copyWith(name: fallback);
+      }
+      return user;
+    }
+
+    bool needsUpdate = false;
+    final Map<String, dynamic> updates = {};
+    var healed = user;
+
+    if (healed.name.trim().isEmpty) {
+      final resolvedName = (fbUser.displayName != null && fbUser.displayName!.trim().isNotEmpty)
+          ? fbUser.displayName!.trim()
+          : (healed.email.isNotEmpty && healed.email.contains('@')
+              ? healed.email.split('@').first
+              : (fbUser.email != null && fbUser.email!.contains('@')
+                  ? fbUser.email!.split('@').first
+                  : 'AutoShare User'));
+      healed = healed.copyWith(name: resolvedName);
+      updates['name'] = resolvedName;
+      needsUpdate = true;
+    }
+
+    if (healed.email.trim().isEmpty && fbUser.email != null && fbUser.email!.isNotEmpty) {
+      healed = healed.copyWith(email: fbUser.email);
+      updates['email'] = fbUser.email;
+      needsUpdate = true;
+    }
+
+    if (healed.profileImage.trim().isEmpty && fbUser.photoURL != null && fbUser.photoURL!.isNotEmpty) {
+      healed = healed.copyWith(profileImage: fbUser.photoURL);
+      updates['profileImage'] = fbUser.photoURL;
+      needsUpdate = true;
+    }
+
+    if (fbUser.emailVerified && !healed.emailVerified) {
+      healed = healed.copyWith(emailVerified: true);
+      updates['emailVerified'] = true;
+      needsUpdate = true;
+    }
+
+    if (needsUpdate) {
+      unawaited(
+        _firestoreService.usersCollection
+            .doc(uid)
+            .set(updates, SetOptions(merge: true))
+            .catchError((_) {}),
+      );
+    }
+
+    return healed;
+  }
 
   /// Retrieves a user by their [uid].
   Future<Result<UserModel>> getUser(String uid) async {
@@ -38,6 +97,11 @@ class UserRepository {
         }
       }
 
+      User? fbUser;
+      try {
+        fbUser = FirebaseAuth.instance.currentUser;
+      } catch (_) {}
+
       if (!doc.exists) {
         try {
           final querySnap = await _firestoreService.usersCollection
@@ -46,15 +110,47 @@ class UserRepository {
               .get()
               .timeout(const Duration(seconds: 8));
           if (querySnap.docs.isNotEmpty) {
-            return Success(UserModel.fromDocument(querySnap.docs.first));
+            final user = UserModel.fromDocument(querySnap.docs.first);
+            return Success(_healUserIfNeeded(user, uid, fbUser));
           }
         } catch (_) {}
+
+        if (fbUser != null && fbUser.uid == uid) {
+          final fallbackName = (fbUser.displayName != null && fbUser.displayName!.trim().isNotEmpty)
+              ? fbUser.displayName!.trim()
+              : (fbUser.email != null && fbUser.email!.contains('@')
+                  ? fbUser.email!.split('@').first
+                  : 'AutoShare User');
+          final newUser = UserModel(
+            uid: uid,
+            name: fallbackName,
+            email: fbUser.email ?? '',
+            phone: fbUser.phoneNumber ?? '',
+            profileImage: fbUser.photoURL ?? '',
+            emailVerified: fbUser.emailVerified,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+            lastSeen: DateTime.now(),
+            isOnline: true,
+            gender: '',
+          );
+          unawaited(
+            _firestoreService.usersCollection
+                .doc(uid)
+                .set(newUser.toMap(), SetOptions(merge: true))
+                .catchError((_) {}),
+          );
+          return Success(newUser);
+        }
+
         return const Failure(
           'User not found.',
           FirestoreException('User document does not exist.'),
         );
       }
-      return Success(UserModel.fromDocument(doc));
+
+      final rawUser = UserModel.fromDocument(doc);
+      return Success(_healUserIfNeeded(rawUser, uid, fbUser));
     } on FirebaseException catch (e) {
       debugPrint('UserRepository.getUser FirebaseException: $e');
       return Failure(
@@ -115,19 +211,21 @@ class UserRepository {
       if (updates.isEmpty) return const Success(null);
 
       updates['updatedAt'] = FieldValue.serverTimestamp();
-      await _firestoreService.usersCollection.doc(uid).update(updates);
+      await _firestoreService.usersCollection
+          .doc(uid)
+          .set(updates, SetOptions(merge: true));
 
       return const Success(null);
     } on FirebaseException catch (e) {
       // ignore: avoid_print
-      print('UserRepository.updateProfile Error: \$e');
+      print('UserRepository.updateProfile Error: $e');
       return Failure(
         e.message ?? 'Failed to update profile.',
         FirestoreException(e.code),
       );
     } catch (e) {
       // ignore: avoid_print
-      print('UserRepository.updateProfile Unknown Error: \$e');
+      print('UserRepository.updateProfile Unknown Error: $e');
       return Failure('An unexpected error occurred.', Exception(e.toString()));
     }
   }
@@ -135,10 +233,10 @@ class UserRepository {
   /// Updates the profile image URL.
   Future<Result<void>> updateProfileImage(String uid, String imageUrl) async {
     try {
-      await _firestoreService.usersCollection.doc(uid).update({
+      await _firestoreService.usersCollection.doc(uid).set({
         'profileImage': imageUrl,
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
       return const Success(null);
     } on FirebaseException catch (e) {
       // ignore: avoid_print

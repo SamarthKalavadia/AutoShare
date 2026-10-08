@@ -118,6 +118,14 @@ flutter:
     - assets/images/
     - assets/appicon.png
     - assets/firebase/
+    - assets/firebase/service-account.json
+    - assets/find_ride.png
+    - assets/my_rides.png
+    - assets/driver_directory.png
+    - assets/today.png
+    - assets/today_white.png
+    - assets/seats.png
+    - assets/seats_white.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

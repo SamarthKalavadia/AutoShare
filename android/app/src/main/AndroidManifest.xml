@@ -12,7 +12,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <application
         android:label="AutoShare"
-        android:name="${applicationName}"
+        android:name=".AutoShareApplication"
         android:icon="@mipmap/ic_launcher">
 
         <!-- Google Maps API Key MUST be a direct child of application -->

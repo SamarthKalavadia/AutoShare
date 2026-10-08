@@ -53,8 +53,19 @@ class RideRepository {
         status: 'active',
       );
 
-      // Write to Firestore and AWAIT the result — the write IS the source of truth
-      await docRef.set(newRide.toMap());
+      // Write to Firestore with fast timeout — local persistence queues immediately
+      try {
+        await docRef.set(newRide.toMap()).timeout(
+          const Duration(milliseconds: 2500),
+          onTimeout: () {
+            debugPrint(
+              '[RideRepository] CREATE set reached 2.5s, proceeding with offline cache',
+            );
+          },
+        );
+      } catch (e) {
+        debugPrint('[RideRepository] CREATE set note: $e');
+      }
 
       debugPrint(
         '[RideRepository] CREATE success | collection: rides | documentId: ${newRide.id} | driverId: $driverId',
@@ -143,9 +154,18 @@ class RideRepository {
   /// Awaits Firestore confirmation before returning Success.
   Future<Result<void>> cancelRide(String rideId) async {
     try {
-      await _firestoreService.ridesCollection.doc(rideId).update({
-        'status': 'cancelled',
-      });
+      try {
+        await _firestoreService.ridesCollection.doc(rideId).update({
+          'status': 'cancelled',
+        }).timeout(
+          const Duration(milliseconds: 2000),
+          onTimeout: () {
+            debugPrint('[RideRepository] CANCEL set reached 2s timeout, continuing with offline cache');
+          },
+        );
+      } catch (e) {
+        debugPrint('[RideRepository] CANCEL update note: $e');
+      }
 
       debugPrint('[RideRepository] CANCEL success | documentId: $rideId');
 
@@ -180,19 +200,49 @@ class RideRepository {
         );
       }
 
-      if (newSeats < 0 || newSeats > 2) {
+      if (newSeats < 1 || newSeats > 2) {
         return Failure(
-          'Available seats must be between 0 and 2.',
+          'Available seats must be 1 or 2.',
           Exception('Invalid seat count'),
         );
       }
 
-      await _firestoreService.ridesCollection.doc(rideId).update({
+      final updateData = <String, dynamic>{
         'availableSeats': newSeats,
-      });
+      };
+
+      try {
+        final rideDoc = await _firestoreService.ridesCollection
+            .doc(rideId)
+            .get()
+            .timeout(const Duration(seconds: 3));
+        if (rideDoc.exists) {
+          final data = rideDoc.data() as Map<String, dynamic>?;
+          final totalFare =
+              (data?['totalFare'] as num?)?.toDouble() ??
+              (data?['farePerSeat'] as num?)?.toDouble() ??
+              0.0;
+          final acceptedCount =
+              (data?['acceptedPassengerCount'] as num?)?.toInt() ?? 0;
+          final remaining = (newSeats - acceptedCount).clamp(0, newSeats);
+          final people = 1 + acceptedCount;
+          final farePerPerson =
+              people > 0 ? (totalFare / people) : totalFare;
+
+          updateData['totalSeats'] = newSeats;
+          updateData['availableSeats'] = remaining;
+          updateData['acceptedPassengerCount'] = acceptedCount;
+          updateData['currentFarePerPerson'] = farePerPerson;
+          updateData['farePerSeat'] = farePerPerson;
+        }
+      } catch (e) {
+        debugPrint('[RideRepository] updateAvailableSeats calculation note: $e');
+      }
+
+      await _firestoreService.ridesCollection.doc(rideId).update(updateData);
 
       debugPrint(
-        '[RideRepository] UPDATE availableSeats success | rideId: $rideId | newSeats: $newSeats',
+        '[RideRepository] UPDATE availableSeats success | rideId: $rideId | newSeats: $newSeats | data: $updateData',
       );
 
       unawaited(_notifyPassengersOfSeatUpdate(rideId, newSeats));
@@ -259,9 +309,9 @@ class RideRepository {
     try {
       final reqSnapshot = await _firestoreService.rideRequestsCollection
           .where('rideId', isEqualTo: rideId)
-          .where('status', isEqualTo: 'accepted')
+          .where('status', whereIn: ['accepted', 'pending'])
           .get()
-          .timeout(const Duration(seconds: 5));
+          .timeout(const Duration(seconds: 4));
 
       for (final doc in reqSnapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
@@ -272,8 +322,8 @@ class RideRepository {
               NotificationModel(
                 id: '',
                 userId: passengerUid,
-                title: 'Ride Cancelled',
-                body: 'A ride you joined has been cancelled by the driver.',
+                title: 'Ride Cancelled ❌',
+                body: 'A ride you joined or requested has been cancelled by the driver.',
                 type: 'cancelled',
                 isRead: false,
                 createdAt: DateTime.now(),
@@ -437,9 +487,9 @@ class RideRepository {
           doc.id,
         );
 
-        // Client-side filters (in order of cheapest to most expensive)
-        if (ride.availableSeats < seats) continue;
-        if (ride.totalFare > maxFare) continue;
+        // Client-side filters: show rides (including full rides for 1 seat) so users see realtime status
+        if (seats > 1 && ride.availableSeats < seats) continue;
+        if (ride.currentFarePerPerson > maxFare && ride.totalFare > maxFare) continue;
         if (ride.departureTime.isBefore(cutoffTime)) continue;
         if (isGirlsOnly && !ride.isGirlsOnly) continue;
 

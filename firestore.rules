@@ -40,10 +40,10 @@ service cloud.firestore {
       allow create: if isAuthenticated()
                     && request.resource.data.driverId == request.auth.uid;
 
-      // Update: only the ride creator may modify the document, or any authenticated user updating availableSeats
+      // Update: only the ride creator may modify the document, or any authenticated user updating seat/fare counts on cancellation
       allow update: if isAuthenticated()
                     && (resource.data.driverId == request.auth.uid
-                        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['availableSeats']));
+                        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['availableSeats', 'acceptedPassengerCount', 'totalSeats', 'currentFarePerPerson', 'farePerSeat']));
 
       // Delete: only the ride creator may permanently delete the document.
       allow delete: if isAuthenticated()

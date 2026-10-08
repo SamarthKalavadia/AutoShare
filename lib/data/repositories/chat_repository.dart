@@ -167,7 +167,7 @@ class ChatRepository {
         debugPrint('[CHAT PARTICIPANTS LOOKUP ERROR]: $e');
       }
 
-      // If still empty, check the ride document
+      // If still empty, check the ride document and all accepted/pending passengers
       if (recipients.isEmpty) {
         try {
           final rideDoc = await _fs.ridesCollection.doc(message.rideId).get();
@@ -176,6 +176,19 @@ class ChatRepository {
             final driverId = data?['driverId'] as String? ?? '';
             if (driverId.isNotEmpty && driverId != message.senderId) {
               recipients.add(driverId);
+            }
+          }
+        } catch (_) {}
+
+        try {
+          final reqSnapshot = await _fs.rideRequestsCollection
+              .where('rideId', isEqualTo: message.rideId)
+              .get();
+          for (final doc in reqSnapshot.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final pUid = data['requesterUid'] as String? ?? '';
+            if (pUid.isNotEmpty && pUid != message.senderId) {
+              recipients.add(pUid);
             }
           }
         } catch (_) {}

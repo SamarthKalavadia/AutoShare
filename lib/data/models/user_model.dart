@@ -176,13 +176,23 @@ class UserModel extends Equatable {
       }
     }
 
-    final userName = (map['name']?.toString() ??
+    var userName = (map['name']?.toString() ??
         map['displayName']?.toString() ??
         map['fullName']?.toString() ??
+        map['userName']?.toString() ??
+        map['user_name']?.toString() ??
+        map['username']?.toString() ??
         '').trim();
 
     final uid = (map['uid']?.toString() ?? map['id']?.toString() ?? '').trim();
-    final email = (map['email']?.toString() ?? '').trim();
+    final email = (map['email']?.toString() ??
+        map['userEmail']?.toString() ??
+        map['mail']?.toString() ??
+        '').trim();
+
+    if (userName.isEmpty && email.isNotEmpty && email.contains('@')) {
+      userName = email.split('@').first;
+    }
     final phone = (map['phone']?.toString() ?? map['phoneNumber']?.toString() ?? '').trim();
     final gender = (map['gender']?.toString() ?? '').trim();
     final city = (map['city']?.toString() ?? '').trim();

@@ -8,10 +8,36 @@ class RideModel extends Equatable {
   final String destination;
   final DateTime departureTime;
   final int availableSeats;
+  final int totalSeats;
+  final int acceptedPassengerCount;
   final double totalFare;
 
+  /// Remaining passenger seats: availablePassengerSeats - acceptedPassengerCount.
+  int get remainingSeats =>
+      (totalSeats - acceptedPassengerCount).clamp(0, totalSeats);
+
+  /// Total people currently in the ride: 1 creator + acceptedPassengerCount.
+  int get totalPeople =>
+      1 + (acceptedPassengerCount < 0 ? 0 : acceptedPassengerCount);
+
+  /// Whether the ride is full (no remaining passenger seats).
+  bool get isFull => remainingSeats <= 0;
+
+  /// Calculates fare per person based on CURRENT accepted passenger count:
+  /// totalPeople = 1 + acceptedPassengerCount
+  /// currentFarePerPerson = totalFare / totalPeople
+  double calculateFarePerPerson({int? acceptedPassengers, int? customSeats}) {
+    final count = acceptedPassengers ?? acceptedPassengerCount;
+    final people = 1 + (count < 0 ? 0 : count);
+    if (people <= 0) return totalFare;
+    return totalFare / people;
+  }
+
+  /// Current calculated fare per person.
+  double get currentFarePerPerson => calculateFarePerPerson();
+
   /// Backward-compatible alias for existing callers.
-  double get farePerSeat => totalFare;
+  double get farePerSeat => currentFarePerPerson;
 
   final String vehicleNumber;
   final String description;
@@ -30,6 +56,8 @@ class RideModel extends Equatable {
     required this.destination,
     required this.departureTime,
     required this.availableSeats,
+    int? totalSeats,
+    int? acceptedPassengerCount,
     double? totalFare,
     double? farePerSeat,
     this.vehicleNumber = '',
@@ -41,21 +69,9 @@ class RideModel extends Equatable {
     this.driverRating = 0.0,
     this.estimatedDuration = '',
     this.distance = '',
-  }) : totalFare = totalFare ?? farePerSeat ?? 0.0;
-
-  /// Calculates fare per seat/person based on available seats or participants:
-  /// When seats are available: farePerSeat = totalFare / availableSeats.
-  /// When availableSeats is 0: falls back to totalFare / (1 + acceptedPassengers).
-  double calculateFarePerPerson({int acceptedPassengers = 0, int? customSeats}) {
-    final seats = customSeats ?? availableSeats;
-    if (seats > 0) {
-      return totalFare / seats;
-    }
-    final clampedPassengers = acceptedPassengers.clamp(0, 2);
-    final participants = 1 + clampedPassengers;
-    if (participants <= 0) return totalFare;
-    return totalFare / participants;
-  }
+  })  : totalSeats = totalSeats ?? (availableSeats > 0 ? availableSeats : 1),
+        acceptedPassengerCount = acceptedPassengerCount ?? 0,
+        totalFare = totalFare ?? farePerSeat ?? 0.0;
 
   factory RideModel.empty() {
     return RideModel(
@@ -65,6 +81,8 @@ class RideModel extends Equatable {
       destination: '',
       departureTime: DateTime.now(),
       availableSeats: 1,
+      totalSeats: 1,
+      acceptedPassengerCount: 0,
       totalFare: 0.0,
       createdAt: DateTime.now(),
     );
@@ -77,6 +95,8 @@ class RideModel extends Equatable {
     String? destination,
     DateTime? departureTime,
     int? availableSeats,
+    int? totalSeats,
+    int? acceptedPassengerCount,
     double? totalFare,
     double? farePerSeat,
     String? vehicleNumber,
@@ -89,13 +109,21 @@ class RideModel extends Equatable {
     String? estimatedDuration,
     String? distance,
   }) {
+    final resolvedTotalSeats = totalSeats ?? this.totalSeats;
+    final resolvedAccepted =
+        acceptedPassengerCount ?? this.acceptedPassengerCount;
+    final resolvedRemaining = availableSeats ??
+        (resolvedTotalSeats - resolvedAccepted).clamp(0, resolvedTotalSeats);
+
     return RideModel(
       id: id ?? this.id,
       driverId: driverId ?? this.driverId,
       boardingLocation: boardingLocation ?? this.boardingLocation,
       destination: destination ?? this.destination,
       departureTime: departureTime ?? this.departureTime,
-      availableSeats: availableSeats ?? this.availableSeats,
+      availableSeats: resolvedRemaining,
+      totalSeats: resolvedTotalSeats,
+      acceptedPassengerCount: resolvedAccepted,
       totalFare: totalFare ?? farePerSeat ?? this.totalFare,
       vehicleNumber: vehicleNumber ?? this.vehicleNumber,
       description: description ?? this.description,
@@ -116,9 +144,12 @@ class RideModel extends Equatable {
       'boardingLocation': boardingLocation,
       'destination': destination,
       'departureTime': Timestamp.fromDate(departureTime),
-      'availableSeats': availableSeats,
+      'availableSeats': remainingSeats,
+      'totalSeats': totalSeats,
+      'acceptedPassengerCount': acceptedPassengerCount,
       'totalFare': totalFare,
-      'farePerSeat': totalFare,
+      'currentFarePerPerson': currentFarePerPerson,
+      'farePerSeat': currentFarePerPerson,
       'vehicleNumber': vehicleNumber,
       'description': description,
       'isGirlsOnly': isGirlsOnly,
@@ -132,13 +163,22 @@ class RideModel extends Equatable {
   }
 
   factory RideModel.fromMap(Map<String, dynamic> map, String docId) {
+    final rawTotalSeats =
+        (map['totalSeats'] ?? map['availableSeats'])?.toInt() ?? 1;
+    final rawAvailableSeats =
+        map['availableSeats']?.toInt() ?? rawTotalSeats;
+    final rawAccepted = map['acceptedPassengerCount']?.toInt() ??
+        (rawTotalSeats - rawAvailableSeats).clamp(0, rawTotalSeats);
+
     return RideModel(
       id: docId,
       driverId: map['driverId'] ?? '',
       boardingLocation: map['boardingLocation'] ?? '',
       destination: map['destination'] ?? '',
       departureTime: (map['departureTime'] as Timestamp).toDate(),
-      availableSeats: map['availableSeats']?.toInt() ?? 1,
+      availableSeats: rawAvailableSeats,
+      totalSeats: rawTotalSeats,
+      acceptedPassengerCount: rawAccepted,
       totalFare: (map['totalFare'] ?? map['farePerSeat'])?.toDouble() ?? 0.0,
       vehicleNumber: map['vehicleNumber'] ?? '',
       description: map['description'] ?? '',
@@ -162,6 +202,8 @@ class RideModel extends Equatable {
     destination,
     departureTime,
     availableSeats,
+    totalSeats,
+    acceptedPassengerCount,
     totalFare,
     vehicleNumber,
     description,

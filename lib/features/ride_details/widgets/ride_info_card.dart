@@ -8,6 +8,8 @@ import '../../../data/models/ride_model.dart';
 import '../../../shared/providers.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
 import '../providers/ride_request_provider.dart';
+import '../../my_rides/providers/my_rides_provider.dart';
+import '../../search/providers/search_ride_provider.dart';
 
 class RideInfoCard extends ConsumerWidget {
   final RideModel ride;
@@ -29,9 +31,9 @@ class RideInfoCard extends ConsumerWidget {
         theme.cardTheme.color ??
         (isDark ? const Color(0xFF1E1E1E) : Colors.white);
 
-    final state = ref.watch(rideRequestProvider);
     final dynamicFare = ref.watch(dynamicFareProvider(ride));
     final liveRide = ref.watch(liveRideProvider(ride)).value ?? ride;
+    final liveSeats = ref.watch(liveAvailableSeatsProvider(ride));
     final currentUid = ref.watch(authControllerProvider).value?.uid;
     final isOwner = currentUid != null && currentUid == liveRide.driverId;
     final isExpired = liveRide.departureTime.isBefore(DateTime.now());
@@ -92,7 +94,7 @@ class RideInfoCard extends ConsumerWidget {
                       color: isDark ? Colors.white70 : const Color(0xFF6F6F72),
                     ),
                     label: 'Available Seats',
-                    value: '${liveRide.availableSeats}',
+                    value: '$liveSeats',
                   ),
                 ),
               ],
@@ -102,7 +104,9 @@ class RideInfoCard extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
-              'Total ride fare: ₹${liveRide.totalFare.round()}',
+              liveSeats == 0
+                  ? 'Ride full • ₹${dynamicFare.round()} / person'
+                  : 'Current fare: ₹${dynamicFare.round()} / person (Fare decreases as more riders join)',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: mutedText,
                 fontWeight: FontWeight.w500,
@@ -111,93 +115,81 @@ class RideInfoCard extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
 
-          // Stepper: Available Seats for ride owner OR Requested Seats for passenger
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: Center(
-                    child: Icon(
-                      isOwner
-                          ? Icons.event_seat_rounded
-                          : Icons.people_alt_rounded,
-                      size: 20,
-                      color: mutedText,
-                    ),
+          // Stepper: Available Seats (Only ride creator can edit/change the number of seats: 1 or 2 only)
+          if (isOwner) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          AppSeatIcon(
+                            size: 15,
+                            color: mutedText,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Available Seats',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: mutedText,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 21),
+                        child: Text(
+                          '${liveRide.availableSeats.clamp(1, 2)}',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: blackColor,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      isOwner ? 'Available Seats' : 'Requested Seats',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: mutedText,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      isOwner
-                          ? '${liveRide.availableSeats}'
-                          : '${state.requestedSeats}',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: blackColor,
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                _StepperButton(
-                  icon: Icons.remove_rounded,
-                  onTap: isOwner
-                      ? (!isClosed && !isExpired && liveRide.availableSeats > 0
-                          ? () => _updateSeats(
-                                context,
-                                ref,
-                                liveRide,
-                                liveRide.availableSeats - 1,
-                              )
-                          : null)
-                      : (state.requestedSeats > 1
-                          ? () => ref
-                                .read(rideRequestProvider.notifier)
-                                .decrementSeats()
-                          : null),
-                ),
-                const SizedBox(width: 8),
-                _StepperButton(
-                  icon: Icons.add_rounded,
-                  onTap: isOwner
-                      ? (!isClosed && !isExpired && liveRide.availableSeats < 2
-                          ? () => _updateSeats(
-                                context,
-                                ref,
-                                liveRide,
-                                liveRide.availableSeats + 1,
-                              )
-                          : null)
-                      : (state.requestedSeats < liveRide.availableSeats &&
-                              state.requestedSeats < 2
-                          ? () => ref
-                                .read(rideRequestProvider.notifier)
-                                .incrementSeats(liveRide.availableSeats)
-                          : null),
-                ),
-              ],
+                  const Spacer(),
+                  _StepperButton(
+                    icon: Icons.remove_rounded,
+                    onTap: (!isClosed && !isExpired && liveRide.availableSeats > 1)
+                        ? () => _updateSeats(
+                              context,
+                              ref,
+                              liveRide,
+                              (liveRide.availableSeats - 1).clamp(1, 2),
+                            )
+                        : null,
+                  ),
+                  const SizedBox(width: 8),
+                  _StepperButton(
+                    icon: Icons.add_rounded,
+                    onTap: (!isClosed && !isExpired && liveRide.availableSeats < 2)
+                        ? () => _updateSeats(
+                              context,
+                              ref,
+                              liveRide,
+                              liveRide.availableSeats < 1 ? 1 : 2,
+                            )
+                        : null,
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
 
           // Vehicle number (if present)
           if (ride.vehicleNumber.isNotEmpty) ...[
@@ -243,13 +235,20 @@ class RideInfoCard extends ConsumerWidget {
     RideModel ride,
     int newSeats,
   ) async {
+    final clampedSeats = newSeats.clamp(1, 2);
     HapticFeedback.mediumImpact();
     final res = await ref.read(rideRepositoryProvider).updateAvailableSeats(
       ride.id,
-      newSeats,
+      clampedSeats,
     );
     if (!context.mounted) return;
     if (res is Success) {
+      ref.invalidate(liveRideProvider(ride));
+      ref.invalidate(dynamicFareProvider(ride));
+      ref.invalidate(myRidesProvider);
+      if (ref.read(searchRideProvider).hasSearched) {
+        ref.read(searchRideProvider.notifier).searchRides();
+      }
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -294,7 +293,7 @@ class _InfoTile extends StatelessWidget {
     final blackColor = theme.colorScheme.onSurface;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
         color: highlight
             ? primaryColor.withValues(alpha: 0.1)
@@ -320,7 +319,7 @@ class _InfoTile extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,15 +329,18 @@ class _InfoTile extends StatelessWidget {
                   height: 16,
                   child: Align(
                     alignment: Alignment.centerLeft,
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: isDark ? Colors.white54 : const Color(0xFF9E9E9E),
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12,
-                        height: 1.0,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: isDark ? Colors.white54 : const Color(0xFF9E9E9E),
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                          height: 1.0,
+                        ),
                       ),
                     ),
                   ),

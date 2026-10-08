@@ -206,19 +206,47 @@ final liveRideRequestsProvider = StreamProvider.autoDispose.family<List<RideRequ
   return repo.streamRequestsByRide(rideId);
 });
 
-final liveAvailableSeatsProvider = Provider.autoDispose.family<int, RideModel>((ref, ride) {
+final liveAvailableSeatsProvider =
+    Provider.autoDispose.family<int, RideModel>((ref, ride) {
   final liveRide = ref.watch(liveRideProvider(ride)).value ?? ride;
-  final requests = ref.watch(liveRideRequestsProvider(ride.id)).value ?? [];
-  final acceptedRequests = requests.where((r) => r.status == RideRequestStatus.accepted);
-  final requestedSeatsSum = acceptedRequests.fold<int>(0, (sum, req) => sum + req.requestedSeats);
-  return (liveRide.availableSeats - requestedSeatsSum).clamp(0, 3);
+  final requests =
+      ref.watch(liveRideRequestsProvider(ride.id)).value ?? [];
+  final acceptedRequests =
+      requests.where((r) => r.status == RideRequestStatus.accepted);
+  final acceptedSeats =
+      acceptedRequests.fold<int>(0, (sum, req) => sum + req.requestedSeats);
+  if (requests.isNotEmpty) {
+    return (liveRide.totalSeats - acceptedSeats).clamp(0, liveRide.totalSeats);
+  }
+  return liveRide.remainingSeats;
 });
 
-final dynamicFareProvider = Provider.autoDispose.family<double, RideModel>((ref, ride) {
+final liveAcceptedPassengersProvider =
+    Provider.autoDispose.family<int, RideModel>((ref, ride) {
   final liveRide = ref.watch(liveRideProvider(ride)).value ?? ride;
-  final requests = ref.watch(liveRideRequestsProvider(ride.id)).value ?? [];
+  final requests =
+      ref.watch(liveRideRequestsProvider(ride.id)).value ?? [];
+  final acceptedRequests =
+      requests.where((r) => r.status == RideRequestStatus.accepted);
+  final acceptedSeats =
+      acceptedRequests.fold<int>(0, (sum, req) => sum + req.requestedSeats);
+  if (requests.isNotEmpty) {
+    return acceptedSeats;
+  }
+  return liveRide.acceptedPassengerCount;
+});
+
+final dynamicFareProvider =
+    Provider.autoDispose.family<double, RideModel>((ref, ride) {
+  final liveRide = ref.watch(liveRideProvider(ride)).value ?? ride;
+  final requests =
+      ref.watch(liveRideRequestsProvider(ride.id)).value ?? [];
   // Only count passengers whose ride requests have actually been accepted.
-  final acceptedRequests = requests.where((r) => r.status == RideRequestStatus.accepted);
-  final acceptedPassengers = acceptedRequests.fold<int>(0, (sum, req) => sum + req.requestedSeats);
+  final acceptedRequests =
+      requests.where((r) => r.status == RideRequestStatus.accepted);
+  final acceptedSeats =
+      acceptedRequests.fold<int>(0, (sum, req) => sum + req.requestedSeats);
+  final acceptedPassengers =
+      requests.isNotEmpty ? acceptedSeats : liveRide.acceptedPassengerCount;
   return liveRide.calculateFarePerPerson(acceptedPassengers: acceptedPassengers);
 });

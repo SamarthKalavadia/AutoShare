@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -698,6 +699,35 @@ class _ProfileHeader extends ConsumerWidget {
         : const Color(0xFFF0EDE9);
     final mutedTextColor = isDark ? Colors.white60 : const Color(0xFF6F6F72);
 
+    User? fbUser;
+    if (isOwnProfile) {
+      try {
+        fbUser = FirebaseAuth.instance.currentUser;
+      } catch (_) {}
+    }
+
+    final resolvedName = user.name.trim().isNotEmpty
+        ? user.name.trim()
+        : ((fbUser?.displayName != null && fbUser!.displayName!.trim().isNotEmpty)
+            ? fbUser.displayName!.trim()
+            : (user.email.isNotEmpty && user.email.contains('@')
+                ? user.email.split('@').first
+                : (fbUser?.email != null && fbUser!.email!.contains('@')
+                    ? fbUser.email!.split('@').first
+                    : 'AutoShare User')));
+
+    final resolvedEmail = user.email.trim().isNotEmpty
+        ? user.email.trim()
+        : (fbUser?.email?.trim() ?? '');
+
+    final resolvedImage = user.profileImage.trim().isNotEmpty
+        ? user.profileImage.trim()
+        : (fbUser?.photoURL?.trim() ?? '');
+
+    final initialLetter = resolvedName.isNotEmpty
+        ? resolvedName[0].toUpperCase()
+        : 'A';
+
     return Container(
       color: theme.scaffoldBackgroundColor,
       child: SafeArea(
@@ -716,16 +746,23 @@ class _ProfileHeader extends ConsumerWidget {
                   shape: BoxShape.circle,
                   color: avatarBgColor,
                 ),
-                child: user.profileImage.isNotEmpty
+                child: (resolvedImage.isNotEmpty && getAvatarImageProvider(resolvedImage) != null)
                     ? Image(
-                        image: getAvatarImageProvider(user.profileImage)!,
+                        image: getAvatarImageProvider(resolvedImage)!,
                         fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Center(
+                          child: Text(
+                            initialLetter,
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: blackColor,
+                            ),
+                          ),
+                        ),
                       )
                     : Center(
                         child: Text(
-                          user.name.isNotEmpty
-                              ? user.name[0].toUpperCase()
-                              : '?',
+                          initialLetter,
                           style: theme.textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: blackColor,
@@ -740,7 +777,7 @@ class _ProfileHeader extends ConsumerWidget {
                 children: [
                   Flexible(
                     child: Text(
-                      user.name,
+                      resolvedName,
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: blackColor,
@@ -749,7 +786,7 @@ class _ProfileHeader extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (user.emailVerified) ...[
+                  if (user.emailVerified || (fbUser?.emailVerified ?? false)) ...[
                     const SizedBox(width: 6),
                     const Icon(
                       Icons.verified_rounded,
@@ -759,10 +796,10 @@ class _ProfileHeader extends ConsumerWidget {
                   ],
                 ],
               ),
-              if (user.email.isNotEmpty) ...[
+              if (resolvedEmail.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
-                  user.email,
+                  resolvedEmail,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: mutedTextColor,
                     fontWeight: FontWeight.w500,

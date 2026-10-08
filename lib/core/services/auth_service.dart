@@ -79,6 +79,10 @@ class AuthService {
         );
       }
 
+      // Sync FCM token and notifications
+      NotificationService().syncFcmToken(user.uid);
+      NotificationService().startListening(user.uid);
+
       return Success(userModel);
     } on FirebaseAuthException catch (e) {
       // ignore: avoid_print
@@ -117,6 +121,9 @@ class AuthService {
       // Fetch user from Firestore
       final dbResult = await _userRepository.getUser(user.uid);
       if (dbResult is Success<UserModel>) {
+        // Sync FCM token and notifications
+        NotificationService().syncFcmToken(user.uid);
+        NotificationService().startListening(user.uid);
         return dbResult;
       }
 
