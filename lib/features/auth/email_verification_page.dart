@@ -44,7 +44,11 @@ class _EmailVerificationPageState extends ConsumerState<EmailVerificationPage> {
 
     if (user != null && user.emailVerified) {
       _pollingTimer?.cancel();
-      context.go('/home');
+      if (!user.isProfileComplete) {
+        context.go('/profile-completion');
+      } else {
+        context.go('/home');
+      }
     } else if (showToast) {
       SnackbarHelper.show(
         context,

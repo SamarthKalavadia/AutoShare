@@ -99,7 +99,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       if (!mounted) return;
 
       if (result is Success<UserModel>) {
-        context.go('/home');
+        final user = result.data;
+        if (!user.isProfileComplete) {
+          context.go('/profile-completion');
+        } else {
+          context.go('/home');
+        }
       } else if (result is Failure<UserModel>) {
         SnackbarHelper.show(context, result.message);
       }

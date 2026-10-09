@@ -15,7 +15,8 @@ import '../../../ride_details/providers/create_ride_provider.dart';
 import '../../../ride_details/providers/ride_request_provider.dart';
 import '../../../../shared/widgets/location_autocomplete_field.dart';
 import '../../../../services/location_service.dart'
-    show LocationService, PermissionException, HttpException;
+    show LocationService, PermissionException;
+import '../../../../core/widgets/app_seat_icon.dart';
 import 'home_page.dart' show homeNavigationProvider;
 
 class HomeTab extends ConsumerWidget {
@@ -381,8 +382,8 @@ class HomeTab extends ConsumerWidget {
                                 isDark
                                     ? 'assets/today_white.png'
                                     : 'assets/today.png',
-                                width: 22,
-                                height: 22,
+                                width: 20,
+                                height: 20,
                                 fit: BoxFit.contain,
                               ),
                               label: searchState.departureDate == null
@@ -413,14 +414,7 @@ class HomeTab extends ConsumerWidget {
                           Expanded(
                             child: _uberActionButton(
                               context: context,
-                              iconWidget: Image.asset(
-                                isDark
-                                    ? 'assets/seats_white.png'
-                                    : 'assets/seats.png',
-                                width: 22,
-                                height: 22,
-                                fit: BoxFit.contain,
-                              ),
+                              iconWidget: const AppSeatIcon(size: 20),
                               label:
                                   '${searchState.passengers} ${searchState.passengers > 1 ? 'Seats' : 'Seat'}',
                               onTap: () {
@@ -888,42 +882,6 @@ class HomeTab extends ConsumerWidget {
     );
   }
 
-  void _showLocationPicker(BuildContext context, WidgetRef ref, String field) {
-    final isBoarding = field == 'boarding';
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => _LocationPickerSheet(
-        title: isBoarding ? 'Boarding Location' : 'Destination',
-        isBoarding: isBoarding,
-        onSelected: (label, details) {
-          if (isBoarding) {
-            ref
-                .read(homeSearchProvider.notifier)
-                .updateBoarding(
-                  label,
-                  placeId: details?.placeId,
-                  address: details?.address,
-                  lat: details?.latitude,
-                  lng: details?.longitude,
-                );
-          } else {
-            ref
-                .read(homeSearchProvider.notifier)
-                .updateDestination(
-                  label,
-                  placeId: details?.placeId,
-                  address: details?.address,
-                  lat: details?.latitude,
-                  lng: details?.longitude,
-                );
-          }
-        },
-      ),
-    );
-  }
-
   Widget _animatedCard({required int duration, required Widget child}) {
     return AnimatedOpacity(
       opacity: 1,
@@ -934,36 +892,6 @@ class HomeTab extends ConsumerWidget {
         duration: Duration(milliseconds: duration),
         curve: Curves.easeOutCubic,
         child: child,
-      ),
-    );
-  }
-
-  Widget _uberInput({
-    required BuildContext context,
-    required String label,
-    required bool isBold,
-    VoidCallback? onTap,
-  }) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-                  color: isBold
-                      ? theme.colorScheme.onSurface
-                      : theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -989,16 +917,18 @@ class HomeTab extends ConsumerWidget {
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (iconWidget != null)
               iconWidget
             else if (icon != null)
-              Icon(icon, size: 18, color: theme.colorScheme.onSurface),
+              Icon(icon, size: 20, color: theme.colorScheme.onSurface),
             const SizedBox(width: 8),
             Text(
               label,
               style: theme.textTheme.labelLarge?.copyWith(
                 fontWeight: FontWeight.w600,
+                height: 1.1,
               ),
             ),
           ],
@@ -1031,7 +961,7 @@ class _ActionCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 4),
           decoration: BoxDecoration(
             color: cardBg,
             borderRadius: BorderRadius.circular(20),
@@ -1053,11 +983,11 @@ class _ActionCard extends StatelessWidget {
             children: [
               Image.asset(
                 imageAsset,
-                width: 42,
-                height: 42,
+                width: 50,
+                height: 50,
                 fit: BoxFit.contain,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               Text(
                 label,
                 textAlign: TextAlign.center,

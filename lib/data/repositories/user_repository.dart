@@ -342,6 +342,43 @@ class UserRepository {
     }
   }
 
+  /// Checks if a phone number is already in use by another user.
+  /// Returns Success(true) if unique, Success(false) if already taken.
+  Future<Result<bool>> isPhoneNumberUnique({
+    required String phone,
+    required String currentUid,
+  }) async {
+    if (phone.trim().isEmpty) {
+      return const Success(true); // Empty phone is trivially "unique"
+    }
+    try {
+      final snapshot = await _firestoreService.usersCollection
+          .where('phone', isEqualTo: phone.trim())
+          .limit(5)
+          .get()
+          .timeout(const Duration(seconds: 8));
+
+      // Filter out the current user's own document
+      final otherUsers = snapshot.docs
+          .where((doc) => doc.id != currentUid)
+          .toList();
+
+      return Success(otherUsers.isEmpty);
+    } on FirebaseException catch (e) {
+      debugPrint('UserRepository.isPhoneNumberUnique FirebaseException: $e');
+      return Failure(
+        e.message ?? 'Failed to check phone uniqueness.',
+        FirestoreException(e.code),
+      );
+    } catch (e) {
+      debugPrint('UserRepository.isPhoneNumberUnique Unknown Error: $e');
+      return Failure(
+        'An unexpected error occurred.',
+        Exception(e.toString()),
+      );
+    }
+  }
+
   /// Checks if a user document exists.
   Future<Result<bool>> checkUserExists(String uid) async {
     try {

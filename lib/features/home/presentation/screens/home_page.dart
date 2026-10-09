@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/localization/app_localizations.dart';
 
 import 'home_tab.dart';
@@ -45,6 +44,19 @@ class _HomePageState extends ConsumerState<HomePage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = ref.read(authControllerProvider).value;
+      if (user != null && !user.isProfileComplete) {
+        if (mounted) {
+          context.go('/profile-completion');
+        }
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     ref.listen(authControllerProvider, (previous, next) {
       if (!next.isLoading && next.value == null) {
@@ -54,6 +66,12 @@ class _HomePageState extends ConsumerState<HomePage> {
               Navigator.of(context, rootNavigator: true).pop();
             }
             context.go('/login');
+          }
+        });
+      } else if (!next.isLoading && next.value != null && !next.value!.isProfileComplete) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            context.go('/profile-completion');
           }
         });
       }

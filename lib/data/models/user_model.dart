@@ -21,6 +21,13 @@ class UserModel extends Equatable {
   final String emergencyContact;
   final String bio;
 
+  /// Returns true when all compulsory profile fields are filled.
+  bool get isProfileComplete =>
+      name.trim().isNotEmpty &&
+      phone.trim().isNotEmpty &&
+      gender.trim().isNotEmpty &&
+      city.trim().isNotEmpty;
+
   const UserModel({
     required this.uid,
     required this.name,

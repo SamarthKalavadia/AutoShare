@@ -22,7 +22,6 @@ class DriverInfoCard extends ConsumerWidget {
     final borderColor = isDark
         ? const Color(0xFF333333)
         : const Color(0xFFEAE5DD);
-    final mutedText = isDark ? Colors.white60 : const Color(0xFF6F6F72);
     final cardBg =
         theme.cardTheme.color ??
         (isDark ? const Color(0xFF1E1E1E) : Colors.white);
@@ -89,10 +88,6 @@ class DriverInfoCard extends ConsumerWidget {
     }
 
     final initials = _getInitials(resolvedDriverName);
-    final rating = (driverUser != null && driverUser.averageRating > 0)
-        ? driverUser.averageRating
-        : (liveRide.driverRating > 0 ? liveRide.driverRating : ride.driverRating);
-
     final avatarProvider = getAvatarImageProvider(driverUser?.profileImage);
 
     return Container(
@@ -105,7 +100,7 @@ class DriverInfoCard extends ConsumerWidget {
             ? []
             : const [
                 BoxShadow(
-                  color: Color(0x0A121212),
+                  color: Color(0x0F121212),
                   blurRadius: 16,
                   offset: Offset(0, 4),
                 ),
@@ -148,43 +143,13 @@ class DriverInfoCard extends ConsumerWidget {
 
           // Driver details
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Name + verified badge
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        resolvedDriverName,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: blackColor,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    _VerifiedBadge(),
-                  ],
-                ),
-                const SizedBox(height: 6),
-
-                // Star rating
-                Row(
-                  children: [
-                    _StarRating(rating: rating),
-                    const SizedBox(width: 6),
-                    Text(
-                      rating > 0 ? rating.toStringAsFixed(1) : 'New',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: mutedText,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            child: Text(
+              resolvedDriverName,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: blackColor,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
 
@@ -203,39 +168,6 @@ class DriverInfoCard extends ConsumerWidget {
     if (parts.isEmpty || parts.first.isEmpty) return '?';
     if (parts.length == 1) return parts.first[0].toUpperCase();
     return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
-  }
-}
-
-class _VerifiedBadge extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF1B3D23) : const Color(0xFFE8F5E9);
-    final iconColor = isDark
-        ? const Color(0xFF81C784)
-        : const Color(0xFF2E7D32);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.verified_rounded, size: 12, color: iconColor),
-          const SizedBox(width: 3),
-          Text(
-            'Verified',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: iconColor,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -264,25 +196,6 @@ class _GirlsOnlyBadge extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _StarRating extends StatelessWidget {
-  final double rating;
-
-  const _StarRating({required this.rating});
-
-  @override
-  Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(1, (i) {
-        // Show just 1 star in BlaBlaCar style instead of 5
-        return Icon(Icons.star_rounded, size: 16, color: primaryColor);
-      }),
     );
   }
 }

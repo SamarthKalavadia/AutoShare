@@ -202,9 +202,10 @@ class MyRideCard extends ConsumerWidget {
                     ],
                   ),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      AppSeatIcon(size: 16, color: mutedText),
-                      const SizedBox(width: 4),
+                      AppSeatIcon(size: 15, color: mutedText),
+                      const SizedBox(width: 5),
                       Text(
                         data.role == 'passenger'
                             ? '${data.request?.requestedSeats ?? 1} requested'
@@ -213,6 +214,7 @@ class MyRideCard extends ConsumerWidget {
                           fontSize: 14,
                           color: mutedText,
                           fontWeight: FontWeight.w500,
+                          height: 1.1,
                         ),
                       ),
                     ],

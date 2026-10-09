@@ -141,6 +141,21 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         finalImageUrl = '';
       }
 
+      // Check phone number uniqueness if phone changed
+      final newPhone = _phoneController.text.trim();
+      if (newPhone.isNotEmpty && newPhone != currentUser.phone) {
+        final phoneCheck = await ref.read(userRepositoryProvider).isPhoneNumberUnique(
+          phone: newPhone,
+          currentUid: currentUser.uid,
+        );
+        if (phoneCheck is Success<bool> && !phoneCheck.data) {
+          throw Exception('This mobile number is already registered with another account.');
+        }
+        if (phoneCheck is Failure<bool>) {
+          throw Exception((phoneCheck as Failure).message);
+        }
+      }
+
       // Update Firestore with full updated user info
       final updatedUser = currentUser.copyWith(
         name: _nameController.text.trim(),

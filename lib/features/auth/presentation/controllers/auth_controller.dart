@@ -90,6 +90,28 @@ class AuthController extends Notifier<AsyncValue<UserModel?>> {
   }) async {
     state = const AsyncValue.loading();
 
+    // Check phone number uniqueness first
+    if (phone.trim().isNotEmpty) {
+      final phoneCheckResult = await _userRepository.isPhoneNumberUnique(
+        phone: phone.trim(),
+        currentUid: '',
+      );
+      if (phoneCheckResult is Success<bool> && !phoneCheckResult.data) {
+        state = const AsyncValue.data(null);
+        return const Failure(
+          'This mobile number is already registered with another account.',
+          FirestoreException('phone-already-in-use'),
+        );
+      }
+      if (phoneCheckResult is Failure<bool>) {
+        state = const AsyncValue.data(null);
+        return Failure(
+          (phoneCheckResult as Failure).message,
+          Exception('phone-check-failed'),
+        );
+      }
+    }
+
     final signupResult = await _authService.signUpWithEmail(
       name: name,
       email: email,
@@ -194,47 +216,76 @@ class AuthController extends Notifier<AsyncValue<UserModel?>> {
   }
 
   /// Reload current user status
-  Future<User?> reloadUser() async {
+  Future<UserModel?> reloadUser() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       await user.reload();
       final updatedUser = FirebaseAuth.instance.currentUser;
 
-      if (updatedUser != null && updatedUser.emailVerified) {
+      if (updatedUser != null) {
         final fetchUserResult = await _userRepository.getUser(updatedUser.uid);
         if (fetchUserResult is Success<UserModel>) {
           UserModel currentUserModel = fetchUserResult.data;
-          if (!currentUserModel.emailVerified) {
+          if (currentUserModel.emailVerified != updatedUser.emailVerified) {
             final syncedModel = currentUserModel.copyWith(
-              emailVerified: true,
+              emailVerified: updatedUser.emailVerified,
               updatedAt: DateTime.now(),
               lastSeen: DateTime.now(),
             );
             await _userRepository.updateUser(syncedModel);
-            if (state.value?.uid == updatedUser.uid) {
-              state = AsyncValue.data(syncedModel);
-            }
+            currentUserModel = syncedModel;
           }
+          state = AsyncValue.data(currentUserModel);
+          return currentUserModel;
+        } else if (state.value != null) {
+          final fallbackModel = state.value!.copyWith(
+            emailVerified: updatedUser.emailVerified,
+            updatedAt: DateTime.now(),
+            lastSeen: DateTime.now(),
+          );
+          state = AsyncValue.data(fallbackModel);
+          return fallbackModel;
         }
       }
-
-      return updatedUser;
     }
     return null;
   }
 
-  /// Complete missing profile fields (Phone, Gender, DOB, City, Emergency Contact, Image)
+  /// Complete missing profile fields (Name, Phone, Gender, City, Emergency Contact, Bio, Image)
   Future<Result<void>> completeProfile({
     required String uid,
+    String? name,
     required String phone,
     required String gender,
-    required String dob,
     required String city,
-    required String emergencyContact,
+    String emergencyContact = '',
+    String bio = '',
     XFile? profileImageFile,
   }) async {
     state = const AsyncValue.loading();
     try {
+      // Check phone number uniqueness first
+      if (phone.trim().isNotEmpty) {
+        final phoneCheckResult = await _userRepository.isPhoneNumberUnique(
+          phone: phone.trim(),
+          currentUid: uid,
+        );
+        if (phoneCheckResult is Success<bool> && !phoneCheckResult.data) {
+          state = const AsyncValue.data(null);
+          return const Failure(
+            'This mobile number is already registered with another account.',
+            FirestoreException('phone-already-in-use'),
+          );
+        }
+        if (phoneCheckResult is Failure<bool>) {
+          state = const AsyncValue.data(null);
+          return Failure(
+            (phoneCheckResult as Failure).message,
+            Exception('phone-check-failed'),
+          );
+        }
+      }
+
       String imageUrl = '';
       if (profileImageFile != null) {
         final uploadResult = await _profileRepository.uploadProfileImage(
@@ -252,10 +303,12 @@ class AuthController extends Notifier<AsyncValue<UserModel?>> {
           : UserModel.empty().copyWith(uid: uid);
 
       final updatedUser = current.copyWith(
-        phone: phone,
-        gender: gender,
-        city: city,
-        emergencyContact: emergencyContact,
+        name: (name != null && name.trim().isNotEmpty) ? name.trim() : current.name,
+        phone: phone.trim(),
+        gender: gender.trim(),
+        city: city.trim(),
+        emergencyContact: emergencyContact.trim(),
+        bio: bio.trim().isNotEmpty ? bio.trim() : current.bio,
         profileImage: imageUrl.isNotEmpty ? imageUrl : current.profileImage,
         updatedAt: DateTime.now(),
       );

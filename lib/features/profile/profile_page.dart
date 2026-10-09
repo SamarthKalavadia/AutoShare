@@ -690,7 +690,6 @@ class _ProfileHeader extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final blackColor = theme.colorScheme.onSurface;
-    const successColor = Color(0xFF2E7D32);
     final avatarBgColor = isDark
         ? const Color(0xFF2C2C2E)
         : const Color(0xFFE7E4DF);
@@ -771,30 +770,14 @@ class _ProfileHeader extends ConsumerWidget {
                       ),
               ),
               const SizedBox(height: 10),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Flexible(
-                    child: Text(
-                      resolvedName,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: blackColor,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (user.emailVerified || (fbUser?.emailVerified ?? false)) ...[
-                    const SizedBox(width: 6),
-                    const Icon(
-                      Icons.verified_rounded,
-                      color: successColor,
-                      size: 20,
-                    ),
-                  ],
-                ],
+              Text(
+                resolvedName,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: blackColor,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               if (resolvedEmail.isNotEmpty) ...[
                 const SizedBox(height: 4),
@@ -808,37 +791,22 @@ class _ProfileHeader extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
-              if (!isOwnProfile) ...[
+              if (!isOwnProfile && user.gender.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                // ── Verified / Gender Badge Row for Public Profile ──
+                // ── Gender Badge Row for Public Profile ──
                 Wrap(
                   spacing: 8,
                   runSpacing: 4,
                   alignment: WrapAlignment.center,
                   children: [
-                    if (user.emailVerified)
-                      _Chip(
-                        icon: Icons.verified_rounded,
-                        label: 'Verified',
-                        color: successColor,
-                        bgColor: const Color(0xFFEAF5ED),
-                      ),
-                    if (user.gender.isNotEmpty)
-                      _Chip(
-                        icon: user.gender.toLowerCase() == 'female'
-                            ? Icons.female_rounded
-                            : Icons.male_rounded,
-                        label: user.gender,
-                        color: blackColor,
-                        bgColor: chipBgColor,
-                      ),
-                    if (user.averageRating >= 4.5)
-                      _Chip(
-                        icon: Icons.star_rounded,
-                        label: user.averageRating.toStringAsFixed(1),
-                        color: const Color(0xFF7C5700),
-                        bgColor: const Color(0xFFFFF2CC),
-                      ),
+                    _Chip(
+                      icon: user.gender.toLowerCase() == 'female'
+                          ? Icons.female_rounded
+                          : Icons.male_rounded,
+                      label: user.gender,
+                      color: blackColor,
+                      bgColor: chipBgColor,
+                    ),
                   ],
                 ),
               ],

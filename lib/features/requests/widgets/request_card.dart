@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../data/models/request_model.dart';
 import '../../../shared/utils/avatar_utils.dart';
+import '../../../../core/widgets/app_seat_icon.dart';
 import '../../chat/providers/chat_provider.dart';
 import '../providers/incoming_requests_provider.dart';
 
@@ -88,52 +89,33 @@ class RequestCard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            passenger.name,
-                            style: GoogleFonts.outfit(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: blackColor,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (passenger.emailVerified) ...[
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.verified,
-                            color: Colors.blue,
-                            size: 16,
-                          ),
-                        ],
-                      ],
+                    Text(
+                      passenger.name,
+                      style: GoogleFonts.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: blackColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.star_rounded, color: primaryColor, size: 16),
-                        const SizedBox(width: 4),
-                        Text(
-                          '4.9', // Placeholder rating
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: blackColor,
-                          ),
+                        AppSeatIcon(
+                          size: 14,
+                          color: mutedText,
                         ),
-                        const SizedBox(width: 8),
-                        Text('•', style: GoogleFonts.inter(color: mutedText)),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 5),
                         Text(
                           '${req.requestedSeats} seat${req.requestedSeats > 1 ? 's' : ''}',
                           style: GoogleFonts.inter(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                             color: mutedText,
+                            height: 1.1,
                           ),
                         ),
                       ],

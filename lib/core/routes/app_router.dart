@@ -24,6 +24,9 @@ import '../../features/my_rides/my_rides_page.dart';
 import '../../features/chat/chat_page.dart';
 import '../../features/chat/providers/chat_provider.dart';
 import '../../features/settings/about_page.dart';
+import '../../data/repositories/user_repository.dart';
+import '../../data/models/user_model.dart';
+import '../../core/utils/result.dart';
 import '../../data/models/ride_model.dart';
 
 class AppRouter {
@@ -40,7 +43,14 @@ class AppRouter {
         redirect: (context, state) async {
           final user = FirebaseAuth.instance.currentUser;
           if (user != null) {
-            return user.emailVerified ? '/home' : '/email-verification';
+            if (!user.emailVerified) {
+              return '/email-verification';
+            }
+            final userRes = await UserRepository().getUser(user.uid);
+            if (userRes is Success<UserModel> && !userRes.data.isProfileComplete) {
+              return '/profile-completion';
+            }
+            return '/home';
           }
           final prefs = await SharedPreferences.getInstance();
           final onboardingDone =

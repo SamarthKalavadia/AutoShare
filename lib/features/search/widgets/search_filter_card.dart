@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/widgets/app_seat_icon.dart';
 
 import '../providers/search_ride_provider.dart';
 import '../../../shared/widgets/location_autocomplete_field.dart';
@@ -251,12 +252,23 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      context.l10n.requiredSeats,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: mutedText,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        AppSeatIcon(
+                          size: 15,
+                          color: mutedText,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          context.l10n.requiredSeats,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: mutedText,
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Container(
@@ -292,13 +304,22 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                           ),
                           AnimatedSwitcher(
                             duration: const Duration(milliseconds: 200),
-                            child: Text(
-                              '${state.requiredSeats}',
+                            child: Row(
                               key: ValueKey(state.requiredSeats),
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: blackColor,
-                              ),
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                AppSeatIcon(size: 15, color: blackColor),
+                                const SizedBox(width: 5),
+                                Text(
+                                  '${state.requiredSeats}',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: blackColor,
+                                    height: 1.1,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           _StepperButton(
@@ -509,17 +530,19 @@ class _DateTimeSelector extends StatelessWidget {
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (iconWidget != null)
               iconWidget!
             else if (icon != null)
-              Icon(icon, color: textColor, size: 18),
+              Icon(icon, color: textColor, size: 20),
             const SizedBox(width: 8),
             Text(
               text,
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: textColor,
+                height: 1.1,
               ),
             ),
           ],

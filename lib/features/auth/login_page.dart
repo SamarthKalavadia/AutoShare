@@ -57,6 +57,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       final user = result.data;
       if (!user.emailVerified) {
         context.go('/email-verification');
+      } else if (!user.isProfileComplete) {
+        context.go('/profile-completion');
       } else {
         context.go('/home');
       }
@@ -77,7 +79,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (!mounted) return;
 
       if (result is Success<UserModel>) {
-        context.go('/home');
+        final user = result.data;
+        if (!user.isProfileComplete) {
+          context.go('/profile-completion');
+        } else {
+          context.go('/home');
+        }
       } else if (result is Failure<UserModel>) {
         SnackbarHelper.show(context, result.message);
       }

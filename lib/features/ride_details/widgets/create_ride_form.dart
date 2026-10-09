@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/widgets/app_seat_icon.dart';
 import '../../../../data/models/ride_model.dart';
 
 import '../presentation/screens/map_location_picker_page.dart';
@@ -282,7 +283,13 @@ class _CreateRideFormState extends ConsumerState<CreateRideForm> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SectionTitle(title: context.l10n.availableSeats),
+                  _SectionTitle(
+                    title: context.l10n.availableSeats,
+                    leading: AppSeatIcon(
+                      size: 15,
+                      color: isDark ? Colors.white70 : const Color(0xFF6F6F72),
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   _SeatsStepper(),
                 ],
@@ -530,22 +537,34 @@ class _MainSectionTitle extends StatelessWidget {
 
 class _SectionTitle extends StatelessWidget {
   final String title;
+  final Widget? leading;
 
-  const _SectionTitle({required this.title});
+  const _SectionTitle({required this.title, this.leading});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
-      child: Text(
-        title,
-        style: GoogleFonts.inter(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFFFFFFFF)
-              : const Color(0xFF121212),
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          if (leading != null) ...[
+            leading!,
+            const SizedBox(width: 6),
+          ],
+          Text(
+            title,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              height: 1.1,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFFFFFFFF)
+                  : const Color(0xFF121212),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -751,8 +770,14 @@ class _DatePickerField extends ConsumerWidget {
                 ],
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(Icons.calendar_month_rounded, color: textColor, size: 20),
+            Image.asset(
+              isDark ? 'assets/today_white.png' : 'assets/today.png',
+              width: 20,
+              height: 20,
+              fit: BoxFit.contain,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -761,6 +786,7 @@ class _DatePickerField extends ConsumerWidget {
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
                   color: state.departureDate != null ? textColor : hintColor,
+                  height: 1.1,
                 ),
               ),
             ),
@@ -917,14 +943,23 @@ class _SeatsStepper extends ConsumerWidget {
           ),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
-            child: Text(
-              '${state.availableSeats}',
+            child: Row(
               key: ValueKey<int>(state.availableSeats),
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: textColor,
-              ),
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                AppSeatIcon(size: 15, color: textColor),
+                const SizedBox(width: 5),
+                Text(
+                  '${state.availableSeats}',
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: textColor,
+                    height: 1.1,
+                  ),
+                ),
+              ],
             ),
           ),
           _StepperButton(

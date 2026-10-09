@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/app_seat_icon.dart';
-import '../../../core/utils/result.dart';
 import '../../../data/models/ride_model.dart';
-import '../../../shared/providers.dart';
-import '../../auth/presentation/controllers/auth_controller.dart';
 import '../providers/ride_request_provider.dart';
-import '../../my_rides/providers/my_rides_provider.dart';
-import '../../search/providers/search_ride_provider.dart';
 
 class RideInfoCard extends ConsumerWidget {
   final RideModel ride;
@@ -32,13 +26,7 @@ class RideInfoCard extends ConsumerWidget {
         (isDark ? const Color(0xFF1E1E1E) : Colors.white);
 
     final dynamicFare = ref.watch(dynamicFareProvider(ride));
-    final liveRide = ref.watch(liveRideProvider(ride)).value ?? ride;
     final liveSeats = ref.watch(liveAvailableSeatsProvider(ride));
-    final currentUid = ref.watch(authControllerProvider).value?.uid;
-    final isOwner = currentUid != null && currentUid == liveRide.driverId;
-    final isExpired = liveRide.departureTime.isBefore(DateTime.now());
-    final isClosed =
-        liveRide.status == 'completed' || liveRide.status == 'cancelled';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -113,84 +101,6 @@ class RideInfoCard extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
-
-          // Stepper: Available Seats (Only ride creator can edit/change the number of seats: 1 or 2 only)
-          if (isOwner) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF28282A) : const Color(0xFFF3F3F3),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          AppSeatIcon(
-                            size: 15,
-                            color: mutedText,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Available Seats',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: mutedText,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 21),
-                        child: Text(
-                          '${liveRide.availableSeats.clamp(1, 2)}',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: blackColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  _StepperButton(
-                    icon: Icons.remove_rounded,
-                    onTap: (!isClosed && !isExpired && liveRide.availableSeats > 1)
-                        ? () => _updateSeats(
-                              context,
-                              ref,
-                              liveRide,
-                              (liveRide.availableSeats - 1).clamp(1, 2),
-                            )
-                        : null,
-                  ),
-                  const SizedBox(width: 8),
-                  _StepperButton(
-                    icon: Icons.add_rounded,
-                    onTap: (!isClosed && !isExpired && liveRide.availableSeats < 2)
-                        ? () => _updateSeats(
-                              context,
-                              ref,
-                              liveRide,
-                              liveRide.availableSeats < 1 ? 1 : 2,
-                            )
-                        : null,
-                  ),
-                ],
-              ),
-            ),
-          ],
-
           // Vehicle number (if present)
           if (ride.vehicleNumber.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -227,48 +137,6 @@ class RideInfoCard extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  Future<void> _updateSeats(
-    BuildContext context,
-    WidgetRef ref,
-    RideModel ride,
-    int newSeats,
-  ) async {
-    final clampedSeats = newSeats.clamp(1, 2);
-    HapticFeedback.mediumImpact();
-    final res = await ref.read(rideRepositoryProvider).updateAvailableSeats(
-      ride.id,
-      clampedSeats,
-    );
-    if (!context.mounted) return;
-    if (res is Success) {
-      ref.invalidate(liveRideProvider(ride));
-      ref.invalidate(dynamicFareProvider(ride));
-      ref.invalidate(myRidesProvider);
-      if (ref.read(searchRideProvider).hasSearched) {
-        ref.read(searchRideProvider.notifier).searchRides();
-      }
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text('Available seats updated to $newSeats'),
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-    } else if (res is Failure) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(res.message),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-    }
   }
 }
 
@@ -414,52 +282,6 @@ class _VehicleNumberTile extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _StepperButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  const _StepperButton({required this.icon, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final isEnabled = onTap != null;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: isEnabled
-              ? (isDark ? const Color(0xFF38383A) : Colors.white)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: isEnabled
-              ? (isDark
-                    ? []
-                    : const [
-                        BoxShadow(
-                          color: Color(0x15000000),
-                          blurRadius: 6,
-                          offset: Offset(0, 2),
-                        ),
-                      ])
-              : [],
-        ),
-        child: Icon(
-          icon,
-          size: 18,
-          color: isEnabled
-              ? Theme.of(context).colorScheme.onSurface
-              : (isDark ? Colors.white24 : const Color(0xFFD0D0D0)),
-        ),
       ),
     );
   }

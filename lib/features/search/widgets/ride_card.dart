@@ -257,34 +257,11 @@ class RideCard extends ConsumerWidget {
                               : null,
                         ),
                         const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  resolvedDriverName.split(' ').first,
-                                  style: theme.textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                const Icon(
-                                  Icons.star_rounded,
-                                  color: primaryColor,
-                                  size: 14,
-                                ),
-                                const SizedBox(width: 2),
-                                Text(
-                                  liveRide.driverRating.toStringAsFixed(1),
-                                  style: theme.textTheme.labelMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: mutedText,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                        Text(
+                          resolvedDriverName.split(' ').first,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
@@ -329,17 +306,19 @@ class RideCard extends ConsumerWidget {
                           )
                         else
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               AppSeatIcon(
-                                size: 16,
+                                size: 15,
                                 color: mutedText,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 5),
                               Text(
                                 '$liveSeats ${liveSeats == 1 ? "seat" : "seats"} available',
                                 style: theme.textTheme.labelMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: mutedText,
+                                  height: 1.1,
                                 ),
                               ),
                             ],
