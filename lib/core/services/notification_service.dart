@@ -11,6 +11,10 @@ import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:permission_handler/permission_handler.dart';
 
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:googleapis_auth/auth_io.dart';
+import 'package:http/http.dart' as http;
+
 import '../../data/models/ride_model.dart';
 import '../../firebase_options.dart';
 import '../routes/app_router.dart';
@@ -554,10 +558,219 @@ class NotificationService {
     }
   }
 
-  /// Sends a push notification payload to the recipient's FCM tokens and topic fallback.
-  /// This ensures closed apps receive high-priority system bar notifications instantly.
-  /// Queues a push notification in Firestore `push_notifications` collection
-  /// which is processed and delivered via the AutoShare Node.js FCM worker (`server/notification_worker.js`).
+  static String? _cachedAccessToken;
+  static DateTime? _tokenExpiry;
+  static Map<String, dynamic>? _cachedServiceAccount;
+
+  /// Retrieves an OAuth2 Access Token for Google Cloud Messaging (HTTP v1)
+  /// using Firebase Service Account credentials.
+  /// Checks local asset first, then falls back to Firestore appConfig/fcm.
+  Future<String?> _getFcmAccessToken() async {
+    if (_cachedAccessToken != null &&
+        _tokenExpiry != null &&
+        DateTime.now().isBefore(_tokenExpiry!)) {
+      return _cachedAccessToken;
+    }
+
+    try {
+      Map<String, dynamic>? saMap = _cachedServiceAccount;
+
+      // 1. Try loading from bundled asset
+      if (saMap == null) {
+        try {
+          final jsonStr =
+              await rootBundle.loadString('assets/firebase/service-account.json');
+          if (jsonStr.trim().isNotEmpty && jsonStr.trim() != '{}') {
+            final decoded = jsonDecode(jsonStr);
+            if (decoded is Map<String, dynamic> &&
+                decoded.containsKey('private_key')) {
+              saMap = decoded;
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 2. Fallback: load from Firestore appConfig/fcm
+      if (saMap == null) {
+        try {
+          final fcmDoc = await FirebaseFirestore.instance
+              .collection('appConfig')
+              .doc('fcm')
+              .get()
+              .timeout(const Duration(seconds: 4));
+          if (fcmDoc.exists && fcmDoc.data() != null) {
+            final data = fcmDoc.data()!;
+            if (data.containsKey('private_key')) {
+              saMap = data;
+            } else if (data['json'] is String) {
+              final parsed = jsonDecode(data['json'] as String);
+              if (parsed is Map<String, dynamic>) {
+                saMap = parsed;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 3. Fallback: check appConfig/serviceAccount
+      if (saMap == null) {
+        try {
+          final saDoc = await FirebaseFirestore.instance
+              .collection('appConfig')
+              .doc('serviceAccount')
+              .get()
+              .timeout(const Duration(seconds: 4));
+          if (saDoc.exists && saDoc.data() != null) {
+            final data = saDoc.data()!;
+            if (data.containsKey('private_key')) {
+              saMap = data;
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (saMap == null) {
+        debugPrint(
+          '[FCM v1] No service account found in assets or Firestore appConfig/fcm.',
+        );
+        return null;
+      }
+
+      _cachedServiceAccount = saMap;
+      final creds = ServiceAccountCredentials.fromJson(saMap);
+      final scopes = const ['https://www.googleapis.com/auth/firebase.messaging'];
+      final client = await clientViaServiceAccount(creds, scopes);
+      _cachedAccessToken = client.credentials.accessToken.data;
+      _tokenExpiry =
+          client.credentials.accessToken.expiry.subtract(const Duration(minutes: 5));
+      client.close();
+      return _cachedAccessToken;
+    } catch (e) {
+      debugPrint('[FCM v1 AUTH ERROR] Failed to obtain OAuth token: $e');
+      return null;
+    }
+  }
+
+  /// Sends a single high-priority heads-up FCM v1 push notification to a device token or topic.
+  /// When received on Android, Google Play Services immediately wakes up the device
+  /// and shows the heads-up notification banner in the status bar/lock screen,
+  /// even when the AutoShare app is completely closed or killed.
+  Future<bool> _dispatchFcmV1({
+    String? token,
+    String? topic,
+    required String title,
+    required String body,
+    required String type,
+    String? relatedId,
+    String? recipientUid,
+  }) async {
+    if ((token == null || token.isEmpty) && (topic == null || topic.isEmpty)) {
+      return false;
+    }
+    try {
+      final accessToken = await _getFcmAccessToken();
+      if (accessToken == null) return false;
+
+      final isChat = type == 'chat';
+      final channelId = isChat ? kChatChannelId : kDefaultChannelId;
+      final projectId = DefaultFirebaseOptions.currentPlatform.projectId;
+      final collapseTag = '${type}_${relatedId ?? (recipientUid ?? 'notif')}';
+
+      final url = Uri.parse(
+        'https://fcm.googleapis.com/v1/projects/$projectId/messages:send',
+      );
+
+      final Map<String, dynamic> messagePayload = {
+        'notification': {
+          'title': title,
+          'body': body,
+        },
+        'android': {
+          'priority': 'HIGH',
+          'ttl': '2419200s',
+          'notification': {
+            'channel_id': channelId,
+            'tag': collapseTag,
+            'sound': 'default',
+            'default_sound': true,
+            'default_vibrate_timings': true,
+            'notification_priority': 'PRIORITY_MAX',
+            'visibility': 'PUBLIC',
+            'icon': 'ic_launcher',
+            'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+          },
+        },
+        'apns': {
+          'payload': {
+            'aps': {
+              'alert': {
+                'title': title,
+                'body': body,
+              },
+              'sound': 'default',
+              'badge': 1,
+              'content-available': 1,
+            },
+          },
+        },
+        'data': {
+          'title': title,
+          'body': body,
+          'type': type,
+          'relatedId': relatedId ?? '',
+          'rideId': relatedId ?? '',
+          'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+        },
+      };
+
+      if (token != null && token.isNotEmpty) {
+        messagePayload['token'] = token;
+      } else if (topic != null && topic.isNotEmpty) {
+        messagePayload['topic'] = topic;
+      }
+
+      final payload = {'message': messagePayload};
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(payload),
+      );
+
+      final targetStr = token != null
+          ? 'Token: ${token.length > 12 ? token.substring(0, 12) : token}...'
+          : 'Topic: $topic';
+      debugPrint('[FCM v1 RESULT] $targetStr Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        debugPrint('[FCM v1 ERROR] ${response.body}');
+        if (response.statusCode == 404 && recipientUid != null && token != null) {
+          // Token is unregistered or invalid - clean up
+          try {
+            FirebaseFirestore.instance
+                .collection('users')
+                .doc(recipientUid)
+                .update({
+              'fcmTokens': FieldValue.arrayRemove([token]),
+            });
+          } catch (_) {}
+        }
+        return false;
+      }
+    } catch (e) {
+      debugPrint('[FCM v1 DISPATCH EXCEPTION] $e');
+      return false;
+    }
+  }
+
+  /// Sends high-priority push notifications directly to the recipient's FCM tokens
+  /// and user topic fallback, and queues in Firestore `push_notifications`.
+  /// Ensures that closed / killed apps immediately receive the heads-up notification!
   Future<void> sendPushNotification({
     required String recipientUid,
     required String title,
@@ -568,6 +781,63 @@ class NotificationService {
     final cleanUid = recipientUid.trim();
     if (cleanUid.isEmpty) return;
 
+    // 1. Fetch recipient's active FCM tokens from Firestore
+    final List<String> targetTokens = [];
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(cleanUid)
+          .get()
+          .timeout(const Duration(seconds: 3));
+
+      if (userDoc.exists && userDoc.data() != null) {
+        final uData = userDoc.data()!;
+        final singleToken = uData['fcmToken'] as String?;
+        if (singleToken != null && singleToken.trim().isNotEmpty) {
+          targetTokens.add(singleToken.trim());
+        }
+
+        final tokensList = uData['fcmTokens'];
+        if (tokensList is List) {
+          for (final t in tokensList) {
+            if (t is String && t.trim().isNotEmpty && !targetTokens.contains(t.trim())) {
+              targetTokens.add(t.trim());
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[NotificationService] Fetch user tokens error for $cleanUid: $e');
+    }
+
+    // 2. Dispatch FCM v1 directly to tokens
+    bool delivered = false;
+    for (final token in targetTokens) {
+      final ok = await _dispatchFcmV1(
+        token: token,
+        title: title,
+        body: body,
+        type: type,
+        relatedId: relatedId,
+        recipientUid: cleanUid,
+      );
+      if (ok) delivered = true;
+    }
+
+    // 3. Fallback to recipient's individual topic: user_$cleanUid
+    if (!delivered || targetTokens.isEmpty) {
+      debugPrint('[NotificationService] Dispatching to topic user_$cleanUid');
+      await _dispatchFcmV1(
+        topic: 'user_$cleanUid',
+        title: title,
+        body: body,
+        type: type,
+        relatedId: relatedId,
+        recipientUid: cleanUid,
+      );
+    }
+
+    // 4. Also record in push_notifications collection for server audit / redundancy
     try {
       await FirebaseFirestore.instance.collection('push_notifications').add({
         'recipientUids': [cleanUid],
@@ -575,7 +845,7 @@ class NotificationService {
         'body': body,
         'type': type,
         'relatedId': relatedId,
-        'status': 'pending',
+        'status': delivered ? 'delivered' : 'pending',
         'createdAt': FieldValue.serverTimestamp(),
         'data': {
           'type': type,
@@ -583,10 +853,7 @@ class NotificationService {
           'rideId': relatedId ?? '',
         },
       });
-      debugPrint('[NotificationService] Queued push notification for $cleanUid');
-    } catch (e) {
-      debugPrint('[NotificationService] sendPushNotification queue note: $e');
-    }
+    } catch (_) {}
   }
 
   /// Automatically deep-links and routes the user when tapping on a notification.

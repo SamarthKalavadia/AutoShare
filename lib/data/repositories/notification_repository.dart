@@ -55,7 +55,9 @@ class NotificationRepository {
 
     // 2. Persist in-app notification document in Firestore
     try {
-      await _notifCollection.add(notification.toMap());
+      final notifMap = notification.toMap();
+      notifMap['pushSent'] = true;
+      await _notifCollection.add(notifMap);
       return const Success(null);
     } on FirebaseException catch (e) {
       return Failure(

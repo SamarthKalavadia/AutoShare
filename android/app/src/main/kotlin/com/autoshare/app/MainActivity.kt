@@ -33,6 +33,7 @@ class MainActivity : FlutterActivity() {
                 description = "Real-time notifications for rides, bookings, and alerts"
                 enableVibration(true)
                 enableLights(true)
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
                 setSound(defaultSoundUri, audioAttributes)
             }
 
@@ -44,6 +45,7 @@ class MainActivity : FlutterActivity() {
                 description = "Real-time chat messages and conversations"
                 enableVibration(true)
                 enableLights(true)
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
                 setSound(defaultSoundUri, audioAttributes)
             }
 
@@ -55,6 +57,7 @@ class MainActivity : FlutterActivity() {
                 description = "Notifications before a ride starts"
                 enableVibration(true)
                 enableLights(true)
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
                 setSound(defaultSoundUri, audioAttributes)
             }
 

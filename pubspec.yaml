@@ -124,6 +124,7 @@ flutter:
     - assets/today_white.png
     - assets/seats.png
     - assets/seats_white.png
+    - assets/firebase/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
