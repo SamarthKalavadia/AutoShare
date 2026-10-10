@@ -39,6 +39,8 @@ class AuthService {
     required String name,
     required String email,
     required String password,
+    String phone = '',
+    String gender = '',
   }) async {
     try {
       final credential = await _auth.createUserWithEmailAndPassword(
@@ -60,14 +62,14 @@ class AuthService {
         uid: user.uid,
         name: name,
         email: email,
-        phone: '',
+        phone: phone,
         profileImage: '',
         emailVerified: user.emailVerified,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         lastSeen: DateTime.now(),
         isOnline: true,
-        gender: '',
+        gender: gender,
       );
 
       // Save user to Firestore

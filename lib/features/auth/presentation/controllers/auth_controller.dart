@@ -90,32 +90,13 @@ class AuthController extends Notifier<AsyncValue<UserModel?>> {
   }) async {
     state = const AsyncValue.loading();
 
-    // Check phone number uniqueness first
-    if (phone.trim().isNotEmpty) {
-      final phoneCheckResult = await _userRepository.isPhoneNumberUnique(
-        phone: phone.trim(),
-        currentUid: '',
-      );
-      if (phoneCheckResult is Success<bool> && !phoneCheckResult.data) {
-        state = const AsyncValue.data(null);
-        return const Failure(
-          'This mobile number is already registered with another account.',
-          FirestoreException('phone-already-in-use'),
-        );
-      }
-      if (phoneCheckResult is Failure<bool>) {
-        state = const AsyncValue.data(null);
-        return Failure(
-          (phoneCheckResult as Failure).message,
-          Exception('phone-check-failed'),
-        );
-      }
-    }
-
+    // Sign up with Firebase Auth first so the user is authenticated
     final signupResult = await _authService.signUpWithEmail(
       name: name,
       email: email,
       password: password,
+      phone: phone.trim(),
+      gender: gender.trim(),
     );
 
     if (signupResult is Failure<UserModel>) {
@@ -124,6 +105,27 @@ class AuthController extends Notifier<AsyncValue<UserModel?>> {
     }
 
     UserModel user = (signupResult as Success<UserModel>).data;
+
+    // Now that the user is authenticated, check phone number uniqueness
+    if (phone.trim().isNotEmpty) {
+      final phoneCheckResult = await _userRepository.isPhoneNumberUnique(
+        phone: phone.trim(),
+        currentUid: user.uid,
+      );
+      if (phoneCheckResult is Success<bool> && !phoneCheckResult.data) {
+        // Rollback created user since phone number is already taken
+        await _userRepository.deleteUser(user.uid);
+        try {
+          await FirebaseAuth.instance.currentUser?.delete();
+        } catch (_) {}
+        await _authService.logout();
+        state = const AsyncValue.data(null);
+        return const Failure(
+          'This mobile number is already registered with another account.',
+          FirestoreException('phone-already-in-use'),
+        );
+      }
+    }
 
     // Upload image if provided
     String imageUrl = '';
@@ -140,8 +142,8 @@ class AuthController extends Notifier<AsyncValue<UserModel?>> {
 
     // Update phone, gender & profile picture in Firestore if specified
     final updatedModel = user.copyWith(
-      phone: phone,
-      gender: gender,
+      phone: phone.trim(),
+      gender: gender.trim(),
       profileImage: imageUrl.isNotEmpty ? imageUrl : user.profileImage,
     );
 

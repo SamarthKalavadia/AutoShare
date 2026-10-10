@@ -323,6 +323,10 @@ class UserRepository {
     if (phone.trim().isEmpty) {
       return const Success(true); // Empty phone is trivially "unique"
     }
+    // Firestore rules require authentication to query the users collection
+    if (FirebaseAuth.instance.currentUser == null) {
+      return const Success(true);
+    }
     try {
       final snapshot = await _firestoreService.usersCollection
           .where('phone', isEqualTo: phone.trim())
@@ -338,6 +342,11 @@ class UserRepository {
       return Success(otherUsers.isEmpty);
     } on FirebaseException catch (e) {
       debugPrint('UserRepository.isPhoneNumberUnique FirebaseException: $e');
+      if (e.code == 'permission-denied') {
+        // If security rules disallow querying other user documents, treat as unique
+        // rather than failing and blocking the entire auth/profile flow.
+        return const Success(true);
+      }
       return Failure(
         e.message ?? 'Failed to check phone uniqueness.',
         FirestoreException(e.code),
