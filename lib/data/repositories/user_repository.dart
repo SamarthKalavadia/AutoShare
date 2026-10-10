@@ -115,34 +115,6 @@ class UserRepository {
           }
         } catch (_) {}
 
-        if (fbUser != null && fbUser.uid == uid) {
-          final fallbackName = (fbUser.displayName != null && fbUser.displayName!.trim().isNotEmpty)
-              ? fbUser.displayName!.trim()
-              : (fbUser.email != null && fbUser.email!.contains('@')
-                  ? fbUser.email!.split('@').first
-                  : 'AutoShare User');
-          final newUser = UserModel(
-            uid: uid,
-            name: fallbackName,
-            email: fbUser.email ?? '',
-            phone: fbUser.phoneNumber ?? '',
-            profileImage: fbUser.photoURL ?? '',
-            emailVerified: fbUser.emailVerified,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-            lastSeen: DateTime.now(),
-            isOnline: true,
-            gender: '',
-          );
-          unawaited(
-            _firestoreService.usersCollection
-                .doc(uid)
-                .set(newUser.toMap(), SetOptions(merge: true))
-                .catchError((_) {}),
-          );
-          return Success(newUser);
-        }
-
         return const Failure(
           'User not found.',
           FirestoreException('User document does not exist.'),
@@ -386,15 +358,49 @@ class UserRepository {
       return Success(doc.exists);
     } on FirebaseException catch (e) {
       // ignore: avoid_print
-      print('UserRepository.checkUserExists Error: \$e');
+      print('UserRepository.checkUserExists Error: $e');
       return Failure(
         e.message ?? 'Failed to check user existence.',
         FirestoreException(e.code),
       );
     } catch (e) {
       // ignore: avoid_print
-      print('UserRepository.checkUserExists Unknown Error: \$e');
+      print('UserRepository.checkUserExists Unknown Error: $e');
       return Failure('An unexpected error occurred.', Exception(e.toString()));
+    }
+  }
+
+  /// Retrieves a user by their email address.
+  Future<Result<UserModel>> getUserByEmail(String email) async {
+    final cleanEmail = email.trim().toLowerCase();
+    if (cleanEmail.isEmpty) {
+      return const Failure('Empty email.', FirestoreException('Email is empty.'));
+    }
+    try {
+      final snapshot = await _firestoreService.usersCollection
+          .where('email', isEqualTo: cleanEmail)
+          .limit(1)
+          .get()
+          .timeout(const Duration(seconds: 8));
+      if (snapshot.docs.isNotEmpty) {
+        return Success(UserModel.fromDocument(snapshot.docs.first));
+      }
+
+      // Check original case as fallback
+      if (email.trim() != cleanEmail) {
+        final snapOriginal = await _firestoreService.usersCollection
+            .where('email', isEqualTo: email.trim())
+            .limit(1)
+            .get()
+            .timeout(const Duration(seconds: 8));
+        if (snapOriginal.docs.isNotEmpty) {
+          return Success(UserModel.fromDocument(snapOriginal.docs.first));
+        }
+      }
+
+      return const Failure('User not found.', FirestoreException('user-not-found'));
+    } catch (e) {
+      return Failure('Error finding user by email: $e', Exception(e.toString()));
     }
   }
 }

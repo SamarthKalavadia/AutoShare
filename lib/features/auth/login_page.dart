@@ -87,6 +87,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         }
       } else if (result is Failure<UserModel>) {
         SnackbarHelper.show(context, result.message);
+        final isUserNotFound = (result.exception is AuthException &&
+                (result.exception as AuthException).message == 'user-not-found') ||
+            result.message.toLowerCase().contains('account not found') ||
+            result.message.toLowerCase().contains('create an account');
+        if (isUserNotFound) {
+          context.push('/register');
+        }
       }
     } catch (e) {
       if (mounted) {

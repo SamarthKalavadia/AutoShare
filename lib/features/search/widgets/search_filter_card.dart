@@ -252,23 +252,12 @@ class _SearchFilterCardState extends ConsumerState<SearchFilterCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        AppSeatIcon(
-                          size: 15,
-                          color: mutedText,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          context.l10n.requiredSeats,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: mutedText,
-                            height: 1.1,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      context.l10n.requiredSeats,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: mutedText,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Container(

@@ -237,11 +237,21 @@ class AuthService {
         );
       }
 
-      // Fetch existing user or create a new user profile
-      UserModel userModel;
+      // Fetch existing user by UID or email
+      UserModel? existingUser;
       final existingResult = await _userRepository.getUser(user.uid);
       if (existingResult is Success<UserModel>) {
-        final existingName = existingResult.data.name;
+        existingUser = existingResult.data;
+      } else if (user.email != null && user.email!.isNotEmpty) {
+        final emailResult = await _userRepository.getUserByEmail(user.email!);
+        if (emailResult is Success<UserModel>) {
+          existingUser = emailResult.data;
+        }
+      }
+
+      UserModel userModel;
+      if (existingUser != null) {
+        final existingName = existingUser.name;
         final resolvedName = (existingName.isNotEmpty && existingName.toLowerCase() != 'user')
             ? existingName
             : ((user.displayName?.isNotEmpty == true && user.displayName!.toLowerCase() != 'user')
@@ -250,11 +260,11 @@ class AuthService {
                     ? user.email!.split('@').first
                     : (existingName.isNotEmpty ? existingName : 'Ride Partner')));
 
-        userModel = existingResult.data.copyWith(
+        userModel = existingUser.copyWith(
           name: resolvedName,
-          email: user.email ?? existingResult.data.email,
-          profileImage: existingResult.data.profileImage.isNotEmpty
-              ? existingResult.data.profileImage
+          email: user.email ?? existingUser.email,
+          profileImage: existingUser.profileImage.isNotEmpty
+              ? existingUser.profileImage
               : (user.photoURL ?? ''),
           emailVerified: user.emailVerified ||
               (user.email != null && user.email!.isNotEmpty),
@@ -264,13 +274,13 @@ class AuthService {
         await _userRepository.updateUser(userModel);
       } else {
         if (!isSignUp) {
-          // CASE 4: No AutoShare account is associated with this Google account.
+          // No AutoShare account is associated with this Google account.
           try {
             await _auth.signOut();
             if (!kIsWeb) await _googleSignIn.signOut();
           } catch (_) {}
           return const Failure(
-            'No AutoShare account is associated with this Google account. Please create an account first.',
+            'Account not found. Please create an account to get started.',
             AuthException('user-not-found'),
           );
         }
