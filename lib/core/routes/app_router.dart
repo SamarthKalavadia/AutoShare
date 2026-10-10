@@ -79,7 +79,17 @@ class AppRouter {
       ),
       GoRoute(
         path: '/register',
-        builder: (context, state) => const RegisterPage(),
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final initialName = extra?['name'] as String? ??
+              state.uri.queryParameters['name'];
+          final initialEmail = extra?['email'] as String? ??
+              state.uri.queryParameters['email'];
+          return RegisterPage(
+            initialName: initialName,
+            initialEmail: initialEmail,
+          );
+        },
       ),
       GoRoute(
         path: '/forgot-password',

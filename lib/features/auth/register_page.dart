@@ -19,7 +19,14 @@ import 'presentation/widgets/validation_text.dart';
 import '../../core/localization/app_localizations.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
-  const RegisterPage({super.key});
+  final String? initialName;
+  final String? initialEmail;
+
+  const RegisterPage({
+    super.key,
+    this.initialName,
+    this.initialEmail,
+  });
 
   @override
   ConsumerState<RegisterPage> createState() => _RegisterPageState();
@@ -40,6 +47,17 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   Uint8List? _selectedImageBytes;
   bool _acceptedTerms = false;
   AuthAction _authAction = AuthAction.idle;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialName != null && widget.initialName!.trim().isNotEmpty) {
+      _nameController.text = widget.initialName!.trim();
+    }
+    if (widget.initialEmail != null && widget.initialEmail!.trim().isNotEmpty) {
+      _emailController.text = widget.initialEmail!.trim();
+    }
+  }
 
   @override
   void dispose() {

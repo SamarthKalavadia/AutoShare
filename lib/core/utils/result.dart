@@ -31,6 +31,17 @@ class AuthException extends AppException {
   const AuthException(super.message);
 }
 
+/// Custom exception indicating an account was not found in the database.
+class UserNotFoundException extends AuthException {
+  final String? email;
+  final String? name;
+  const UserNotFoundException({
+    this.email,
+    this.name,
+    String message = 'user-not-found',
+  }) : super(message);
+}
+
 /// Custom exception for Firestore database related errors.
 class FirestoreException extends AppException {
   const FirestoreException(super.message);

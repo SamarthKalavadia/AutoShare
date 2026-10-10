@@ -251,8 +251,12 @@ class AuthService {
         }
       }
 
+      // Check whether this account has completed AutoShare registration (has phone number)
+      final bool isRegisteredUser = existingUser != null &&
+          existingUser.phone.trim().isNotEmpty;
+
       UserModel userModel;
-      if (existingUser != null) {
+      if (isRegisteredUser) {
         final existingName = existingUser.name;
         final resolvedName = (existingName.isNotEmpty && existingName.toLowerCase() != 'user')
             ? existingName
@@ -274,16 +278,54 @@ class AuthService {
           isOnline: true,
         );
         await _userRepository.updateUser(userModel);
+
+        if (existingUser.uid != user.uid) {
+          final syncedForCurrentUid = userModel.copyWith(uid: user.uid);
+          await _userRepository.createUser(syncedForCurrentUid);
+        }
       } else {
         if (!isSignUp) {
-          // No AutoShare account is associated with this Google account.
+          final existing = existingUser;
+          final googleEmail = user.email ?? existing?.email ?? '';
+          final googleName = (user.displayName != null &&
+                  user.displayName!.isNotEmpty &&
+                  user.displayName!.toLowerCase() != 'user')
+              ? user.displayName!
+              : (existing != null &&
+                      existing.name.isNotEmpty &&
+                      existing.name.toLowerCase() != 'user'
+                  ? existing.name
+                  : (googleEmail.contains('@')
+                      ? googleEmail.split('@').first
+                      : ''));
+
+          // Clean up incomplete / stub document if any exists
+          if (existingUser != null && existingUser.phone.trim().isEmpty) {
+            try {
+              await _userRepository.deleteUser(user.uid);
+              if (existingUser.uid != user.uid) {
+                await _userRepository.deleteUser(existingUser.uid);
+              }
+            } catch (_) {}
+          }
+
+          // Delete temporary Firebase Auth user so email is not locked for registration
+          try {
+            await user.delete();
+          } catch (_) {}
           try {
             await _auth.signOut();
             if (!kIsWeb) await _googleSignIn.signOut();
           } catch (_) {}
-          return const Failure(
-            'Account not found. Please create an account to get started.',
-            AuthException('user-not-found'),
+
+          return Failure(
+            'Account not found! New to AutoShare? Please create an account first.',
+            UserNotFoundException(
+              email: googleEmail,
+              name: googleName,
+              message:
+                  'Account not found! New to AutoShare? Please create an account first.',
+            ),
           );
         }
 

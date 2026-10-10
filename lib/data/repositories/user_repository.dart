@@ -24,6 +24,11 @@ class UserRepository {
       return user;
     }
 
+    // Do NOT write phantom updates to Firestore if the user document is empty/unregistered
+    if (user.phone.trim().isEmpty) {
+      return user;
+    }
+
     bool needsUpdate = false;
     final Map<String, dynamic> updates = {};
     var healed = user;
@@ -111,7 +116,9 @@ class UserRepository {
               .timeout(const Duration(seconds: 8));
           if (querySnap.docs.isNotEmpty) {
             final user = UserModel.fromDocument(querySnap.docs.first);
-            return Success(_healUserIfNeeded(user, uid, fbUser));
+            if (user.phone.trim().isNotEmpty) {
+              return Success(_healUserIfNeeded(user, uid, fbUser));
+            }
           }
         } catch (_) {}
 
@@ -122,6 +129,12 @@ class UserRepository {
       }
 
       final rawUser = UserModel.fromDocument(doc);
+      if (rawUser.phone.trim().isEmpty) {
+        return const Failure(
+          'User not registered.',
+          FirestoreException('User document does not contain completed registration data.'),
+        );
+      }
       return Success(_healUserIfNeeded(rawUser, uid, fbUser));
     } on FirebaseException catch (e) {
       debugPrint('UserRepository.getUser FirebaseException: $e');
@@ -392,7 +405,10 @@ class UserRepository {
           .get()
           .timeout(const Duration(seconds: 8));
       if (snapshot.docs.isNotEmpty) {
-        return Success(UserModel.fromDocument(snapshot.docs.first));
+        final user = UserModel.fromDocument(snapshot.docs.first);
+        if (user.phone.trim().isNotEmpty) {
+          return Success(user);
+        }
       }
 
       // Check original case as fallback
@@ -403,7 +419,10 @@ class UserRepository {
             .get()
             .timeout(const Duration(seconds: 8));
         if (snapOriginal.docs.isNotEmpty) {
-          return Success(UserModel.fromDocument(snapOriginal.docs.first));
+          final user = UserModel.fromDocument(snapOriginal.docs.first);
+          if (user.phone.trim().isNotEmpty) {
+            return Success(user);
+          }
         }
       }
 

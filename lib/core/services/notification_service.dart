@@ -332,10 +332,19 @@ class NotificationService {
       }
 
       // Also listen to auth state changes so session restoration or login auto-syncs FCM
-      FirebaseAuth.instance.authStateChanges().listen((user) {
+      FirebaseAuth.instance.authStateChanges().listen((user) async {
         if (user != null && user.uid.isNotEmpty) {
-          syncFcmToken(user.uid);
-          startListening(user.uid);
+          try {
+            final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+            if (doc.exists) {
+              final data = doc.data();
+              final phone = (data?['phone']?.toString() ?? '').trim();
+              if (phone.isNotEmpty) {
+                syncFcmToken(user.uid);
+                startListening(user.uid);
+              }
+            }
+          } catch (_) {}
         }
       });
     } catch (e) {
@@ -510,7 +519,20 @@ class NotificationService {
           'fcmTokens': [token],
           'lastTokenUpdated': FieldValue.serverTimestamp(),
         };
-        await FirebaseFirestore.instance.collection('users').doc(uid).set(
+        final docRef = FirebaseFirestore.instance.collection('users').doc(uid);
+        final doc = await docRef.get();
+        if (!doc.exists) {
+          // Do NOT create phantom documents for users who haven't completed registration
+          return;
+        }
+        final data = doc.data();
+        final phone = (data?['phone']?.toString() ?? '').trim();
+        if (phone.isEmpty) {
+          // Do NOT update stub documents
+          return;
+        }
+
+        await docRef.set(
           updateData,
           SetOptions(merge: true),
         );
