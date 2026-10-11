@@ -163,12 +163,21 @@ class RideModel extends Equatable {
   }
 
   factory RideModel.fromMap(Map<String, dynamic> map, String docId) {
-    final rawTotalSeats =
-        (map['totalSeats'] ?? map['availableSeats'])?.toInt() ?? 1;
+    final parsedTotal = (map['totalSeats'] as num?)?.toInt();
+    final parsedAvailable = (map['availableSeats'] as num?)?.toInt();
+    final parsedAccepted = (map['acceptedPassengerCount'] as num?)?.toInt();
+
+    final rawTotalSeats = (parsedTotal != null && parsedTotal > 0)
+        ? parsedTotal
+        : (((parsedAvailable ?? 0) + (parsedAccepted ?? 0) > 0)
+            ? ((parsedAvailable ?? 0) + (parsedAccepted ?? 0))
+            : (parsedAvailable != null && parsedAvailable > 0
+                ? parsedAvailable
+                : 1));
     final rawAvailableSeats =
         map['availableSeats']?.toInt() ?? rawTotalSeats;
-    final rawAccepted = map['acceptedPassengerCount']?.toInt() ??
-        (rawTotalSeats - rawAvailableSeats).clamp(0, rawTotalSeats);
+    final rawAccepted = parsedAccepted ??
+        (rawTotalSeats - rawAvailableSeats).clamp(0, rawTotalSeats).toInt();
 
     return RideModel(
       id: docId,

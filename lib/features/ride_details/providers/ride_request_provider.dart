@@ -144,11 +144,14 @@ class RideRequestNotifier extends Notifier<RideRequestState> {
     }
 
     final freshRide = (freshRideResult as Success<RideModel>).data;
-    if (state.requestedSeats > freshRide.availableSeats) {
+    final freshAvailable = freshRide.availableSeats > 0
+        ? freshRide.availableSeats
+        : freshRide.remainingSeats;
+    if (state.requestedSeats > freshAvailable) {
       state = state.copyWith(
         isLoading: false,
         error:
-            'Seats were just filled. Only ${freshRide.availableSeats} seat(s) remain.',
+            'Seats were just filled. Only $freshAvailable seat(s) remain.',
       );
       return;
     }
@@ -215,10 +218,15 @@ final liveAvailableSeatsProvider =
       requests.where((r) => r.status == RideRequestStatus.accepted);
   final acceptedSeats =
       acceptedRequests.fold<int>(0, (sum, req) => sum + req.requestedSeats);
+  final totalCap = liveRide.totalSeats > 0
+      ? liveRide.totalSeats
+      : (ride.totalSeats > 0 ? ride.totalSeats : 2);
   if (requests.isNotEmpty) {
-    return (liveRide.totalSeats - acceptedSeats).clamp(0, liveRide.totalSeats);
+    return (totalCap - acceptedSeats).clamp(0, totalCap);
   }
-  return liveRide.remainingSeats;
+  return liveRide.remainingSeats > 0
+      ? liveRide.remainingSeats
+      : (totalCap - liveRide.acceptedPassengerCount).clamp(0, totalCap);
 });
 
 final liveAcceptedPassengersProvider =

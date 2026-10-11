@@ -74,7 +74,7 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
   bool get _isClosed =>
       widget.ride.status == 'completed' || widget.ride.status == 'cancelled';
 
-  String? _getDisabledReason(BuildContext context, RideModel ride) {
+  String? _getDisabledReason(BuildContext context, RideModel ride, int liveSeats) {
     if (_isOwnRide) return context.l10n.thisIsYourOwnRide;
     if (_isClosed) {
       return widget.ride.status == 'completed'
@@ -82,7 +82,10 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
           : context.l10n.rideWasCancelled;
     }
     if (_isExpired) return context.l10n.rideAlreadyDeparted;
-    if (ride.remainingSeats <= 0 || ride.availableSeats <= 0) {
+    final effectiveSeats = liveSeats > 0
+        ? liveSeats
+        : (ride.remainingSeats > 0 ? ride.remainingSeats : ride.availableSeats);
+    if (effectiveSeats <= 0) {
       return 'This ride is already full.';
     }
     return null;
@@ -121,10 +124,7 @@ class _RideDetailsPageState extends ConsumerState<RideDetailsPage>
     );
     final existingReq = existingReqAsync.value;
 
-    String? disabledReason = _getDisabledReason(context, currentRide);
-    if (disabledReason == null && liveSeats <= 0) {
-      disabledReason = 'This ride is already full.';
-    }
+    String? disabledReason = _getDisabledReason(context, currentRide, liveSeats);
     if (disabledReason == null && existingReq != null) {
       if (existingReq.status == RideRequestStatus.pending) {
         disabledReason = context.l10n.pending;

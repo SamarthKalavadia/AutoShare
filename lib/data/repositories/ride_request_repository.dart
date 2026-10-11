@@ -375,15 +375,25 @@ class RideRequestRepository {
             throw Exception('Ride does not exist.');
           }
           final rideData = rideSnap.data() as Map<String, dynamic>? ?? {};
-          final totalSeats = (rideData['totalSeats'] ??
-                  rideData['availableSeats']) as int? ??
-              1;
-          final currentAvailable =
-              (rideData['availableSeats'] as int?) ?? totalSeats;
-          final currentAccepted =
-              (rideData['acceptedPassengerCount'] as int?) ??
-                  (totalSeats - currentAvailable).clamp(0, totalSeats);
-          final requestedSeats = request.requestedSeats;
+
+          final parsedTotal = (rideData['totalSeats'] as num?)?.toInt();
+          final parsedAvailable = (rideData['availableSeats'] as num?)?.toInt();
+          final parsedAccepted =
+              (rideData['acceptedPassengerCount'] as num?)?.toInt() ?? 0;
+
+          final totalSeats = (parsedTotal != null && parsedTotal > 0)
+              ? parsedTotal
+              : ((parsedAvailable != null && (parsedAvailable + parsedAccepted) > 0)
+                  ? (parsedAvailable + parsedAccepted)
+                  : (parsedAvailable != null && parsedAvailable > 0
+                      ? parsedAvailable
+                      : 2));
+
+          final currentAvailable = parsedAvailable ??
+              (totalSeats - parsedAccepted).clamp(0, totalSeats);
+          final currentAccepted = parsedAccepted;
+          final requestedSeats =
+              request.requestedSeats > 0 ? request.requestedSeats : 1;
 
           if (currentAvailable < requestedSeats || currentAvailable <= 0) {
             throw Exception('This ride is already full.');
@@ -391,9 +401,10 @@ class RideRequestRepository {
 
           rideOwnerUid =
               (rideData['driverId'] as String? ?? request.ownerUid).trim();
-          updatedAcceptedCount = currentAccepted + requestedSeats;
+          updatedAcceptedCount =
+              (currentAccepted + requestedSeats).clamp(0, totalSeats);
           updatedRemainingSeats =
-              (currentAvailable - requestedSeats).clamp(0, totalSeats);
+              (totalSeats - updatedAcceptedCount).clamp(0, totalSeats);
 
           final totalFare =
               ((rideData['totalFare'] ?? rideData['farePerSeat']) as num?)
@@ -578,10 +589,9 @@ class RideRequestRepository {
           wasAccepted = currentReqStatus == RideRequestStatus.accepted.name;
 
           // READ 2: If was accepted, read the ride document BEFORE performing ANY writes
-          DocumentSnapshot<Map<String, dynamic>>? rideSnap;
+          DocumentSnapshot? rideSnap;
           if (wasAccepted) {
-            rideSnap = await transaction.get(rideRef)
-                as DocumentSnapshot<Map<String, dynamic>>?;
+            rideSnap = await transaction.get(rideRef);
           }
 
           // ALL READS ARE COMPLETE. NOW PERFORM ALL WRITES:
@@ -593,23 +603,28 @@ class RideRequestRepository {
 
           // WRITE 2: Restore seats and update fare if previously accepted
           if (wasAccepted && rideSnap != null && rideSnap.exists) {
-            final rideData = rideSnap.data() ?? {};
-            final totalSeats = (rideData['totalSeats'] ??
-                    rideData['availableSeats']) as int? ??
-                2;
+            final rideData = rideSnap.data() as Map<String, dynamic>? ?? {};
+            final parsedTotal = (rideData['totalSeats'] as num?)?.toInt();
             final currentAvailable =
-                (rideData['availableSeats'] as int?) ?? 0;
+                (rideData['availableSeats'] as num?)?.toInt() ?? 0;
             final currentAccepted =
-                (rideData['acceptedPassengerCount'] as int?) ??
-                    (totalSeats - currentAvailable).clamp(0, totalSeats);
-            final requestedSeats = request.requestedSeats;
+                (rideData['acceptedPassengerCount'] as num?)?.toInt() ?? 0;
+
+            final totalSeats = (parsedTotal != null && parsedTotal > 0)
+                ? parsedTotal
+                : ((currentAvailable + currentAccepted > 0)
+                    ? (currentAvailable + currentAccepted)
+                    : 2);
+
+            final requestedSeats =
+                request.requestedSeats > 0 ? request.requestedSeats : 1;
 
             rideOwnerUid =
                 (rideData['driverId'] as String? ?? request.ownerUid).trim();
             updatedAcceptedCount =
                 (currentAccepted - requestedSeats).clamp(0, totalSeats);
             updatedRemainingSeats =
-                (currentAvailable + requestedSeats).clamp(0, totalSeats);
+                (totalSeats - updatedAcceptedCount).clamp(0, totalSeats);
 
             final totalFare =
                 ((rideData['totalFare'] ?? rideData['farePerSeat']) as num?)
@@ -634,12 +649,94 @@ class RideRequestRepository {
         await reqRef
             .update({'status': RideRequestStatus.cancelled.name})
             .catchError((_) {});
+
+        if (wasAccepted) {
+          try {
+            final rSnap = await rideRef.get().timeout(const Duration(seconds: 3));
+            if (rSnap.exists) {
+              final rData = rSnap.data() as Map<String, dynamic>? ?? {};
+              final pTotal = (rData['totalSeats'] as num?)?.toInt();
+              final curAvail = (rData['availableSeats'] as num?)?.toInt() ?? 0;
+              final curAcc = (rData['acceptedPassengerCount'] as num?)?.toInt() ?? 0;
+              final totSeats = (pTotal != null && pTotal > 0)
+                  ? pTotal
+                  : ((curAvail + curAcc > 0) ? (curAvail + curAcc) : 2);
+              final reqSeats =
+                  request.requestedSeats > 0 ? request.requestedSeats : 1;
+              final newAcc = (curAcc - reqSeats).clamp(0, totSeats);
+              final newRem = (totSeats - newAcc).clamp(0, totSeats);
+              final totFare =
+                  ((rData['totalFare'] ?? rData['farePerSeat']) as num?)
+                          ?.toDouble() ??
+                      0.0;
+              final totPeople = 1 + newAcc;
+              final newFare =
+                  totPeople > 0 ? (totFare / totPeople) : totFare;
+
+              updatedRemainingSeats = newRem;
+              updatedAcceptedCount = newAcc;
+              updatedFarePerPerson = newFare;
+
+              await rideRef.update({
+                'availableSeats': newRem,
+                'acceptedPassengerCount': newAcc,
+                'totalSeats': totSeats,
+                'currentFarePerPerson': newFare,
+                'farePerSeat': newFare,
+              }).timeout(const Duration(seconds: 3));
+            }
+          } catch (err) {
+            debugPrint(
+                '[RideRequestRepository] cancelRequest fallback ride update error: $err');
+          }
+        }
       } catch (e) {
         debugPrint(
             '[RideRequestRepository] cancelRequest transaction error: $e');
         await reqRef
             .update({'status': RideRequestStatus.cancelled.name})
             .catchError((_) {});
+
+        if (wasAccepted) {
+          try {
+            final rSnap = await rideRef.get().timeout(const Duration(seconds: 3));
+            if (rSnap.exists) {
+              final rData = rSnap.data() as Map<String, dynamic>? ?? {};
+              final pTotal = (rData['totalSeats'] as num?)?.toInt();
+              final curAvail = (rData['availableSeats'] as num?)?.toInt() ?? 0;
+              final curAcc = (rData['acceptedPassengerCount'] as num?)?.toInt() ?? 0;
+              final totSeats = (pTotal != null && pTotal > 0)
+                  ? pTotal
+                  : ((curAvail + curAcc > 0) ? (curAvail + curAcc) : 2);
+              final reqSeats =
+                  request.requestedSeats > 0 ? request.requestedSeats : 1;
+              final newAcc = (curAcc - reqSeats).clamp(0, totSeats);
+              final newRem = (totSeats - newAcc).clamp(0, totSeats);
+              final totFare =
+                  ((rData['totalFare'] ?? rData['farePerSeat']) as num?)
+                          ?.toDouble() ??
+                      0.0;
+              final totPeople = 1 + newAcc;
+              final newFare =
+                  totPeople > 0 ? (totFare / totPeople) : totFare;
+
+              updatedRemainingSeats = newRem;
+              updatedAcceptedCount = newAcc;
+              updatedFarePerPerson = newFare;
+
+              await rideRef.update({
+                'availableSeats': newRem,
+                'acceptedPassengerCount': newAcc,
+                'totalSeats': totSeats,
+                'currentFarePerPerson': newFare,
+                'farePerSeat': newFare,
+              }).timeout(const Duration(seconds: 3));
+            }
+          } catch (err) {
+            debugPrint(
+                '[RideRequestRepository] cancelRequest fallback ride update error: $err');
+          }
+        }
       }
 
       if (wasAlreadyCancelled) {
