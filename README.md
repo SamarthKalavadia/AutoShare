@@ -364,21 +364,6 @@ flutter build apk --release
 
 ---
 
-## 🎤 Presentation & Pitch Walkthrough
-
-When presenting AutoShare to an audience, evaluators, or investors, use this structured 3-minute pitch:
-
-| Slide / Step | What to Show / Say | Key Highlight |
-| :--- | :--- | :--- |
-| **1. Hook & Problem** | Show college commute scenario — crowded buses, expensive single-occupancy cabs, students traveling to the same campus alone. | *"Why pay ₹150 for an auto when 3 classmates are driving the exact same route with empty seats?"* |
-| **2. Solution Demo** | Open **AutoShare** on screen. Highlight the modern clean UI, dark mode support, and seamless Google Sign-In. | *"AutoShare connects campus drivers with co-commuters to share travel expenses with zero platform commission."* |
-| **3. Driver Flow** | Tap **Create Ride**. Select route from college to railway station using Google Map pin. Set departure time & ₹120 total fare. | *"Drivers cannot overcharge. The system enforces safety margins (45 mins advance) and max 2 seats."* |
-| **4. Passenger Flow** | Switch to passenger view. Search rides. Show **Dynamic Cost Sharing** live: Fare drops automatically from ₹120 to ₹60 to ₹40 as people join! | *"Our dynamic algorithm automatically cuts travel costs for every rider without manual price negotiation."* |
-| **5. Safety & Features** | Demonstrate the **Women-Only** filter switch, live in-app chat, driver rating card, and phone verification. | *"Women-only rides, campus verification, and star ratings make safety the top priority."* |
-| **6. Tech Highlights** | Mention **Flutter + Riverpod** for 60fps UI, **Firestore** for real-time sync, **FCM** for push alerts, **Google Maps** for routes. | *"Built on an enterprise-ready, serverless cloud architecture capable of scaling instantly."* |
-
----
-
 ## 🔮 Future Roadmap
 
 - [ ] **Integrated UPI / Wallet Payments**: Automatic digital split settlements via Razorpay or PhonePe UPI gateway.
